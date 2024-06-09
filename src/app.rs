@@ -16,10 +16,13 @@ const DEBOUNCE: Duration = Duration::from_millis(20); // 50 FPS
 
 impl<'a> App<'a> {
     pub fn new(items: Vec<TreeItem<'a, String>>) -> Self {
-        Self {
-            state: TreeState::default(),
-            items,
+        // initial state has all top-level documents expanded
+        let mut state = TreeState::default();
+        for item in &items {
+            state.open(vec![item.identifier().clone()]);
         }
+
+        Self { state, items }
     }
 
     fn draw(&mut self, frame: &mut Frame) {
