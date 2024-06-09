@@ -3,6 +3,16 @@ name = "rust-mongo"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lints.clippy]
+pedantic = "warn"
+nursery = "warn"
 
 [dependencies]
+anyhow = "1.0.86"
+crossterm = "0.27.0"
+futures = "0.3.30"
+mongodb = "2.8.2"
+ratatui = "0.26.3"
+serde_json = "1.0.117"
+tokio = { version = "1.38.0", features = ["full"] }
+tui-tree-widget = "0.20.0"
