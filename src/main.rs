@@ -1,26 +1,42 @@
 use anyhow::Result;
 use app::App;
+use clap::Parser;
 use futures::TryStreamExt;
 use mongodb::{bson::Bson, options::ClientOptions, Client};
 use tui::{restore_terminal, setup_terminal};
 use tui_tree_widget::TreeItem;
 
-const DB_NAME: &str = "deeb";
-const COLLECTION_NAME: &str = "stuff";
-
 mod app;
 mod tree;
 mod tui;
 
+#[derive(Parser)]
+#[command(author)]
+pub struct Args {
+    /// The connection string for the mongo server
+    #[arg(long, short)]
+    url: String,
+
+    /// The name of the database to connect to
+    #[arg(long, short)]
+    database: String,
+
+    /// The name of the collection to load
+    #[arg(long, short)]
+    collection: String,
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
-    let client_options = ClientOptions::parse("mongodb://localhost:27017").await?;
+    let args = Args::parse();
+
+    let client_options = ClientOptions::parse(args.url).await?;
     let client = Client::with_options(client_options)?;
 
-    let db = client.database(DB_NAME);
+    let db = client.database(&args.database);
 
     let items: Vec<TreeItem<String>> = db
-        .collection::<Bson>(COLLECTION_NAME)
+        .collection::<Bson>(&args.collection)
         .find(None, None)
         .await?
         .try_collect::<Vec<Bson>>()
