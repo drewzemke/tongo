@@ -1,15 +1,14 @@
 use anyhow::Result;
 use app::App;
 use clap::Parser;
-use futures::TryStreamExt;
-use mongodb::{bson::Bson, options::ClientOptions, Client};
+use mongodb::{options::ClientOptions, Client};
 use tui::{restore_terminal, setup_terminal};
-use tui_tree_widget::TreeItem;
 
 mod app;
 mod tree;
 mod tui;
 
+/// A TUI for viewing mongo databases.
 #[derive(Parser)]
 #[command(author)]
 pub struct Args {
@@ -32,23 +31,10 @@ async fn main() -> Result<()> {
 
     let client_options = ClientOptions::parse(args.url).await?;
     let client = Client::with_options(client_options)?;
-
     let db = client.database(&args.database);
 
-    let items: Vec<TreeItem<String>> = db
-        .collection::<Bson>(&args.collection)
-        .find(None, None)
-        .await?
-        .try_collect::<Vec<Bson>>()
-        .await?
-        .iter()
-        .map(|x| tree::top_level_document(x.as_document().unwrap()))
-        .collect();
-
     let mut terminal = setup_terminal()?;
-
-    // App
-    let mut app = App::new(items);
+    let mut app = App::new(db, args.collection.clone());
     let res = app.run(&mut terminal);
 
     restore_terminal(terminal)?;

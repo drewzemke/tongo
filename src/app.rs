@@ -1,35 +1,102 @@
+#![allow(clippy::cast_possible_wrap)]
+
+use crate::tree::top_level_document;
 use crossterm::event::{Event, KeyCode, KeyModifiers, MouseEventKind};
+use futures::TryStreamExt;
+use mongodb::{bson::Bson, options::FindOptions, Database};
 use ratatui::{
     layout::Position,
     prelude::*,
     widgets::{Block, Scrollbar, ScrollbarOrientation},
 };
-use std::time::{Duration, Instant};
+use std::{
+    sync::mpsc::{self, Receiver, Sender},
+    time::{Duration, Instant},
+};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
+
+const PAGE_SIZE: usize = 5;
 
 pub struct App<'a> {
     state: TreeState<String>,
     items: Vec<TreeItem<'a, String>>,
+
+    collection_name: String,
+    db: Database,
+
+    page: usize,
+
+    query_send: Sender<Vec<Bson>>,
+    query_recv: Receiver<Vec<Bson>>,
 }
 
 const DEBOUNCE: Duration = Duration::from_millis(20); // 50 FPS
 
 impl<'a> App<'a> {
-    pub fn new(items: Vec<TreeItem<'a, String>>) -> Self {
+    pub fn new(db: Database, collection_name: String) -> Self {
+        let (query_send, query_recv) = mpsc::channel::<Vec<Bson>>();
+
+        Self {
+            state: TreeState::default(),
+            items: vec![],
+            collection_name,
+            db,
+            page: 0,
+            query_send,
+            query_recv,
+        }
+    }
+
+    fn exec_query(&self) {
+        let sender = self.query_send.clone();
+        let db = self.db.clone();
+        let collection_name = self.collection_name.clone();
+
+        let skip = self.page * PAGE_SIZE;
+        let mut options = FindOptions::default();
+        options.skip = Some(skip as u64);
+
+        options.limit = Some(PAGE_SIZE as i64);
+
+        tokio::spawn(async move {
+            let result: Vec<Bson> = db
+                .collection::<Bson>(&collection_name)
+                .find(None, options)
+                .await
+                .unwrap()
+                .try_collect::<Vec<Bson>>()
+                .await
+                .unwrap();
+
+            // FIXME: Need a way (maybe another channel) to communicate to the UI
+            // that the sync failed
+            sender
+                .send(result)
+                .expect("Error occurred while processing server response.");
+        });
+    }
+
+    fn update_content(&mut self, content: &[Bson]) {
+        let items: Vec<TreeItem<String>> = content
+            .iter()
+            .map(|x| top_level_document(x.as_document().unwrap()))
+            .collect();
+
         // initial state has all top-level documents expanded
         let mut state = TreeState::default();
         for item in &items {
             state.open(vec![item.identifier().clone()]);
         }
 
-        Self { state, items }
+        self.items = items;
+        self.state = state;
     }
 
     fn draw(&mut self, frame: &mut Frame) {
         let area = frame.size();
         let widget = Tree::new(&self.items)
             .expect("all item identifiers are unique")
-            .block(Block::bordered().title("Collection"))
+            .block(Block::bordered().title(self.collection_name.clone()))
             .experimental_scrollbar(Some(
                 Scrollbar::new(ScrollbarOrientation::VerticalRight)
                     .begin_symbol(None)
@@ -46,6 +113,8 @@ impl<'a> App<'a> {
     }
 
     pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> std::io::Result<()> {
+        // initial query and draw call
+        self.exec_query();
         terminal.draw(|frame| self.draw(frame))?;
 
         let mut debounce: Option<Instant> = None;
@@ -53,8 +122,8 @@ impl<'a> App<'a> {
         loop {
             let timeout =
                 debounce.map_or(DEBOUNCE, |start| DEBOUNCE.saturating_sub(start.elapsed()));
-            if crossterm::event::poll(timeout)? {
-                let update = match crossterm::event::read()? {
+            let mut update = if crossterm::event::poll(timeout)? {
+                match crossterm::event::read()? {
                     Event::Key(key) => match key.code {
                         KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                             return Ok(())
@@ -70,6 +139,20 @@ impl<'a> App<'a> {
                         KeyCode::End => self.state.select_last(),
                         KeyCode::PageDown => self.state.scroll_down(3),
                         KeyCode::PageUp => self.state.scroll_up(3),
+                        KeyCode::Char('n') => {
+                            self.page += 1;
+                            self.exec_query();
+                            true
+                        }
+                        KeyCode::Char('p') => {
+                            if self.page > 0 {
+                                self.page -= 1;
+                                self.exec_query();
+                                true
+                            } else {
+                                false
+                            }
+                        }
                         _ => false,
                     },
                     Event::Mouse(mouse) => match mouse.kind {
@@ -82,10 +165,17 @@ impl<'a> App<'a> {
                     },
                     Event::Resize(_, _) => true,
                     _ => false,
-                };
-                if update {
-                    debounce.get_or_insert_with(Instant::now);
                 }
+            } else {
+                false
+            };
+
+            if let Ok(content) = self.query_recv.try_recv() {
+                update = true;
+                self.update_content(&content);
+            }
+            if update {
+                debounce.get_or_insert_with(Instant::now);
             }
             if debounce.is_some_and(|debounce| debounce.elapsed() > DEBOUNCE) {
                 terminal.draw(|frame| {
