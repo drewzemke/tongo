@@ -139,11 +139,13 @@ impl<'a> App<'a> {
                         KeyCode::End => self.state.select_last(),
                         KeyCode::PageDown => self.state.scroll_down(3),
                         KeyCode::PageUp => self.state.scroll_up(3),
+                        // next page
                         KeyCode::Char('n') => {
                             self.page += 1;
                             self.exec_query();
                             true
                         }
+                        // previous page
                         KeyCode::Char('p') => {
                             if self.page > 0 {
                                 self.page -= 1;
@@ -152,6 +154,11 @@ impl<'a> App<'a> {
                             } else {
                                 false
                             }
+                        }
+                        // refresh
+                        KeyCode::Char('r') => {
+                            self.exec_query();
+                            false
                         }
                         _ => false,
                     },
