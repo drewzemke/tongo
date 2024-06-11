@@ -5,8 +5,8 @@ use tui_tree_widget::TreeItem;
 pub fn top_level_document<'a>(doc: &Document) -> TreeItem<'a, String> {
     let id = doc
         .get("_id")
-        .and_then(Bson::as_object_id)
-        .map_or("(id missing)".to_string(), |id| id.to_string());
+        .expect("all mongo documents should have an '_id' field");
+    let id = bson_to_string(id);
 
     TreeItem::new(
         id.clone(),
@@ -17,7 +17,9 @@ pub fn top_level_document<'a>(doc: &Document) -> TreeItem<'a, String> {
 }
 
 fn doc_children<'a>(doc: &Document) -> Vec<TreeItem<'a, String>> {
-    doc.iter().map(|(key, value)| bson(value, key)).collect()
+    doc.iter()
+        .map(|(key, value)| bson_to_tree_item(value, key))
+        .collect()
 }
 
 fn key_val_leaf<'a, 'b>(key: &'a str, value: &'a str, color: Color) -> TreeItem<'b, String> {
@@ -38,7 +40,7 @@ fn document<'a, 'b>(doc: &'a Document, key: &'a str) -> TreeItem<'b, String> {
         Line::from(vec![
             Span::styled(key.to_string(), Style::default().white()),
             Span::from(" "),
-            Span::styled("(object)", Style::default().gray()),
+            // Span::styled("(object)", Style::default().gray()),
         ]),
         doc_children(doc),
     )
@@ -49,42 +51,59 @@ fn array<'a, 'b>(arr: &'a [Bson], key: &'a str) -> TreeItem<'b, String> {
     let elements: Vec<TreeItem<'_, String>> = arr
         .iter()
         .enumerate()
-        .map(|(index, value)| bson(value, &format!("[{index}]")))
+        .map(|(index, value)| bson_to_tree_item(value, &format!("[{index}]")))
         .collect();
     TreeItem::new(
         key.to_string(),
         Line::from(vec![
             Span::styled(key.to_string(), Style::default().white()),
             Span::from(" "),
-            Span::styled("(array)", Style::default().gray()),
+            Span::styled(
+                format!("({} elements)", elements.len()),
+                Style::default().gray(),
+            ),
         ]),
         elements,
     )
     .expect("document keys are unique")
 }
 
-fn bson<'a, 'b>(bson: &'a Bson, key: &'a str) -> TreeItem<'b, String> {
+fn bson_to_tree_item<'a, 'b>(bson: &'a Bson, key: &'a str) -> TreeItem<'b, String> {
     match bson {
-        Bson::ObjectId(id) => key_val_leaf(key, &format!("ObjectId({id})"), Color::White),
-        Bson::String(s) => key_val_leaf(key, &format!("\"{s}\""), Color::Green),
-        Bson::Boolean(b) => key_val_leaf(key, &b.to_string(), Color::Cyan),
-
-        Bson::Double(n) => key_val_leaf(key, &n.to_string(), Color::Yellow),
-        Bson::Decimal128(n) => key_val_leaf(key, &n.to_string(), Color::Yellow),
-        Bson::Int32(n) => key_val_leaf(key, &n.to_string(), Color::Yellow),
-        Bson::Int64(n) => key_val_leaf(key, &n.to_string(), Color::Yellow),
-
-        Bson::Null => key_val_leaf(key, "null", Color::Gray),
-        Bson::Undefined => key_val_leaf(key, "undefined", Color::Gray),
-
         Bson::Document(doc) => document(doc, key),
         Bson::Array(arr) => array(arr, key),
+        bson => key_val_leaf(key, &bson_to_string(bson), bson_color(bson)),
+    }
+}
 
-        Bson::Timestamp(t) => key_val_leaf(key, &t.to_string(), Color::Magenta),
-        Bson::DateTime(d) => key_val_leaf(key, &d.to_string(), Color::Magenta),
+fn bson_to_string(bson: &Bson) -> String {
+    match bson {
+        Bson::ObjectId(id) => format!("ObjectId({id})"),
+        Bson::String(s) => format!("\"{s}\""),
+        Bson::Boolean(b) => b.to_string(),
 
-        Bson::Binary(_) => key_val_leaf(key, "(binary)", Color::Gray),
+        Bson::Double(n) => n.to_string(),
+        Bson::Decimal128(n) => n.to_string(),
+        Bson::Int32(n) => n.to_string(),
+        Bson::Int64(n) => n.to_string(),
 
-        _ => key_val_leaf(key, &format!("{bson:?}"), Color::Gray),
+        Bson::Null => "null".to_string(),
+        Bson::Undefined => "undefined".to_string(),
+
+        Bson::Timestamp(t) => t.to_string(),
+        Bson::DateTime(d) => d.to_string(),
+
+        other => format!("{other:?}"),
+    }
+}
+
+const fn bson_color(bson: &Bson) -> Color {
+    match bson {
+        Bson::ObjectId(_d) => Color::White,
+        Bson::String(_) => Color::Green,
+        Bson::Boolean(_) => Color::Cyan,
+        Bson::Double(_) | Bson::Decimal128(_) | Bson::Int32(_) | Bson::Int64(_) => Color::Yellow,
+        Bson::Timestamp(_) | Bson::DateTime(_) => Color::Magenta,
+        _ => Color::Gray,
     }
 }
