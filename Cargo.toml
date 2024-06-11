@@ -1,7 +1,16 @@
 [package]
-name = "rust-mongo"
+name = "mongodb-tui"
+authors = ["Drew Zemke"]
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "A TUI for MongoDB"
+repository = "https://github.com/drewzemke/margit"
+readme = "README.md"
+
+[[bin]]
+name = "margit"
+path = "src/main.rs"
 
 [lints.clippy]
 pedantic = "warn"
