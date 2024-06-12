@@ -15,14 +15,6 @@ pub struct Args {
     /// The connection string for the mongo server
     #[arg(long, short)]
     url: String,
-
-    /// The name of the database to connect to
-    #[arg(long, short)]
-    database: String,
-
-    /// The name of the collection to load
-    #[arg(long, short)]
-    collection: String,
 }
 
 #[tokio::main]
@@ -31,10 +23,9 @@ async fn main() -> Result<()> {
 
     let client_options = ClientOptions::parse(args.url).await?;
     let client = Client::with_options(client_options)?;
-    let db = client.database(&args.database);
 
     let mut terminal = setup_terminal()?;
-    let mut app = App::new(db, args.collection.clone());
+    let mut app = App::new(client);
     let res = app.run(&mut terminal);
 
     restore_terminal(terminal)?;

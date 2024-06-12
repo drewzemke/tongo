@@ -927,6 +927,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "mongodb-tui"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "crossterm",
+ "futures",
+ "mongodb",
+ "ratatui",
+ "serde_json",
+ "tokio",
+ "tui-tree-widget",
+]
+
+[[package]]
 name = "num-conv"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1146,21 +1161,6 @@ dependencies = [
  "spin",
  "untrusted",
  "windows-sys 0.52.0",
-]
-
-[[package]]
-name = "rust-mongo"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "crossterm",
- "futures",
- "mongodb",
- "ratatui",
- "serde_json",
- "tokio",
- "tui-tree-widget",
 ]
 
 [[package]]
