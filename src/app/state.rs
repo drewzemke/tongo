@@ -9,6 +9,7 @@ use mongodb::{
 };
 use ratatui::widgets::ListState;
 use std::sync::mpsc::{self, Receiver, Sender};
+use tui_input::Input;
 use tui_tree_widget::{TreeItem, TreeState};
 
 const PAGE_SIZE: usize = 5;
@@ -25,6 +26,7 @@ pub enum MongoResponse {
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Mode {
     Navigating,
+    EditingFilter,
     Exiting,
 }
 
@@ -32,6 +34,7 @@ pub enum Mode {
 pub enum WidgetFocus {
     DatabaseList,
     CollectionList,
+    FilterEditor,
     MainView,
 }
 
@@ -57,6 +60,9 @@ pub struct State<'a> {
     pub colls: Vec<CollectionSpecification>,
     pub coll_state: ListState,
 
+    // filter input
+    pub filter: Input,
+
     pub new_data: bool,
 }
 
@@ -80,6 +86,8 @@ impl<'a> State<'a> {
 
             colls: vec![],
             coll_state: ListState::default(),
+
+            filter: Input::default(),
 
             new_data: false,
         }

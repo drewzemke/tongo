@@ -26,4 +26,5 @@ mongodb = "2.8.2"
 ratatui = "0.26.3"
 serde_json = "1.0.117"
 tokio = { version = "1.38.0", features = ["full"] }
+tui-input = "0.8.0"
 tui-tree-widget = "0.20.0"

@@ -1,5 +1,5 @@
-use super::state::State;
-use crossterm::event::Event;
+use super::state::{Mode, State, WidgetFocus};
+use crossterm::event::{Event, KeyCode};
 use ratatui::{
     prelude::*,
     style::{Color, Style},
@@ -16,6 +16,18 @@ impl<'a> StatefulWidget for FilterInput<'a> {
     type State = State<'a>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        let focused = state.focus == WidgetFocus::FilterEditor;
+        let editing = state.mode == Mode::EditingFilter;
+        let border_color = if focused {
+            if editing {
+                Color::Yellow
+            } else {
+                Color::Green
+            }
+        } else {
+            Color::White
+        };
+
         // figure the right amount to scroll the input by
         let input_scroll = state.filter.visual_scroll(area.width as usize - 2);
         #[allow(clippy::cast_possible_truncation)]
@@ -23,8 +35,8 @@ impl<'a> StatefulWidget for FilterInput<'a> {
             .scroll((0, input_scroll as u16))
             .block(
                 Block::default()
-                    .title("New Todo")
-                    .border_style(Style::default().fg(Color::Yellow))
+                    .title("Filter")
+                    .border_style(Style::default().fg(border_color))
                     .borders(Borders::ALL),
             );
 
@@ -34,12 +46,30 @@ impl<'a> StatefulWidget for FilterInput<'a> {
 }
 
 impl<'a> FilterInput<'a> {
-    pub fn reset(state: &mut State) {
-        state.filter.reset();
-    }
-
     pub fn handle_event(event: &Event, state: &mut State) -> bool {
-        state.filter.handle_event(event).is_some()
+        match state.mode {
+            Mode::EditingFilter => match event {
+                Event::Key(key) => match key.code {
+                    KeyCode::Esc => {
+                        state.mode = Mode::Navigating;
+                        true
+                    }
+                    _ => state.filter.handle_event(event).is_some(),
+                },
+                _ => false,
+            },
+            Mode::Navigating => match event {
+                Event::Key(key) => match key.code {
+                    KeyCode::Enter => {
+                        state.mode = Mode::EditingFilter;
+                        true
+                    }
+                    _ => false,
+                },
+                _ => false,
+            },
+            Mode::Exiting => false,
+        }
     }
 
     pub fn cursor_position(state: &State, area: Rect) -> (u16, u16) {
