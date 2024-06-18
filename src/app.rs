@@ -6,7 +6,7 @@ use self::{
     coll_list::CollList,
     db_list::DbList,
     main_view::MainView,
-    state::{State, WidgetFocus},
+    state::{Mode, State, WidgetFocus},
 };
 use crossterm::event::{Event, KeyCode, KeyModifiers};
 use mongodb::Client;
@@ -70,64 +70,15 @@ impl<'a> App<'a> {
                 debounce.map_or(DEBOUNCE, |start| DEBOUNCE.saturating_sub(start.elapsed()));
             let mut update = if crossterm::event::poll(timeout)? {
                 let event = crossterm::event::read()?;
-                match event {
-                    Event::Key(key) => match key.code {
-                        KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                            return Ok(())
-                        }
-                        KeyCode::Char('q') => return Ok(()),
-                        KeyCode::Char('J') => {
-                            self.state.focus = match self.state.focus {
-                                WidgetFocus::DatabaseList => WidgetFocus::CollectionList,
-                                m => m,
-                            };
-                            true
-                        }
-                        KeyCode::Char('K') => {
-                            self.state.focus = match self.state.focus {
-                                WidgetFocus::CollectionList => WidgetFocus::DatabaseList,
-                                m => m,
-                            };
-                            true
-                        }
-                        KeyCode::Char('H') => {
-                            self.state.focus = match self.state.focus {
-                                WidgetFocus::MainView => WidgetFocus::CollectionList,
-                                m => m,
-                            };
-                            true
-                        }
-                        KeyCode::Char('L') => {
-                            self.state.focus = WidgetFocus::MainView;
-                            true
-                        }
-                        KeyCode::Esc => {
-                            self.state.focus = match self.state.focus {
-                                WidgetFocus::DatabaseList | WidgetFocus::CollectionList => {
-                                    WidgetFocus::DatabaseList
-                                }
-                                WidgetFocus::MainView => WidgetFocus::CollectionList,
-                            };
-                            true
-                        }
-                        _ => match self.state.focus {
-                            WidgetFocus::DatabaseList => {
-                                DbList::handle_event(&event, &mut self.state)
-                            }
-                            WidgetFocus::CollectionList => {
-                                CollList::handle_event(&event, &mut self.state)
-                            }
-                            WidgetFocus::MainView => {
-                                MainView::handle_event(&event, &mut self.state)
-                            }
-                        },
-                    },
-                    Event::Resize(_, _) => true,
-                    _ => false,
-                }
+                self.handle_event(&event)
             } else {
                 false
             };
+
+            // exit if the app is in an exiting state
+            if self.state.mode == Mode::Exiting {
+                return Ok(());
+            }
 
             if self.state.new_data {
                 update = true;
@@ -139,6 +90,62 @@ impl<'a> App<'a> {
                     self.draw(frame);
                 })?;
             }
+        }
+    }
+
+    fn handle_event(&mut self, event: &Event) -> bool {
+        match event {
+            Event::Key(key) => match key.code {
+                KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                    self.state.mode = Mode::Exiting;
+                    true
+                }
+                KeyCode::Char('q') => {
+                    self.state.mode = Mode::Exiting;
+                    true
+                }
+                KeyCode::Char('J') => {
+                    self.state.focus = match self.state.focus {
+                        WidgetFocus::DatabaseList => WidgetFocus::CollectionList,
+                        m => m,
+                    };
+                    true
+                }
+                KeyCode::Char('K') => {
+                    self.state.focus = match self.state.focus {
+                        WidgetFocus::CollectionList => WidgetFocus::DatabaseList,
+                        m => m,
+                    };
+                    true
+                }
+                KeyCode::Char('H') => {
+                    self.state.focus = match self.state.focus {
+                        WidgetFocus::MainView => WidgetFocus::CollectionList,
+                        m => m,
+                    };
+                    true
+                }
+                KeyCode::Char('L') => {
+                    self.state.focus = WidgetFocus::MainView;
+                    true
+                }
+                KeyCode::Esc => {
+                    self.state.focus = match self.state.focus {
+                        WidgetFocus::DatabaseList | WidgetFocus::CollectionList => {
+                            WidgetFocus::DatabaseList
+                        }
+                        WidgetFocus::MainView => WidgetFocus::CollectionList,
+                    };
+                    true
+                }
+                _ => match self.state.focus {
+                    WidgetFocus::DatabaseList => DbList::handle_event(event, &mut self.state),
+                    WidgetFocus::CollectionList => CollList::handle_event(event, &mut self.state),
+                    WidgetFocus::MainView => MainView::handle_event(event, &mut self.state),
+                },
+            },
+            Event::Resize(_, _) => true,
+            _ => false,
         }
     }
 }

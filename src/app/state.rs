@@ -23,6 +23,12 @@ pub enum MongoResponse {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Mode {
+    Navigating,
+    Exiting,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum WidgetFocus {
     DatabaseList,
     CollectionList,
@@ -31,6 +37,7 @@ pub enum WidgetFocus {
 
 pub struct State<'a> {
     pub focus: WidgetFocus,
+    pub mode: Mode,
 
     client: Client,
     response_send: Sender<MongoResponse>,
@@ -58,6 +65,7 @@ impl<'a> State<'a> {
         let (response_send, response_recv) = mpsc::channel::<MongoResponse>();
         Self {
             client,
+            mode: Mode::Navigating,
             focus: WidgetFocus::DatabaseList,
             count: 0,
             page: 0,
