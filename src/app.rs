@@ -6,7 +6,7 @@ use self::{
     coll_list::CollList,
     db_list::DbList,
     main_view::MainView,
-    state::{Mode, State},
+    state::{State, WidgetFocus},
 };
 use crossterm::event::{Event, KeyCode, KeyModifiers};
 use mongodb::Client;
@@ -77,45 +77,49 @@ impl<'a> App<'a> {
                         }
                         KeyCode::Char('q') => return Ok(()),
                         KeyCode::Char('J') => {
-                            self.state.mode = match self.state.mode {
-                                Mode::ChoosingDatabase => Mode::ChoosingCollection,
+                            self.state.focus = match self.state.focus {
+                                WidgetFocus::DatabaseList => WidgetFocus::CollectionList,
                                 m => m,
                             };
                             true
                         }
                         KeyCode::Char('K') => {
-                            self.state.mode = match self.state.mode {
-                                Mode::ChoosingCollection => Mode::ChoosingDatabase,
+                            self.state.focus = match self.state.focus {
+                                WidgetFocus::CollectionList => WidgetFocus::DatabaseList,
                                 m => m,
                             };
                             true
                         }
                         KeyCode::Char('H') => {
-                            self.state.mode = match self.state.mode {
-                                Mode::MainView => Mode::ChoosingCollection,
+                            self.state.focus = match self.state.focus {
+                                WidgetFocus::MainView => WidgetFocus::CollectionList,
                                 m => m,
                             };
                             true
                         }
                         KeyCode::Char('L') => {
-                            self.state.mode = Mode::MainView;
+                            self.state.focus = WidgetFocus::MainView;
                             true
                         }
                         KeyCode::Esc => {
-                            self.state.mode = match self.state.mode {
-                                Mode::ChoosingDatabase | Mode::ChoosingCollection => {
-                                    Mode::ChoosingDatabase
+                            self.state.focus = match self.state.focus {
+                                WidgetFocus::DatabaseList | WidgetFocus::CollectionList => {
+                                    WidgetFocus::DatabaseList
                                 }
-                                Mode::MainView => Mode::ChoosingCollection,
+                                WidgetFocus::MainView => WidgetFocus::CollectionList,
                             };
                             true
                         }
-                        _ => match self.state.mode {
-                            Mode::ChoosingDatabase => DbList::handle_event(&event, &mut self.state),
-                            Mode::ChoosingCollection => {
+                        _ => match self.state.focus {
+                            WidgetFocus::DatabaseList => {
+                                DbList::handle_event(&event, &mut self.state)
+                            }
+                            WidgetFocus::CollectionList => {
                                 CollList::handle_event(&event, &mut self.state)
                             }
-                            Mode::MainView => MainView::handle_event(&event, &mut self.state),
+                            WidgetFocus::MainView => {
+                                MainView::handle_event(&event, &mut self.state)
+                            }
                         },
                     },
                     Event::Resize(_, _) => true,

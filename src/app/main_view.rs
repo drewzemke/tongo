@@ -6,7 +6,7 @@ use ratatui::{
 };
 use tui_tree_widget::Tree;
 
-use super::state::{Mode, State};
+use super::state::{State, WidgetFocus};
 
 const PAGE_SIZE: usize = 5;
 
@@ -19,7 +19,7 @@ impl<'a> StatefulWidget for MainView<'a> {
     type State = State<'a>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let focused = state.mode == Mode::MainView;
+        let focused = state.focus == WidgetFocus::MainView;
         let border_color = if focused { Color::Green } else { Color::White };
 
         let start = state.page * PAGE_SIZE + 1;

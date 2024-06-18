@@ -5,7 +5,7 @@ use ratatui::{
     widgets::{Block, List, ListItem, StatefulWidget},
 };
 
-use super::state::{Mode, State};
+use super::state::{State, WidgetFocus};
 
 #[derive(Debug, Default)]
 pub struct DbList<'a> {
@@ -16,7 +16,7 @@ impl<'a> StatefulWidget for DbList<'a> {
     type State = State<'a>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let focused = state.mode == Mode::ChoosingDatabase;
+        let focused = state.focus == WidgetFocus::DatabaseList;
         let border_color = if focused { Color::Green } else { Color::White };
 
         let items: Vec<ListItem> = state
@@ -57,7 +57,7 @@ impl<'a> DbList<'a> {
                     true
                 }
                 KeyCode::Enter => {
-                    state.mode = Mode::ChoosingCollection;
+                    state.focus = WidgetFocus::CollectionList;
                     true
                 }
                 _ => false,

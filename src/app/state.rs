@@ -23,14 +23,14 @@ pub enum MongoResponse {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum Mode {
-    ChoosingDatabase,
-    ChoosingCollection,
+pub enum WidgetFocus {
+    DatabaseList,
+    CollectionList,
     MainView,
 }
 
 pub struct State<'a> {
-    pub mode: Mode,
+    pub focus: WidgetFocus,
 
     client: Client,
     response_send: Sender<MongoResponse>,
@@ -58,7 +58,7 @@ impl<'a> State<'a> {
         let (response_send, response_recv) = mpsc::channel::<MongoResponse>();
         Self {
             client,
-            mode: Mode::ChoosingDatabase,
+            focus: WidgetFocus::DatabaseList,
             count: 0,
             page: 0,
             response_send,

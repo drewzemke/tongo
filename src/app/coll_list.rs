@@ -5,7 +5,7 @@ use ratatui::{
     widgets::{Block, List, ListItem, StatefulWidget},
 };
 
-use super::state::{Mode, State};
+use super::state::{State, WidgetFocus};
 
 #[derive(Debug, Default)]
 pub struct CollList<'a> {
@@ -16,7 +16,7 @@ impl<'a> StatefulWidget for CollList<'a> {
     type State = State<'a>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let focused = state.mode == Mode::ChoosingCollection;
+        let focused = state.focus == WidgetFocus::CollectionList;
         let border_color = if focused { Color::Green } else { Color::White };
 
         let items: Vec<ListItem> = state
@@ -51,7 +51,7 @@ impl<'a> CollList<'a> {
                 KeyCode::Enter => {
                     state.exec_query();
                     state.exec_count();
-                    state.mode = Mode::MainView;
+                    state.focus = WidgetFocus::MainView;
                     false
                 }
                 _ => false,
