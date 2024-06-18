@@ -46,11 +46,11 @@ pub struct State<'a> {
     pub main_view_items: Vec<TreeItem<'a, String>>,
 
     // database list
-    pub db_names: Vec<String>,
+    pub dbs: Vec<DatabaseSpecification>,
     pub db_list_state: ListState,
 
     // collection list
-    pub coll_names: Vec<String>,
+    pub colls: Vec<CollectionSpecification>,
     pub coll_list_state: ListState,
 
     pub new_data: bool,
@@ -72,14 +72,28 @@ impl<'a> State<'a> {
             main_view_state: TreeState::default(),
             main_view_items: vec![],
 
-            db_names: vec![],
+            dbs: vec![],
             db_list_state: ListState::default(),
 
-            coll_names: vec![],
+            colls: vec![],
             coll_list_state: ListState::default(),
 
             new_data: false,
         }
+    }
+
+    fn selected_db_name(&self) -> Option<&String> {
+        self.db_list_state
+            .selected()
+            .and_then(|i| self.dbs.get(i))
+            .map(|db| &db.name)
+    }
+
+    fn selected_coll_name(&self) -> Option<&String> {
+        self.coll_list_state
+            .selected()
+            .and_then(|i| self.colls.get(i))
+            .map(|coll| &coll.name)
     }
 
     pub fn exec_get_dbs(&self) {
@@ -97,12 +111,7 @@ impl<'a> State<'a> {
     }
 
     pub fn exec_get_collections(&self) {
-        // there should be a db and collection
-        let Some(db_name) = self
-            .db_list_state
-            .selected()
-            .and_then(|i| self.db_names.get(i))
-        else {
+        let Some(db_name) = self.selected_db_name() else {
             return;
         };
 
@@ -123,19 +132,11 @@ impl<'a> State<'a> {
     }
 
     pub fn exec_query(&self) {
-        // there should be a db and collection
-        let Some(db_name) = self
-            .db_list_state
-            .selected()
-            .and_then(|i| self.db_names.get(i))
-        else {
+        let Some(db_name) = self.selected_db_name() else {
             return;
         };
-        let Some(coll_name) = self
-            .coll_list_state
-            .selected()
-            .and_then(|i| self.coll_names.get(i))
-        else {
+
+        let Some(coll_name) = self.selected_coll_name() else {
             return;
         };
 
@@ -166,18 +167,11 @@ impl<'a> State<'a> {
     }
 
     pub fn exec_count(&self) {
-        let Some(db_name) = self
-            .db_list_state
-            .selected()
-            .and_then(|i| self.db_names.get(i))
-        else {
+        let Some(db_name) = self.selected_db_name() else {
             return;
         };
-        let Some(coll_name) = self
-            .coll_list_state
-            .selected()
-            .and_then(|i| self.coll_names.get(i))
-        else {
+
+        let Some(coll_name) = self.selected_coll_name() else {
             return;
         };
 
@@ -217,11 +211,9 @@ impl<'a> State<'a> {
                 self.main_view_state = state;
             }
             MongoResponse::Count(count) => self.count = count,
-            MongoResponse::Databases(dbs) => {
-                self.db_names = dbs.iter().map(|db| db.name.clone()).collect();
-            }
+            MongoResponse::Databases(dbs) => self.dbs = dbs,
             MongoResponse::Collections(colls) => {
-                self.coll_names = colls.iter().map(|coll| coll.name.clone()).collect();
+                self.colls = colls;
                 self.coll_list_state.select(None);
             }
             MongoResponse::Error(_) => todo!("Need to implement better handling."),

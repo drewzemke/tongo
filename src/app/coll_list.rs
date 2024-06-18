@@ -20,9 +20,9 @@ impl<'a> StatefulWidget for CollList<'a> {
         let border_color = if focused { Color::Green } else { Color::White };
 
         let items: Vec<ListItem> = state
-            .coll_names
+            .colls
             .iter()
-            .map(|db_name| ListItem::new(db_name.clone()))
+            .map(|coll| ListItem::new(coll.name.clone()))
             .collect();
 
         let list = List::new(items)
@@ -64,7 +64,7 @@ impl<'a> CollList<'a> {
     fn next(state: &mut State) -> bool {
         let i = match state.coll_list_state.selected() {
             Some(i) => {
-                if i >= state.coll_names.len() - 1 {
+                if i >= state.colls.len() - 1 {
                     0
                 } else {
                     i + 1
@@ -80,12 +80,12 @@ impl<'a> CollList<'a> {
         let i = match state.coll_list_state.selected() {
             Some(i) => {
                 if i == 0 {
-                    state.coll_names.len() - 1
+                    state.colls.len() - 1
                 } else {
                     i - 1
                 }
             }
-            None => state.coll_names.len() - 1,
+            None => state.colls.len() - 1,
         };
         state.coll_list_state.select(Some(i));
         true

@@ -20,9 +20,9 @@ impl<'a> StatefulWidget for DbList<'a> {
         let border_color = if focused { Color::Green } else { Color::White };
 
         let items: Vec<ListItem> = state
-            .db_names
+            .dbs
             .iter()
-            .map(|db_name| ListItem::new(db_name.clone()))
+            .map(|db| ListItem::new(db.name.clone()))
             .collect();
 
         let list = List::new(items)
@@ -70,7 +70,7 @@ impl<'a> DbList<'a> {
     fn next(state: &mut State) -> bool {
         let i = match state.db_list_state.selected() {
             Some(i) => {
-                if i >= state.db_names.len() - 1 {
+                if i >= state.dbs.len() - 1 {
                     0
                 } else {
                     i + 1
@@ -86,12 +86,12 @@ impl<'a> DbList<'a> {
         let i = match state.db_list_state.selected() {
             Some(i) => {
                 if i == 0 {
-                    state.db_names.len() - 1
+                    state.dbs.len() - 1
                 } else {
                     i - 1
                 }
             }
-            None => state.db_names.len() - 1,
+            None => state.dbs.len() - 1,
         };
         state.db_list_state.select(Some(i));
         true
