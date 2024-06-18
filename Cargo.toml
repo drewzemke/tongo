@@ -15,6 +15,7 @@ path = "src/main.rs"
 [lints.clippy]
 pedantic = "warn"
 nursery = "warn"
+unwrap_used = "warn"
 
 [dependencies]
 anyhow = "1.0.86"
