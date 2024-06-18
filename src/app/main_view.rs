@@ -25,14 +25,7 @@ impl<'a> StatefulWidget for MainView<'a> {
         let start = state.page * PAGE_SIZE + 1;
         let end = (start + PAGE_SIZE - 1).min(state.count as usize);
 
-        let title = format!(
-            "{} ({start}-{end} of {})",
-            state
-                .collection_name
-                .clone()
-                .unwrap_or_else(|| "Documents".to_string()),
-            state.count
-        );
+        let title = format!("Documents ({start}-{end} of {})", state.count);
 
         let widget = Tree::new(&state.main_view_items)
             .expect("all item identifiers are unique")

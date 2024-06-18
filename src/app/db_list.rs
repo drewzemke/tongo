@@ -38,7 +38,7 @@ impl<'a> StatefulWidget for DbList<'a> {
                     .fg(Color::White),
             );
 
-        StatefulWidget::render(list, area, buf, &mut state.db_list_state);
+        StatefulWidget::render(list, area, buf, &mut state.db_state);
     }
 }
 
@@ -68,7 +68,7 @@ impl<'a> DbList<'a> {
     }
 
     fn next(state: &mut State) -> bool {
-        let i = match state.db_list_state.selected() {
+        let i = match state.db_state.selected() {
             Some(i) => {
                 if i >= state.dbs.len() - 1 {
                     0
@@ -78,12 +78,12 @@ impl<'a> DbList<'a> {
             }
             None => 0,
         };
-        state.db_list_state.select(Some(i));
+        state.db_state.select(Some(i));
         true
     }
 
     fn previous(state: &mut State) -> bool {
-        let i = match state.db_list_state.selected() {
+        let i = match state.db_state.selected() {
             Some(i) => {
                 if i == 0 {
                     state.dbs.len() - 1
@@ -93,7 +93,7 @@ impl<'a> DbList<'a> {
             }
             None => state.dbs.len() - 1,
         };
-        state.db_list_state.select(Some(i));
+        state.db_state.select(Some(i));
         true
     }
 }

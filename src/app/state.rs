@@ -5,7 +5,7 @@ use mongodb::{
     bson::Bson,
     options::FindOptions,
     results::{CollectionSpecification, DatabaseSpecification},
-    Client, Database,
+    Client,
 };
 use ratatui::widgets::ListState;
 use std::sync::mpsc::{self, Receiver, Sender};
@@ -31,73 +31,68 @@ pub enum Mode {
 
 pub struct State<'a> {
     pub mode: Mode,
+
     client: Client,
-
-    pub collection_name: Option<String>,
-    pub db: Option<Database>,
-    pub page: usize,
-    pub count: u64,
-
-    query_send: Sender<MongoResponse>,
-    pub query_recv: Receiver<MongoResponse>,
+    response_send: Sender<MongoResponse>,
+    pub response_recv: Receiver<MongoResponse>,
 
     // main view
     pub main_view_state: TreeState<String>,
     pub main_view_items: Vec<TreeItem<'a, String>>,
+    pub page: usize,
+    pub count: u64,
 
     // database list
     pub dbs: Vec<DatabaseSpecification>,
-    pub db_list_state: ListState,
+    pub db_state: ListState,
 
     // collection list
     pub colls: Vec<CollectionSpecification>,
-    pub coll_list_state: ListState,
+    pub coll_state: ListState,
 
     pub new_data: bool,
 }
 
 impl<'a> State<'a> {
     pub fn new(client: Client) -> Self {
-        let (query_send, query_recv) = mpsc::channel::<MongoResponse>();
+        let (response_send, response_recv) = mpsc::channel::<MongoResponse>();
         Self {
             client,
             mode: Mode::ChoosingDatabase,
             count: 0,
-            collection_name: None,
-            db: None,
             page: 0,
-            query_send,
-            query_recv,
+            response_send,
+            response_recv,
 
             main_view_state: TreeState::default(),
             main_view_items: vec![],
 
             dbs: vec![],
-            db_list_state: ListState::default(),
+            db_state: ListState::default(),
 
             colls: vec![],
-            coll_list_state: ListState::default(),
+            coll_state: ListState::default(),
 
             new_data: false,
         }
     }
 
     fn selected_db_name(&self) -> Option<&String> {
-        self.db_list_state
+        self.db_state
             .selected()
             .and_then(|i| self.dbs.get(i))
             .map(|db| &db.name)
     }
 
     fn selected_coll_name(&self) -> Option<&String> {
-        self.coll_list_state
+        self.coll_state
             .selected()
             .and_then(|i| self.colls.get(i))
             .map(|coll| &coll.name)
     }
 
     pub fn exec_get_dbs(&self) {
-        let sender = self.query_send.clone();
+        let sender = self.response_send.clone();
         let client = self.client.clone();
 
         tokio::spawn(async move {
@@ -116,7 +111,7 @@ impl<'a> State<'a> {
         };
 
         let db = self.client.database(db_name);
-        let sender = self.query_send.clone();
+        let sender = self.response_send.clone();
 
         tokio::spawn(async move {
             let resonse = match db.list_collections(None, None).await {
@@ -142,7 +137,7 @@ impl<'a> State<'a> {
 
         let db = self.client.database(db_name);
         let collection_name = coll_name.clone();
-        let sender = self.query_send.clone();
+        let sender = self.response_send.clone();
 
         let skip = self.page * PAGE_SIZE;
         let mut options = FindOptions::default();
@@ -177,7 +172,7 @@ impl<'a> State<'a> {
 
         let db = self.client.database(db_name);
         let collection_name = coll_name.clone();
-        let sender = self.query_send.clone();
+        let sender = self.response_send.clone();
 
         tokio::spawn(async move {
             let response = db
@@ -214,7 +209,7 @@ impl<'a> State<'a> {
             MongoResponse::Databases(dbs) => self.dbs = dbs,
             MongoResponse::Collections(colls) => {
                 self.colls = colls;
-                self.coll_list_state.select(None);
+                self.coll_state.select(None);
             }
             MongoResponse::Error(_) => todo!("Need to implement better handling."),
         };

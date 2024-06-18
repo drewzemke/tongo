@@ -38,7 +38,7 @@ impl<'a> StatefulWidget for CollList<'a> {
                     .fg(Color::White),
             );
 
-        StatefulWidget::render(list, area, buf, &mut state.coll_list_state);
+        StatefulWidget::render(list, area, buf, &mut state.coll_state);
     }
 }
 
@@ -62,7 +62,7 @@ impl<'a> CollList<'a> {
     }
 
     fn next(state: &mut State) -> bool {
-        let i = match state.coll_list_state.selected() {
+        let i = match state.coll_state.selected() {
             Some(i) => {
                 if i >= state.colls.len() - 1 {
                     0
@@ -72,12 +72,12 @@ impl<'a> CollList<'a> {
             }
             None => 0,
         };
-        state.coll_list_state.select(Some(i));
+        state.coll_state.select(Some(i));
         true
     }
 
     fn previous(state: &mut State) -> bool {
-        let i = match state.coll_list_state.selected() {
+        let i = match state.coll_state.selected() {
             Some(i) => {
                 if i == 0 {
                     state.colls.len() - 1
@@ -87,7 +87,7 @@ impl<'a> CollList<'a> {
             }
             None => state.colls.len() - 1,
         };
-        state.coll_list_state.select(Some(i));
+        state.coll_state.select(Some(i));
         true
     }
 }

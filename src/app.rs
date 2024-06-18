@@ -62,7 +62,7 @@ impl<'a> App<'a> {
 
         loop {
             // check for respones
-            if let Ok(content) = self.state.query_recv.try_recv() {
+            if let Ok(content) = self.state.response_recv.try_recv() {
                 self.state.update_content(content);
             }
 
