@@ -2,7 +2,7 @@
 use crate::tree::top_level_document;
 use futures::TryStreamExt;
 use mongodb::{
-    bson::Bson,
+    bson::{Bson, Document},
     options::FindOptions,
     results::{CollectionSpecification, DatabaseSpecification},
     Client,
@@ -60,8 +60,9 @@ pub struct State<'a> {
     pub colls: Vec<CollectionSpecification>,
     pub coll_state: ListState,
 
-    // filter input
-    pub filter: Input,
+    // filter
+    pub filter_input: Input,
+    pub filter: Option<Document>,
 
     pub new_data: bool,
 }
@@ -87,7 +88,8 @@ impl<'a> State<'a> {
             colls: vec![],
             coll_state: ListState::default(),
 
-            filter: Input::default(),
+            filter_input: Input::default(),
+            filter: None,
 
             new_data: false,
         }
@@ -155,6 +157,7 @@ impl<'a> State<'a> {
         let collection_name = coll_name.clone();
         let sender = self.response_send.clone();
 
+        let filter = self.filter.clone();
         let skip = self.page * PAGE_SIZE;
         let mut options = FindOptions::default();
         options.skip = Some(skip as u64);
@@ -163,7 +166,7 @@ impl<'a> State<'a> {
         tokio::spawn(async move {
             let cursor = db
                 .collection::<Bson>(&collection_name)
-                .find(None, options)
+                .find(filter, options)
                 .await;
             let response = match cursor {
                 Ok(cursor) => cursor.try_collect::<Vec<_>>().await.map_or_else(
@@ -189,11 +192,12 @@ impl<'a> State<'a> {
         let db = self.client.database(db_name);
         let collection_name = coll_name.clone();
         let sender = self.response_send.clone();
+        let filter = self.filter.clone();
 
         tokio::spawn(async move {
             let response = db
                 .collection::<Bson>(&collection_name)
-                .count_documents(None, None)
+                .count_documents(filter, None)
                 .await
                 .map_or_else(
                     |err| MongoResponse::Error(err.to_string()),

@@ -1,5 +1,6 @@
 use super::state::{Mode, State, WidgetFocus};
 use crossterm::event::{Event, KeyCode};
+use mongodb::bson::Document;
 use ratatui::{
     prelude::*,
     style::{Color, Style},
@@ -29,9 +30,9 @@ impl<'a> StatefulWidget for FilterInput<'a> {
         };
 
         // figure the right amount to scroll the input by
-        let input_scroll = state.filter.visual_scroll(area.width as usize - 2);
+        let input_scroll = state.filter_input.visual_scroll(area.width as usize - 2);
         #[allow(clippy::cast_possible_truncation)]
-        let input_widget = Paragraph::new(state.filter.value())
+        let input_widget = Paragraph::new(state.filter_input.value())
             .scroll((0, input_scroll as u16))
             .block(
                 Block::default()
@@ -50,11 +51,21 @@ impl<'a> FilterInput<'a> {
         match state.mode {
             Mode::EditingFilter => match event {
                 Event::Key(key) => match key.code {
+                    KeyCode::Enter => {
+                        if let Some(doc) = Self::process_input(state) {
+                            state.filter = Some(doc);
+                            state.exec_query();
+                            state.exec_count();
+                            state.mode = Mode::Navigating;
+                            state.focus = WidgetFocus::MainView;
+                        }
+                        true
+                    }
                     KeyCode::Esc => {
                         state.mode = Mode::Navigating;
                         true
                     }
-                    _ => state.filter.handle_event(event).is_some(),
+                    _ => state.filter_input.handle_event(event).is_some(),
                 },
                 _ => false,
             },
@@ -73,11 +84,19 @@ impl<'a> FilterInput<'a> {
     }
 
     pub fn cursor_position(state: &State, area: Rect) -> (u16, u16) {
-        let input_scroll = state.filter.visual_scroll(area.width as usize - 2);
+        let input_scroll = state.filter_input.visual_scroll(area.width as usize - 2);
         #[allow(clippy::cast_possible_truncation)]
         (
-            area.x + (state.filter.visual_cursor().max(input_scroll) - input_scroll) as u16 + 1,
+            area.x
+                + (state.filter_input.visual_cursor().max(input_scroll) - input_scroll) as u16
+                + 1,
             area.y + 1,
         )
+    }
+
+    fn process_input(state: &State) -> Option<Document> {
+        let filter_str = state.filter_input.value();
+        let filter = serde_json::from_str::<serde_json::Value>(filter_str).ok()?;
+        mongodb::bson::to_document(&filter).ok()
     }
 }
