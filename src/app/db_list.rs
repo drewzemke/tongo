@@ -1,11 +1,17 @@
+use super::state::{State, WidgetFocus};
 use crossterm::event::{Event, KeyCode};
+use mongodb::results::DatabaseSpecification;
 use ratatui::{
     prelude::*,
     style::{Color, Modifier, Style},
-    widgets::{Block, List, ListItem, StatefulWidget},
+    widgets::{Block, List, ListItem, ListState, StatefulWidget},
 };
 
-use super::state::{State, WidgetFocus};
+#[derive(Debug, Default)]
+pub struct DatabaseListState {
+    pub items: Vec<DatabaseSpecification>,
+    pub state: ListState,
+}
 
 #[derive(Debug, Default)]
 pub struct DbList<'a> {
@@ -20,7 +26,8 @@ impl<'a> StatefulWidget for DbList<'a> {
         let border_color = if focused { Color::Green } else { Color::White };
 
         let items: Vec<ListItem> = state
-            .dbs
+            .db_list
+            .items
             .iter()
             .map(|db| ListItem::new(db.name.clone()))
             .collect();
@@ -38,7 +45,7 @@ impl<'a> StatefulWidget for DbList<'a> {
                     .fg(Color::White),
             );
 
-        StatefulWidget::render(list, area, buf, &mut state.db_state);
+        StatefulWidget::render(list, area, buf, &mut state.db_list.state);
     }
 }
 
@@ -68,9 +75,9 @@ impl<'a> DbList<'a> {
     }
 
     fn next(state: &mut State) -> bool {
-        let i = match state.db_state.selected() {
+        let i = match state.db_list.state.selected() {
             Some(i) => {
-                if i >= state.dbs.len() - 1 {
+                if i >= state.db_list.items.len() - 1 {
                     0
                 } else {
                     i + 1
@@ -78,22 +85,22 @@ impl<'a> DbList<'a> {
             }
             None => 0,
         };
-        state.db_state.select(Some(i));
+        state.db_list.state.select(Some(i));
         true
     }
 
     fn previous(state: &mut State) -> bool {
-        let i = match state.db_state.selected() {
+        let i = match state.db_list.state.selected() {
             Some(i) => {
                 if i == 0 {
-                    state.dbs.len() - 1
+                    state.db_list.items.len() - 1
                 } else {
                     i - 1
                 }
             }
-            None => state.dbs.len() - 1,
+            None => state.db_list.items.len() - 1,
         };
-        state.db_state.select(Some(i));
+        state.db_list.state.select(Some(i));
         true
     }
 }

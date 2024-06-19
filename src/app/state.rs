@@ -1,15 +1,18 @@
 #![allow(clippy::struct_field_names)]
+
+use super::{
+    coll_list::CollectionListState, db_list::DatabaseListState, filter_input::FilterEditorState,
+    main_view::MainViewState,
+};
 use crate::tree::top_level_document;
 use futures::TryStreamExt;
 use mongodb::{
-    bson::{Bson, Document},
+    bson::Bson,
     options::FindOptions,
     results::{CollectionSpecification, DatabaseSpecification},
     Client,
 };
-use ratatui::widgets::ListState;
 use std::sync::mpsc::{self, Receiver, Sender};
-use tui_input::Input;
 use tui_tree_widget::{TreeItem, TreeState};
 
 const PAGE_SIZE: usize = 5;
@@ -46,23 +49,11 @@ pub struct State<'a> {
     response_send: Sender<MongoResponse>,
     pub response_recv: Receiver<MongoResponse>,
 
-    // main view
-    pub main_view_state: TreeState<String>,
-    pub main_view_items: Vec<TreeItem<'a, String>>,
-    pub page: usize,
-    pub count: u64,
-
-    // database list
-    pub dbs: Vec<DatabaseSpecification>,
-    pub db_state: ListState,
-
-    // collection list
-    pub colls: Vec<CollectionSpecification>,
-    pub coll_state: ListState,
-
-    // filter
-    pub filter_input: Input,
-    pub filter: Option<Document>,
+    // widget states
+    pub main_view: MainViewState<'a>,
+    pub db_list: DatabaseListState,
+    pub coll_list: CollectionListState,
+    pub filter_editor: FilterEditorState,
 
     pub new_data: bool,
 }
@@ -71,41 +62,35 @@ impl<'a> State<'a> {
     pub fn new(client: Client) -> Self {
         let (response_send, response_recv) = mpsc::channel::<MongoResponse>();
         Self {
-            client,
-            mode: Mode::Navigating,
             focus: WidgetFocus::DatabaseList,
-            count: 0,
-            page: 0,
+            mode: Mode::Navigating,
+
+            client,
             response_send,
             response_recv,
 
-            main_view_state: TreeState::default(),
-            main_view_items: vec![],
-
-            dbs: vec![],
-            db_state: ListState::default(),
-
-            colls: vec![],
-            coll_state: ListState::default(),
-
-            filter_input: Input::default(),
-            filter: None,
+            main_view: MainViewState::default(),
+            db_list: DatabaseListState::default(),
+            coll_list: CollectionListState::default(),
+            filter_editor: FilterEditorState::default(),
 
             new_data: false,
         }
     }
 
     fn selected_db_name(&self) -> Option<&String> {
-        self.db_state
+        self.db_list
+            .state
             .selected()
-            .and_then(|i| self.dbs.get(i))
+            .and_then(|i| self.db_list.items.get(i))
             .map(|db| &db.name)
     }
 
     fn selected_coll_name(&self) -> Option<&String> {
-        self.coll_state
+        self.coll_list
+            .state
             .selected()
-            .and_then(|i| self.colls.get(i))
+            .and_then(|i| self.coll_list.items.get(i))
             .map(|coll| &coll.name)
     }
 
@@ -157,8 +142,8 @@ impl<'a> State<'a> {
         let collection_name = coll_name.clone();
         let sender = self.response_send.clone();
 
-        let filter = self.filter.clone();
-        let skip = self.page * PAGE_SIZE;
+        let filter = self.filter_editor.filter.clone();
+        let skip = self.main_view.page * PAGE_SIZE;
         let mut options = FindOptions::default();
         options.skip = Some(skip as u64);
         options.limit = Some(PAGE_SIZE as i64);
@@ -192,7 +177,7 @@ impl<'a> State<'a> {
         let db = self.client.database(db_name);
         let collection_name = coll_name.clone();
         let sender = self.response_send.clone();
-        let filter = self.filter.clone();
+        let filter = self.filter_editor.filter.clone();
 
         tokio::spawn(async move {
             let response = db
@@ -222,14 +207,14 @@ impl<'a> State<'a> {
                     state.open(vec![item.identifier().clone()]);
                 }
 
-                self.main_view_items = items;
-                self.main_view_state = state;
+                self.main_view.items = items;
+                self.main_view.state = state;
             }
-            MongoResponse::Count(count) => self.count = count,
-            MongoResponse::Databases(dbs) => self.dbs = dbs,
+            MongoResponse::Count(count) => self.main_view.count = count,
+            MongoResponse::Databases(dbs) => self.db_list.items = dbs,
             MongoResponse::Collections(colls) => {
-                self.colls = colls;
-                self.coll_state.select(None);
+                self.coll_list.items = colls;
+                self.coll_list.state.select(None);
             }
             MongoResponse::Error(_) => todo!("Need to implement better handling."),
         };

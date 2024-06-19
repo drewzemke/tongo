@@ -1,4 +1,3 @@
-#![allow(clippy::too_many_lines)]
 #![allow(clippy::cast_possible_wrap)]
 #![allow(clippy::cast_possible_truncation)]
 

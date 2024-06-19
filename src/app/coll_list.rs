@@ -1,11 +1,17 @@
+use super::state::{State, WidgetFocus};
 use crossterm::event::{Event, KeyCode};
+use mongodb::results::CollectionSpecification;
 use ratatui::{
     prelude::*,
     style::{Color, Modifier, Style},
-    widgets::{Block, List, ListItem, StatefulWidget},
+    widgets::{Block, List, ListItem, ListState, StatefulWidget},
 };
 
-use super::state::{State, WidgetFocus};
+#[derive(Debug, Default)]
+pub struct CollectionListState {
+    pub items: Vec<CollectionSpecification>,
+    pub state: ListState,
+}
 
 #[derive(Debug, Default)]
 pub struct CollList<'a> {
@@ -20,7 +26,8 @@ impl<'a> StatefulWidget for CollList<'a> {
         let border_color = if focused { Color::Green } else { Color::White };
 
         let items: Vec<ListItem> = state
-            .colls
+            .coll_list
+            .items
             .iter()
             .map(|coll| ListItem::new(coll.name.clone()))
             .collect();
@@ -38,7 +45,7 @@ impl<'a> StatefulWidget for CollList<'a> {
                     .fg(Color::White),
             );
 
-        StatefulWidget::render(list, area, buf, &mut state.coll_state);
+        StatefulWidget::render(list, area, buf, &mut state.coll_list.state);
     }
 }
 
@@ -62,9 +69,9 @@ impl<'a> CollList<'a> {
     }
 
     fn next(state: &mut State) -> bool {
-        let i = match state.coll_state.selected() {
+        let i = match state.coll_list.state.selected() {
             Some(i) => {
-                if i >= state.colls.len() - 1 {
+                if i >= state.coll_list.items.len() - 1 {
                     0
                 } else {
                     i + 1
@@ -72,22 +79,22 @@ impl<'a> CollList<'a> {
             }
             None => 0,
         };
-        state.coll_state.select(Some(i));
+        state.coll_list.state.select(Some(i));
         true
     }
 
     fn previous(state: &mut State) -> bool {
-        let i = match state.coll_state.selected() {
+        let i = match state.coll_list.state.selected() {
             Some(i) => {
                 if i == 0 {
-                    state.colls.len() - 1
+                    state.coll_list.items.len() - 1
                 } else {
                     i - 1
                 }
             }
-            None => state.colls.len() - 1,
+            None => state.coll_list.items.len() - 1,
         };
-        state.coll_state.select(Some(i));
+        state.coll_list.state.select(Some(i));
         true
     }
 }
