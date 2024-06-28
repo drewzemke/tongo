@@ -1,6 +1,4 @@
-# `margit` -- a TUI for MongoDB
-
-*(A) Mongo App (that is) Really Great In (your) Terminal!*
+# `tongo` -- a TUI for MongoDB
 
 ## Installation
 
