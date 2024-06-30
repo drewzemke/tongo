@@ -1,4 +1,4 @@
-use super::state::{State, WidgetFocus};
+use crate::state::{State, WidgetFocus};
 use crossterm::event::{Event, KeyCode};
 use mongodb::results::CollectionSpecification;
 use ratatui::{

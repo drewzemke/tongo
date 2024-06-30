@@ -1,25 +1,12 @@
-#![allow(clippy::cast_possible_wrap)]
-#![allow(clippy::cast_possible_truncation)]
-
-use self::{
-    coll_list::CollList,
-    db_list::DbList,
-    filter_input::FilterInput,
-    main_view::MainView,
-    state::{Mode, State, WidgetFocus},
+use crate::state::{Mode, State, WidgetFocus};
+use crate::widgets::{
+    coll_list::CollList, db_list::DbList, filter_input::FilterInput, main_view::MainView,
     status_bar::StatusBar,
 };
 use crossterm::event::{Event, KeyCode, KeyModifiers};
 use mongodb::Client;
 use ratatui::prelude::*;
 use std::time::{Duration, Instant};
-
-mod coll_list;
-mod db_list;
-mod filter_input;
-mod main_view;
-mod state;
-mod status_bar;
 
 pub struct App<'a> {
     state: State<'a>,

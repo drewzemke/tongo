@@ -1,6 +1,6 @@
 #![allow(clippy::module_name_repetitions)]
 
-use super::state::State;
+use crate::state::State;
 use ratatui::{
     prelude::*,
     widgets::{Block, Padding, Paragraph, StatefulWidget, Wrap},

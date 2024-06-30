@@ -2,11 +2,13 @@ use anyhow::Result;
 use app::App;
 use clap::Parser;
 use mongodb::{options::ClientOptions, Client};
-use tui::{restore_terminal, setup_terminal};
+use ratatui::{backend::CrosstermBackend, Terminal};
+use std::io::Stdout;
 
 mod app;
+mod state;
 mod tree;
-mod tui;
+mod widgets;
 
 /// A TUI for viewing mongo databases.
 #[derive(Parser)]
@@ -33,6 +35,30 @@ async fn main() -> Result<()> {
     if let Err(err) = res {
         println!("{err:?}");
     }
+
+    Ok(())
+}
+
+fn setup_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>> {
+    let mut stdout = std::io::stdout();
+    crossterm::terminal::enable_raw_mode()?;
+    crossterm::execute!(
+        stdout,
+        crossterm::terminal::EnterAlternateScreen,
+        crossterm::event::EnableMouseCapture
+    )?;
+    let terminal = Terminal::new(CrosstermBackend::new(stdout))?;
+    Ok(terminal)
+}
+
+fn restore_terminal(mut terminal: Terminal<CrosstermBackend<std::io::Stdout>>) -> Result<()> {
+    crossterm::terminal::disable_raw_mode()?;
+    crossterm::execute!(
+        terminal.backend_mut(),
+        crossterm::terminal::LeaveAlternateScreen,
+        crossterm::event::DisableMouseCapture
+    )?;
+    terminal.show_cursor()?;
 
     Ok(())
 }

@@ -1,6 +1,7 @@
+#![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::module_name_repetitions)]
 
-use super::state::{State, WidgetFocus};
+use crate::state::{State, WidgetFocus};
 use crossterm::event::{Event, KeyCode, MouseEventKind};
 use ratatui::{
     layout::Position,
