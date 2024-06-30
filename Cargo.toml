@@ -1,16 +1,12 @@
 [package]
-name = "mongodb-tui"
+name = "tongo"
 authors = ["Drew Zemke"]
-version = "0.3.1"
+version = "0.4.0"
 edition = "2021"
 license = "MIT"
 description = "A TUI for MongoDB"
 repository = "https://github.com/drewzemke/tongo"
 readme = "README.md"
-
-[[bin]]
-name = "tongo"
-path = "src/main.rs"
 
 [lints.clippy]
 pedantic = "warn"
