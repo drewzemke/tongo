@@ -1,3 +1,5 @@
+#![allow(clippy::cast_possible_truncation)]
+
 use crate::state::{Mode, State, WidgetFocus};
 use crossterm::event::{Event, KeyCode};
 use mongodb::bson::Document;
@@ -12,6 +14,7 @@ use tui_input::{backend::crossterm::EventHandler, Input};
 pub struct FilterEditorState {
     pub input: Input,
     pub filter: Option<Document>,
+    pub cursor_pos: (u16, u16),
 }
 
 #[derive(Debug, Default)]
@@ -40,7 +43,6 @@ impl<'a> StatefulWidget for FilterInput<'a> {
             .filter_editor
             .input
             .visual_scroll(area.width as usize - 2);
-        #[allow(clippy::cast_possible_truncation)]
         let input_widget = Paragraph::new(state.filter_editor.input.value())
             .scroll((0, input_scroll as u16))
             .block(
@@ -49,6 +51,15 @@ impl<'a> StatefulWidget for FilterInput<'a> {
                     .border_style(Style::default().fg(border_color))
                     .borders(Borders::ALL),
             );
+
+        // update cursor position if we're in an editing state
+        state.filter_editor.cursor_pos = (
+            area.x
+                + (state.filter_editor.input.visual_cursor().max(input_scroll) - input_scroll)
+                    as u16
+                + 1,
+            area.y + 1,
+        );
 
         Clear.render(area, buf);
         input_widget.render(area, buf);
@@ -90,21 +101,6 @@ impl<'a> FilterInput<'a> {
             },
             Mode::Exiting => false,
         }
-    }
-
-    pub fn cursor_position(state: &State, area: Rect) -> (u16, u16) {
-        let input_scroll = state
-            .filter_editor
-            .input
-            .visual_scroll(area.width as usize - 2);
-        #[allow(clippy::cast_possible_truncation)]
-        (
-            area.x
-                + (state.filter_editor.input.visual_cursor().max(input_scroll) - input_scroll)
-                    as u16
-                + 1,
-            area.y + 1,
-        )
     }
 
     fn process_input(state: &State) -> Option<Document> {
