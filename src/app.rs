@@ -22,11 +22,10 @@ impl<'a> App<'a> {
         PrimaryScreen::default().render(frame.size(), frame.buffer_mut(), &mut self.state);
 
         // show the cursor if we're editing something
-        // FIXME: store cursor pos in state?? ugh
-        // if self.state.mode == Mode::EditingFilter {
-        //     let cursor_position = FilterInput::cursor_position(&self.state, main_view_top);
-        //     frame.set_cursor(cursor_position.0, cursor_position.1);
-        // }
+        if self.state.mode == Mode::EditingFilter {
+            let cursor_pos = self.state.filter_editor.cursor_pos;
+            frame.set_cursor(cursor_pos.0, cursor_pos.1);
+        }
     }
 
     pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> std::io::Result<()> {
