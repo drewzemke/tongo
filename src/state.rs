@@ -1,6 +1,6 @@
-#![allow(clippy::struct_field_names)]
+#![allow(clippy::cast_possible_wrap)]
 
-use super::{
+use super::widgets::{
     coll_list::CollectionListState, db_list::DatabaseListState, filter_input::FilterEditorState,
     main_view::MainViewState, status_bar::StatusBarState,
 };
