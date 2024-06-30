@@ -5,7 +5,7 @@ let
 in
 rust.buildRustPackage rec {
   pname = "mongodb-tui";
-  version = "0.3.1"; 
+  version = "0.4.0"; 
 
   cargoLock.lockFile = ./Cargo.lock;
   src = pkgs.lib.cleanSource ./.;
