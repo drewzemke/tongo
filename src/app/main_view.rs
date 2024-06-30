@@ -49,12 +49,7 @@ impl<'a> StatefulWidget for MainView<'a> {
                     .track_symbol(None)
                     .end_symbol(None),
             ))
-            .highlight_style(
-                Style::new()
-                    .fg(Color::Black)
-                    .bg(Color::White)
-                    .add_modifier(Modifier::BOLD),
-            );
+            .highlight_style(Style::new().black().on_white().bold());
 
         StatefulWidget::render(widget, area, buf, &mut state.main_view.state);
     }

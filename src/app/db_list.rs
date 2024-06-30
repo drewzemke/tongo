@@ -3,7 +3,7 @@ use crossterm::event::{Event, KeyCode};
 use mongodb::results::DatabaseSpecification;
 use ratatui::{
     prelude::*,
-    style::{Color, Modifier, Style},
+    style::{Color, Style},
     widgets::{Block, List, ListItem, ListState, StatefulWidget},
 };
 
@@ -38,12 +38,7 @@ impl<'a> StatefulWidget for DbList<'a> {
                     .title("Databases")
                     .border_style(Style::default().fg(border_color)),
             )
-            .highlight_style(
-                Style::default()
-                    .add_modifier(Modifier::BOLD)
-                    .add_modifier(Modifier::REVERSED)
-                    .fg(Color::White),
-            );
+            .highlight_style(Style::default().bold().reversed().white());
 
         StatefulWidget::render(list, area, buf, &mut state.db_list.state);
     }
@@ -54,12 +49,12 @@ impl<'a> DbList<'a> {
         if let Event::Key(key) = event {
             match key.code {
                 KeyCode::Char('j') | KeyCode::Down => {
-                    Self::next(state);
+                    state.db_list.state.select_next();
                     state.exec_get_collections();
                     true
                 }
                 KeyCode::Char('k') | KeyCode::Up => {
-                    Self::previous(state);
+                    state.db_list.state.select_previous();
                     state.exec_get_collections();
                     true
                 }
@@ -72,35 +67,5 @@ impl<'a> DbList<'a> {
         } else {
             false
         }
-    }
-
-    fn next(state: &mut State) -> bool {
-        let i = match state.db_list.state.selected() {
-            Some(i) => {
-                if i >= state.db_list.items.len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
-            }
-            None => 0,
-        };
-        state.db_list.state.select(Some(i));
-        true
-    }
-
-    fn previous(state: &mut State) -> bool {
-        let i = match state.db_list.state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    state.db_list.items.len() - 1
-                } else {
-                    i - 1
-                }
-            }
-            None => state.db_list.items.len() - 1,
-        };
-        state.db_list.state.select(Some(i));
-        true
     }
 }

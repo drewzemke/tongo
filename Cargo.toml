@@ -19,8 +19,8 @@ clap = { version = "4.5.6", features = ["derive"] }
 crossterm = "0.27.0"
 futures = "0.3.30"
 mongodb = "2.8.2"
-ratatui = "0.26.3"
+ratatui = "0.27.0"
 serde_json = "1.0.117"
 tokio = { version = "1.38.0", features = ["full"] }
-tui-input = "0.8.0"
-tui-tree-widget = "0.20.0"
+tui-input = "0.9.0"
+tui-tree-widget = "0.21.0"

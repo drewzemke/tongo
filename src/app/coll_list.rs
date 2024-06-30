@@ -3,7 +3,7 @@ use crossterm::event::{Event, KeyCode};
 use mongodb::results::CollectionSpecification;
 use ratatui::{
     prelude::*,
-    style::{Color, Modifier, Style},
+    style::{Color, Style},
     widgets::{Block, List, ListItem, ListState, StatefulWidget},
 };
 
@@ -38,12 +38,7 @@ impl<'a> StatefulWidget for CollList<'a> {
                     .title("Collections")
                     .border_style(Style::default().fg(border_color)),
             )
-            .highlight_style(
-                Style::default()
-                    .add_modifier(Modifier::BOLD)
-                    .add_modifier(Modifier::REVERSED)
-                    .fg(Color::White),
-            );
+            .highlight_style(Style::default().bold().reversed().white());
 
         StatefulWidget::render(list, area, buf, &mut state.coll_list.state);
     }
@@ -53,8 +48,14 @@ impl<'a> CollList<'a> {
     pub fn handle_event(event: &Event, state: &mut State) -> bool {
         if let Event::Key(key) = event {
             match key.code {
-                KeyCode::Char('j') | KeyCode::Down => Self::next(state),
-                KeyCode::Char('k') | KeyCode::Up => Self::previous(state),
+                KeyCode::Char('j') | KeyCode::Down => {
+                    state.coll_list.state.select_next();
+                    true
+                }
+                KeyCode::Char('k') | KeyCode::Up => {
+                    state.coll_list.state.select_previous();
+                    true
+                }
                 KeyCode::Enter => {
                     state.exec_query();
                     state.exec_count();
@@ -66,35 +67,5 @@ impl<'a> CollList<'a> {
         } else {
             false
         }
-    }
-
-    fn next(state: &mut State) -> bool {
-        let i = match state.coll_list.state.selected() {
-            Some(i) => {
-                if i >= state.coll_list.items.len() - 1 {
-                    0
-                } else {
-                    i + 1
-                }
-            }
-            None => 0,
-        };
-        state.coll_list.state.select(Some(i));
-        true
-    }
-
-    fn previous(state: &mut State) -> bool {
-        let i = match state.coll_list.state.selected() {
-            Some(i) => {
-                if i == 0 {
-                    state.coll_list.items.len() - 1
-                } else {
-                    i - 1
-                }
-            }
-            None => state.coll_list.items.len() - 1,
-        };
-        state.coll_list.state.select(Some(i));
-        true
     }
 }
