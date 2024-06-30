@@ -927,22 +927,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "mongodb-tui"
-version = "0.3.1"
-dependencies = [
- "anyhow",
- "clap",
- "crossterm",
- "futures",
- "mongodb",
- "ratatui",
- "serde_json",
- "tokio",
- "tui-input",
- "tui-tree-widget",
-]
-
-[[package]]
 name = "num-conv"
 version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1653,6 +1637,22 @@ dependencies = [
  "futures-sink",
  "pin-project-lite",
  "tokio",
+]
+
+[[package]]
+name = "tongo"
+version = "0.4.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "crossterm",
+ "futures",
+ "mongodb",
+ "ratatui",
+ "serde_json",
+ "tokio",
+ "tui-input",
+ "tui-tree-widget",
 ]
 
 [[package]]
