@@ -27,6 +27,14 @@ pub enum MongoResponse {
     Error(Error),
 }
 
+// FIXME: these three state enums are not independent,
+//   so they shouldn't be indepedent types
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Screen {
+    Primary,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Mode {
     Navigating,
@@ -43,6 +51,7 @@ pub enum WidgetFocus {
 }
 
 pub struct State<'a> {
+    pub screen: Screen,
     pub focus: WidgetFocus,
     pub mode: Mode,
 
@@ -64,6 +73,7 @@ impl<'a> State<'a> {
     pub fn new(client: Client) -> Self {
         let (response_send, response_recv) = mpsc::channel::<MongoResponse>();
         Self {
+            screen: Screen::Primary,
             focus: WidgetFocus::DatabaseList,
             mode: Mode::Navigating,
 
