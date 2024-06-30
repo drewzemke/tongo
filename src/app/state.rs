@@ -2,12 +2,13 @@
 
 use super::{
     coll_list::CollectionListState, db_list::DatabaseListState, filter_input::FilterEditorState,
-    main_view::MainViewState,
+    main_view::MainViewState, status_bar::StatusBarState,
 };
 use crate::tree::top_level_document;
 use futures::TryStreamExt;
 use mongodb::{
     bson::Bson,
+    error::Error,
     options::FindOptions,
     results::{CollectionSpecification, DatabaseSpecification},
     Client,
@@ -23,7 +24,7 @@ pub enum MongoResponse {
     Databases(Vec<DatabaseSpecification>),
     Collections(Vec<CollectionSpecification>),
     Count(u64),
-    Error(String),
+    Error(Error),
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -54,6 +55,7 @@ pub struct State<'a> {
     pub db_list: DatabaseListState,
     pub coll_list: CollectionListState,
     pub filter_editor: FilterEditorState,
+    pub status_bar: StatusBarState,
 
     pub new_data: bool,
 }
@@ -73,6 +75,7 @@ impl<'a> State<'a> {
             db_list: DatabaseListState::default(),
             coll_list: CollectionListState::default(),
             filter_editor: FilterEditorState::default(),
+            status_bar: StatusBarState::default(),
 
             new_data: false,
         }
@@ -99,10 +102,10 @@ impl<'a> State<'a> {
         let client = self.client.clone();
 
         tokio::spawn(async move {
-            let response: MongoResponse = client.list_databases(None, None).await.map_or_else(
-                |err| MongoResponse::Error(err.to_string()),
-                MongoResponse::Databases,
-            );
+            let response: MongoResponse = client
+                .list_databases(None, None)
+                .await
+                .map_or_else(MongoResponse::Error, MongoResponse::Databases);
 
             sender.send(response).expect(SEND_ERR_MSG);
         });
@@ -118,11 +121,11 @@ impl<'a> State<'a> {
 
         tokio::spawn(async move {
             let resonse = match db.list_collections(None, None).await {
-                Ok(cursor) => cursor.try_collect::<Vec<_>>().await.map_or_else(
-                    |err| MongoResponse::Error(err.to_string()),
-                    MongoResponse::Collections,
-                ),
-                Err(err) => MongoResponse::Error(err.to_string()),
+                Ok(cursor) => cursor
+                    .try_collect::<Vec<_>>()
+                    .await
+                    .map_or_else(MongoResponse::Error, MongoResponse::Collections),
+                Err(err) => MongoResponse::Error(err),
             };
 
             sender.send(resonse).expect(SEND_ERR_MSG);
@@ -154,11 +157,11 @@ impl<'a> State<'a> {
                 .find(filter, options)
                 .await;
             let response = match cursor {
-                Ok(cursor) => cursor.try_collect::<Vec<_>>().await.map_or_else(
-                    |err| MongoResponse::Error(err.to_string()),
-                    MongoResponse::Query,
-                ),
-                Err(err) => MongoResponse::Error(err.to_string()),
+                Ok(cursor) => cursor
+                    .try_collect::<Vec<_>>()
+                    .await
+                    .map_or_else(MongoResponse::Error, MongoResponse::Query),
+                Err(err) => MongoResponse::Error(err),
             };
 
             sender.send(response).expect(SEND_ERR_MSG);
@@ -184,16 +187,16 @@ impl<'a> State<'a> {
                 .collection::<Bson>(&collection_name)
                 .count_documents(filter, None)
                 .await
-                .map_or_else(
-                    |err| MongoResponse::Error(err.to_string()),
-                    MongoResponse::Count,
-                );
+                .map_or_else(MongoResponse::Error, MongoResponse::Count);
 
             sender.send(response).expect(SEND_ERR_MSG);
         });
     }
 
     pub fn update_content(&mut self, response: MongoResponse) {
+        // Clear the status bar message if there is one.
+        self.status_bar.message = None;
+
         match response {
             MongoResponse::Query(content) => {
                 let items: Vec<TreeItem<String>> = content
@@ -216,7 +219,9 @@ impl<'a> State<'a> {
                 self.coll_list.items = colls;
                 self.coll_list.state.select(None);
             }
-            MongoResponse::Error(_) => todo!("Need to implement better handling."),
+            MongoResponse::Error(error) => {
+                self.status_bar.message = Some(error.kind.to_string());
+            }
         };
         self.new_data = true;
     }

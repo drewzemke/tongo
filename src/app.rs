@@ -7,6 +7,7 @@ use self::{
     filter_input::FilterInput,
     main_view::MainView,
     state::{Mode, State, WidgetFocus},
+    status_bar::StatusBar,
 };
 use crossterm::event::{Event, KeyCode, KeyModifiers};
 use mongodb::Client;
@@ -18,6 +19,7 @@ mod db_list;
 mod filter_input;
 mod main_view;
 mod state;
+mod status_bar;
 
 pub struct App<'a> {
     state: State<'a>,
@@ -33,12 +35,20 @@ impl<'a> App<'a> {
     }
 
     fn draw(&mut self, frame: &mut Frame) {
-        let top_layout = Layout::default()
+        // TODO: change status bar visibility based on whether there's an error?
+        let frame_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Percentage(100), Constraint::Length(1)])
+            .split(frame.size());
+        let content = frame_layout[0];
+        let btm_line = frame_layout[1];
+
+        let content_layout = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(20), Constraint::Min(20)])
-            .split(frame.size());
-        let sidebar = top_layout[0];
-        let main_view = top_layout[1];
+            .split(content);
+        let sidebar = content_layout[0];
+        let main_view = content_layout[1];
 
         let sidebar_layout = Layout::default()
             .direction(Direction::Vertical)
@@ -58,6 +68,7 @@ impl<'a> App<'a> {
         CollList::default().render(sidebar_btm, frame.buffer_mut(), &mut self.state);
         FilterInput::default().render(main_view_top, frame.buffer_mut(), &mut self.state);
         MainView::default().render(main_view_btm, frame.buffer_mut(), &mut self.state);
+        StatusBar::default().render(btm_line, frame.buffer_mut(), &mut self.state);
 
         // show the cursor if we're editing something
         if self.state.mode == Mode::EditingFilter {
