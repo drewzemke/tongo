@@ -65,8 +65,6 @@ impl<'a> ConnStrInput<'a> {
             Mode::EditingConnectionString => match event {
                 Event::Key(key) => match key.code {
                     KeyCode::Enter => {
-                        // make a new client, for now
-                        // TODO: refactor to make a new connection instead
                         let input = state.conn_str_editor.input.value();
                         state.set_conn_str(input.to_string());
                         state.screen = Screen::Primary;
@@ -74,21 +72,7 @@ impl<'a> ConnStrInput<'a> {
                         state.focus = WidgetFocus::DatabaseList;
                         true
                     }
-                    KeyCode::Esc => {
-                        state.mode = Mode::Navigating;
-                        true
-                    }
                     _ => state.conn_str_editor.input.handle_event(event).is_some(),
-                },
-                _ => false,
-            },
-            Mode::Navigating => match event {
-                Event::Key(key) => match key.code {
-                    KeyCode::Enter => {
-                        state.mode = Mode::EditingConnectionString;
-                        true
-                    }
-                    _ => false,
                 },
                 _ => false,
             },

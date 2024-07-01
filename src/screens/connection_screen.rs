@@ -12,7 +12,15 @@ impl<'a> StatefulWidget for ConnectionScreen<'a> {
     type State = State<'a>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        ConnStrInput::default().render(area, buf, state);
+        let layout = Layout::default()
+            .constraints(vec![
+                Constraint::Fill(1),
+                Constraint::Length(3),
+                Constraint::Fill(1),
+            ])
+            .horizontal_margin(2)
+            .split(area);
+        ConnStrInput::default().render(layout[1], buf, state);
     }
 }
 
