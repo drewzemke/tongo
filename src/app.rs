@@ -15,12 +15,13 @@ const DEBOUNCE: Duration = Duration::from_millis(20); // 50 FPS
 impl<'a> App<'a> {
     pub fn new(connection: Option<Connection>) -> Self {
         let mut state = State::new();
-        match connection {
-            Some(connection) => {
-                state.set_conn_str(connection.connection_str);
-                state.screen = Screen::Primary;
-            }
-            None => state.screen = Screen::Connection,
+
+        if let Some(connection) = connection {
+            state.set_conn_str(connection.connection_str);
+            state.screen = Screen::Primary;
+        } else {
+            state.screen = Screen::Connection;
+            state.mode = Mode::EditingConnectionString;
         }
 
         Self { state }
@@ -41,10 +42,12 @@ impl<'a> App<'a> {
         }
 
         // show the cursor if we're editing something
-        if self.state.mode == Mode::EditingFilter {
-            let cursor_pos = self.state.filter_editor.cursor_pos;
-            frame.set_cursor(cursor_pos.0, cursor_pos.1);
+        match self.state.mode {
+            Mode::EditingFilter => Some(self.state.filter_editor.cursor_pos),
+            Mode::EditingConnectionString => Some(self.state.conn_str_editor.cursor_pos),
+            _ => None,
         }
+        .map_or_else(|| {}, |pos| frame.set_cursor(pos.0, pos.1));
     }
 
     pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> std::io::Result<()> {

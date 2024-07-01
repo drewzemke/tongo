@@ -96,6 +96,7 @@ impl<'a> PrimaryScreen<'a> {
                     }
                     KeyCode::Esc => {
                         state.screen = Screen::Connection;
+                        state.mode = Mode::EditingConnectionString;
                         true
                     }
                     // TODO: refactor this into a closure and call it
