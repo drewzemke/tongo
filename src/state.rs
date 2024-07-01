@@ -58,7 +58,7 @@ pub struct State<'a> {
     pub focus: WidgetFocus,
     pub mode: Mode,
 
-    client: Client,
+    client: Option<Client>,
     response_send: Sender<MongoResponse>,
     pub response_recv: Receiver<MongoResponse>,
 
@@ -74,14 +74,14 @@ pub struct State<'a> {
 }
 
 impl<'a> State<'a> {
-    pub fn new(client: Client) -> Self {
+    pub fn new() -> Self {
         let (response_send, response_recv) = mpsc::channel::<MongoResponse>();
         Self {
             screen: Screen::Primary,
             focus: WidgetFocus::DatabaseList,
             mode: Mode::Navigating,
 
-            client,
+            client: None,
             response_send,
             response_recv,
 
@@ -126,8 +126,11 @@ impl<'a> State<'a> {
     }
 
     pub fn exec_get_dbs(&self) {
+        let client = match self.client {
+            Some(ref client) => client.clone(),
+            None => return,
+        };
         let sender = self.response_send.clone();
-        let client = self.client.clone();
 
         tokio::spawn(async move {
             let response: MongoResponse = client
@@ -140,11 +143,15 @@ impl<'a> State<'a> {
     }
 
     pub fn exec_get_collections(&self) {
+        let client = match self.client {
+            Some(ref client) => client.clone(),
+            None => return,
+        };
         let Some(db_name) = self.selected_db_name() else {
             return;
         };
 
-        let db = self.client.database(db_name);
+        let db = client.database(db_name);
         let sender = self.response_send.clone();
 
         tokio::spawn(async move {
@@ -161,15 +168,18 @@ impl<'a> State<'a> {
     }
 
     pub fn exec_query(&self) {
+        let client = match self.client {
+            Some(ref client) => client.clone(),
+            None => return,
+        };
         let Some(db_name) = self.selected_db_name() else {
             return;
         };
-
         let Some(coll_name) = self.selected_coll_name() else {
             return;
         };
 
-        let db = self.client.database(db_name);
+        let db = client.database(db_name);
         let collection_name = coll_name.clone();
         let sender = self.response_send.clone();
 
@@ -197,15 +207,18 @@ impl<'a> State<'a> {
     }
 
     pub fn exec_count(&self) {
+        let client = match self.client {
+            Some(ref client) => client.clone(),
+            None => return,
+        };
         let Some(db_name) = self.selected_db_name() else {
             return;
         };
-
         let Some(coll_name) = self.selected_coll_name() else {
             return;
         };
 
-        let db = self.client.database(db_name);
+        let db = client.database(db_name);
         let collection_name = coll_name.clone();
         let sender = self.response_send.clone();
         let filter = self.filter_editor.filter.clone();
@@ -247,7 +260,10 @@ impl<'a> State<'a> {
                 self.coll_list.items = colls;
                 self.coll_list.state.select(None);
             }
-            MongoResponse::NewClient(client) => self.client = client,
+            MongoResponse::NewClient(client) => {
+                self.client = Some(client);
+                self.exec_get_dbs();
+            }
             MongoResponse::Error(error) => {
                 self.status_bar.message = Some(error.kind.to_string());
             }
