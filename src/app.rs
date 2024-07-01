@@ -1,8 +1,8 @@
+use crate::connection::Connection;
 use crate::screens::connection_screen::ConnectionScreen;
 use crate::screens::primary_screen::PrimaryScreen;
 use crate::state::{Mode, Screen, State};
 use crossterm::event::{Event, KeyCode, KeyModifiers};
-use mongodb::Client;
 use ratatui::prelude::*;
 use std::time::{Duration, Instant};
 
@@ -13,10 +13,17 @@ pub struct App<'a> {
 const DEBOUNCE: Duration = Duration::from_millis(20); // 50 FPS
 
 impl<'a> App<'a> {
-    pub fn new(client: Client) -> Self {
-        Self {
-            state: State::new(client),
+    pub fn new(connection: Option<Connection>) -> Self {
+        let mut state = State::new();
+        match connection {
+            Some(connection) => {
+                state.set_conn_str(connection.connection_str);
+                state.screen = Screen::Primary;
+            }
+            None => state.screen = Screen::Connection,
         }
+
+        Self { state }
     }
 
     fn draw(&mut self, frame: &mut Frame) {
@@ -43,9 +50,6 @@ impl<'a> App<'a> {
     pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> std::io::Result<()> {
         // initial draw call
         terminal.draw(|frame| self.draw(frame))?;
-
-        // initial mongo calls
-        self.state.exec_get_dbs();
 
         let debounce: Option<Instant> = None;
 

@@ -1,11 +1,12 @@
 use anyhow::Result;
 use app::App;
 use clap::Parser;
-use mongodb::{options::ClientOptions, Client};
+use connection::Connection;
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::io::Stdout;
 
 mod app;
+mod connection;
 mod screens;
 mod state;
 mod tree;
@@ -17,18 +18,19 @@ mod widgets;
 pub struct Args {
     /// The connection string for the mongo server
     #[arg(long, short)]
-    url: String,
+    url: Option<String>,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    let client_options = ClientOptions::parse(args.url).await?;
-    let client = Client::with_options(client_options)?;
+    let connection = args
+        .url
+        .map(|url| Connection::new("Unnamed Connection".to_string(), url));
 
     let mut terminal = setup_terminal()?;
-    let mut app = App::new(client);
+    let mut app = App::new(connection);
     let res = app.run(&mut terminal);
 
     restore_terminal(terminal)?;
