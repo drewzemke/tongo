@@ -1,6 +1,7 @@
+use crate::screens::connection_screen::ConnectionScreen;
 use crate::screens::primary_screen::PrimaryScreen;
-use crate::state::{Mode, State};
-use crossterm::event::Event;
+use crate::state::{Mode, Screen, State};
+use crossterm::event::{Event, KeyCode, KeyModifiers};
 use mongodb::Client;
 use ratatui::prelude::*;
 use std::time::{Duration, Instant};
@@ -19,7 +20,18 @@ impl<'a> App<'a> {
     }
 
     fn draw(&mut self, frame: &mut Frame) {
-        PrimaryScreen::default().render(frame.size(), frame.buffer_mut(), &mut self.state);
+        match self.state.screen {
+            Screen::Primary => {
+                PrimaryScreen::default().render(frame.size(), frame.buffer_mut(), &mut self.state);
+            }
+            Screen::Connection => {
+                ConnectionScreen::default().render(
+                    frame.size(),
+                    frame.buffer_mut(),
+                    &mut self.state,
+                );
+            }
+        }
 
         // show the cursor if we're editing something
         if self.state.mode == Mode::EditingFilter {
@@ -71,6 +83,20 @@ impl<'a> App<'a> {
     }
 
     fn handle_event(&mut self, event: &Event) -> bool {
-        PrimaryScreen::handle_event(event, &mut self.state)
+        let mut handle_events_in_screen = || match self.state.screen {
+            Screen::Primary => PrimaryScreen::handle_event(event, &mut self.state),
+            Screen::Connection => ConnectionScreen::handle_event(event, &mut self.state),
+        };
+
+        match event {
+            Event::Key(key) => match key.code {
+                KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                    self.state.mode = Mode::Exiting;
+                    true
+                }
+                _ => handle_events_in_screen(),
+            },
+            _ => handle_events_in_screen(),
+        }
     }
 }

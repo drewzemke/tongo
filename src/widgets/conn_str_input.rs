@@ -1,8 +1,7 @@
 #![allow(clippy::cast_possible_truncation)]
 
-use crate::state::{Mode, State, WidgetFocus};
+use crate::state::{Mode, Screen, State, WidgetFocus};
 use crossterm::event::{Event, KeyCode};
-use mongodb::bson::Document;
 use ratatui::{
     prelude::*,
     style::{Color, Style},
@@ -11,52 +10,46 @@ use ratatui::{
 use tui_input::{backend::crossterm::EventHandler, Input};
 
 #[derive(Debug, Default)]
-pub struct FilterEditorState {
+pub struct ConnStrEditorState {
     pub input: Input,
-    pub filter: Option<Document>,
     pub cursor_pos: (u16, u16),
 }
 
 #[derive(Debug, Default)]
-pub struct FilterInput<'a> {
+pub struct ConnStrInput<'a> {
     marker: std::marker::PhantomData<State<'a>>,
 }
 
-impl<'a> StatefulWidget for FilterInput<'a> {
+impl<'a> StatefulWidget for ConnStrInput<'a> {
     type State = State<'a>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let focused = state.focus == WidgetFocus::FilterEditor;
-        let editing = state.mode == Mode::EditingFilter;
-        let border_color = if focused {
-            if editing {
-                Color::Yellow
-            } else {
-                Color::Green
-            }
-        } else {
-            Color::White
-        };
+        let editing = state.mode == Mode::EditingConnectionString;
+        let border_color = if editing { Color::Yellow } else { Color::White };
 
         // figure the right amount to scroll the input by
         let input_scroll = state
-            .filter_editor
+            .conn_str_editor
             .input
             .visual_scroll(area.width as usize - 2);
-        let input_widget = Paragraph::new(state.filter_editor.input.value())
+        let input_widget = Paragraph::new(state.conn_str_editor.input.value())
             .scroll((0, input_scroll as u16))
             .block(
                 Block::default()
-                    .title("Filter")
+                    .title("Connection String")
                     .border_style(Style::default().fg(border_color))
                     .borders(Borders::ALL),
             );
 
         // update cursor position if we're in an editing state
-        state.filter_editor.cursor_pos = (
+        state.conn_str_editor.cursor_pos = (
             area.x
-                + (state.filter_editor.input.visual_cursor().max(input_scroll) - input_scroll)
-                    as u16
+                + (state
+                    .conn_str_editor
+                    .input
+                    .visual_cursor()
+                    .max(input_scroll)
+                    - input_scroll) as u16
                 + 1,
             area.y + 1,
         );
@@ -66,33 +59,33 @@ impl<'a> StatefulWidget for FilterInput<'a> {
     }
 }
 
-impl<'a> FilterInput<'a> {
+impl<'a> ConnStrInput<'a> {
     pub fn handle_event(event: &Event, state: &mut State) -> bool {
         match state.mode {
-            Mode::EditingFilter => match event {
+            Mode::EditingConnectionString => match event {
                 Event::Key(key) => match key.code {
                     KeyCode::Enter => {
-                        if let Some(doc) = Self::process_input(state) {
-                            state.filter_editor.filter = Some(doc);
-                            state.exec_query();
-                            state.exec_count();
-                            state.mode = Mode::Navigating;
-                            state.focus = WidgetFocus::MainView;
-                        }
+                        // make a new client, for now
+                        // TODO: refactor to make a new connection instead
+                        let input = state.conn_str_editor.input.value();
+                        state.set_conn_str(input.to_string());
+                        state.screen = Screen::Primary;
+                        state.mode = Mode::Navigating;
+                        state.focus = WidgetFocus::DatabaseList;
                         true
                     }
                     KeyCode::Esc => {
                         state.mode = Mode::Navigating;
                         true
                     }
-                    _ => state.filter_editor.input.handle_event(event).is_some(),
+                    _ => state.conn_str_editor.input.handle_event(event).is_some(),
                 },
                 _ => false,
             },
             Mode::Navigating => match event {
                 Event::Key(key) => match key.code {
                     KeyCode::Enter => {
-                        state.mode = Mode::EditingFilter;
+                        state.mode = Mode::EditingConnectionString;
                         true
                     }
                     _ => false,
@@ -101,11 +94,5 @@ impl<'a> FilterInput<'a> {
             },
             _ => false,
         }
-    }
-
-    fn process_input(state: &State) -> Option<Document> {
-        let filter_str = state.filter_editor.input.value();
-        let filter = serde_json::from_str::<serde_json::Value>(filter_str).ok()?;
-        mongodb::bson::to_document(&filter).ok()
     }
 }

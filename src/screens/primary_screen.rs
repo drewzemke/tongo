@@ -1,9 +1,9 @@
-use crate::state::{Mode, State, WidgetFocus};
+use crate::state::{Mode, Screen, State, WidgetFocus};
 use crate::widgets::{
     coll_list::CollList, db_list::DbList, filter_input::FilterInput, main_view::MainView,
     status_bar::StatusBar,
 };
-use crossterm::event::{Event, KeyCode, KeyModifiers};
+use crossterm::event::{Event, KeyCode};
 use ratatui::prelude::*;
 
 #[derive(Debug, Default)]
@@ -58,10 +58,6 @@ impl<'a> PrimaryScreen<'a> {
             Mode::EditingFilter => FilterInput::handle_event(event, state),
             Mode::Navigating => match event {
                 Event::Key(key) => match key.code {
-                    KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                        state.mode = Mode::Exiting;
-                        true
-                    }
                     KeyCode::Char('q') => {
                         state.mode = Mode::Exiting;
                         true
@@ -98,6 +94,12 @@ impl<'a> PrimaryScreen<'a> {
                         };
                         true
                     }
+                    KeyCode::Esc => {
+                        state.screen = Screen::Connection;
+                        true
+                    }
+                    // TODO: refactor this into a closure and call it
+                    // in the other wildcard cases
                     _ => match state.focus {
                         WidgetFocus::DatabaseList => DbList::handle_event(event, state),
                         WidgetFocus::CollectionList => CollList::handle_event(event, state),
@@ -108,7 +110,7 @@ impl<'a> PrimaryScreen<'a> {
                 Event::Resize(_, _) => true,
                 _ => false,
             },
-            Mode::Exiting => false,
+            _ => false,
         }
     }
 }

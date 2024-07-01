@@ -4,12 +4,12 @@ use super::widgets::{
     coll_list::CollectionListState, db_list::DatabaseListState, filter_input::FilterEditorState,
     main_view::MainViewState, status_bar::StatusBarState,
 };
-use crate::tree::top_level_document;
+use crate::{tree::top_level_document, widgets::conn_str_input::ConnStrEditorState};
 use futures::TryStreamExt;
 use mongodb::{
     bson::Bson,
     error::Error,
-    options::FindOptions,
+    options::{ClientOptions, FindOptions},
     results::{CollectionSpecification, DatabaseSpecification},
     Client,
 };
@@ -24,6 +24,7 @@ pub enum MongoResponse {
     Databases(Vec<DatabaseSpecification>),
     Collections(Vec<CollectionSpecification>),
     Count(u64),
+    NewClient(Client),
     Error(Error),
 }
 
@@ -32,6 +33,7 @@ pub enum MongoResponse {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Screen {
+    Connection,
     Primary,
 }
 
@@ -39,6 +41,7 @@ pub enum Screen {
 pub enum Mode {
     Navigating,
     EditingFilter,
+    EditingConnectionString,
     Exiting,
 }
 
@@ -63,6 +66,7 @@ pub struct State<'a> {
     pub main_view: MainViewState<'a>,
     pub db_list: DatabaseListState,
     pub coll_list: CollectionListState,
+    pub conn_str_editor: ConnStrEditorState,
     pub filter_editor: FilterEditorState,
     pub status_bar: StatusBarState,
 
@@ -84,6 +88,7 @@ impl<'a> State<'a> {
             main_view: MainViewState::default(),
             db_list: DatabaseListState::default(),
             coll_list: CollectionListState::default(),
+            conn_str_editor: ConnStrEditorState::default(),
             filter_editor: FilterEditorState::default(),
             status_bar: StatusBarState::default(),
 
@@ -105,6 +110,19 @@ impl<'a> State<'a> {
             .selected()
             .and_then(|i| self.coll_list.items.get(i))
             .map(|coll| &coll.name)
+    }
+
+    pub fn set_conn_str(&mut self, url: String) {
+        let sender = self.response_send.clone();
+
+        tokio::spawn(async move {
+            let response = ClientOptions::parse(url)
+                .await
+                .and_then(Client::with_options)
+                .map_or_else(MongoResponse::Error, MongoResponse::NewClient);
+
+            sender.send(response).expect(SEND_ERR_MSG);
+        });
     }
 
     pub fn exec_get_dbs(&self) {
@@ -229,6 +247,7 @@ impl<'a> State<'a> {
                 self.coll_list.items = colls;
                 self.coll_list.state.select(None);
             }
+            MongoResponse::NewClient(client) => self.client = client,
             MongoResponse::Error(error) => {
                 self.status_bar.message = Some(error.kind.to_string());
             }
