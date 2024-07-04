@@ -1,7 +1,7 @@
 use crate::connection::Connection;
 use crate::screens::connection_screen::ConnectionScreen;
 use crate::screens::primary_screen::PrimaryScreen;
-use crate::state::{Mode, Screen, State};
+use crate::state::{Mode, Screen, State, WidgetFocus};
 use crossterm::event::{Event, KeyCode, KeyModifiers};
 use ratatui::prelude::*;
 use std::time::{Duration, Instant};
@@ -25,7 +25,8 @@ impl<'a> App<'a> {
             state.screen = Screen::Primary;
         } else {
             state.screen = Screen::Connection;
-            state.mode = Mode::EditingConnectionString;
+            state.mode = Mode::Navigating;
+            state.focus = WidgetFocus::ConnectionList;
         }
 
         Self { state }

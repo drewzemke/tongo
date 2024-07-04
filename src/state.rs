@@ -4,7 +4,10 @@ use super::widgets::{
     coll_list::CollectionListState, db_list::DatabaseListState, filter_input::FilterEditorState,
     main_view::MainViewState, status_bar::StatusBarState,
 };
-use crate::{tree::top_level_document, widgets::conn_str_input::ConnStrEditorState};
+use crate::{
+    tree::top_level_document,
+    widgets::{conn_str_input::ConnStrEditorState, connection_list::ConnectionListState},
+};
 use futures::TryStreamExt;
 use mongodb::{
     bson::Bson,
@@ -49,6 +52,7 @@ pub enum Mode {
 pub enum WidgetFocus {
     DatabaseList,
     CollectionList,
+    ConnectionList,
     FilterEditor,
     MainView,
 }
@@ -66,6 +70,7 @@ pub struct State<'a> {
     pub main_view: MainViewState<'a>,
     pub db_list: DatabaseListState,
     pub coll_list: CollectionListState,
+    pub connection_list: ConnectionListState,
     pub conn_str_editor: ConnStrEditorState,
     pub filter_editor: FilterEditorState,
     pub status_bar: StatusBarState,
@@ -91,6 +96,7 @@ impl<'a> State<'a> {
             conn_str_editor: ConnStrEditorState::default(),
             filter_editor: FilterEditorState::default(),
             status_bar: StatusBarState::default(),
+            connection_list: ConnectionListState::default(),
 
             new_data: false,
         }
@@ -246,6 +252,7 @@ impl<'a> State<'a> {
                     .collect();
 
                 // initial state has all top-level documents expanded
+                // TODO: figure out how/when to _not_ update the state
                 let mut state = TreeState::default();
                 for item in &items {
                     state.open(vec![item.identifier().clone()]);

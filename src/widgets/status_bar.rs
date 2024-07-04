@@ -31,5 +31,13 @@ impl<'a> StatefulWidget for StatusBar<'a> {
 
             Widget::render(paragraph, area, buf);
         }
+        // // this is to debug computing keys based on selected stuff
+        // else {
+        //     let text = state.main_view.state.selected().join(".");
+        //     let paragraph = Paragraph::new(text)
+        //         .wrap(Wrap::default())
+        //         .block(Block::default().padding(Padding::horizontal(1)));
+        //     Widget::render(paragraph, area, buf);
+        // }
     }
 }

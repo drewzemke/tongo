@@ -106,6 +106,7 @@ impl<'a> PrimaryScreen<'a> {
                         WidgetFocus::CollectionList => CollList::handle_event(event, state),
                         WidgetFocus::MainView => MainView::handle_event(event, state),
                         WidgetFocus::FilterEditor => FilterInput::handle_event(event, state),
+                        WidgetFocus::ConnectionList => false,
                     },
                 },
                 Event::Resize(_, _) => true,
