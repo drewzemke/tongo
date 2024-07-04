@@ -6,7 +6,10 @@ use super::widgets::{
 };
 use crate::{
     tree::top_level_document,
-    widgets::{conn_str_input::ConnStrEditorState, connection_list::ConnectionListState},
+    widgets::{
+        conn_name_input::ConnNameEditorState, conn_str_input::ConnStrEditorState,
+        connection_list::ConnectionListState,
+    },
 };
 use futures::TryStreamExt;
 use mongodb::{
@@ -44,7 +47,7 @@ pub enum Screen {
 pub enum Mode {
     Navigating,
     EditingFilter,
-    EditingConnectionString,
+    CreatingNewConnection,
     Exiting,
 }
 
@@ -53,6 +56,8 @@ pub enum WidgetFocus {
     DatabaseList,
     CollectionList,
     ConnectionList,
+    ConnectionStringEditor,
+    ConnectionNameEditor,
     FilterEditor,
     MainView,
 }
@@ -72,6 +77,7 @@ pub struct State<'a> {
     pub coll_list: CollectionListState,
     pub connection_list: ConnectionListState,
     pub conn_str_editor: ConnStrEditorState,
+    pub conn_name_editor: ConnNameEditorState,
     pub filter_editor: FilterEditorState,
     pub status_bar: StatusBarState,
 
@@ -94,6 +100,7 @@ impl<'a> State<'a> {
             db_list: DatabaseListState::default(),
             coll_list: CollectionListState::default(),
             conn_str_editor: ConnStrEditorState::default(),
+            conn_name_editor: ConnNameEditorState::default(),
             filter_editor: FilterEditorState::default(),
             status_bar: StatusBarState::default(),
             connection_list: ConnectionListState::default(),

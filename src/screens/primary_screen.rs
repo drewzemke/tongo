@@ -96,7 +96,8 @@ impl<'a> PrimaryScreen<'a> {
                     }
                     KeyCode::Esc => {
                         state.screen = Screen::Connection;
-                        state.mode = Mode::EditingConnectionString;
+                        state.mode = Mode::Navigating;
+                        state.focus = WidgetFocus::ConnectionList;
                         true
                     }
                     // TODO: refactor this into a closure and call it
@@ -106,7 +107,7 @@ impl<'a> PrimaryScreen<'a> {
                         WidgetFocus::CollectionList => CollList::handle_event(event, state),
                         WidgetFocus::MainView => MainView::handle_event(event, state),
                         WidgetFocus::FilterEditor => FilterInput::handle_event(event, state),
-                        WidgetFocus::ConnectionList => false,
+                        _ => false,
                     },
                 },
                 Event::Resize(_, _) => true,
