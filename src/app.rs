@@ -17,7 +17,11 @@ impl<'a> App<'a> {
         let mut state = State::new();
 
         if let Some(connection) = connection {
-            state.set_conn_str(connection.connection_str);
+            state.set_conn_str(connection.connection_str.clone());
+            state.conn_str_editor.input = state
+                .conn_str_editor
+                .input
+                .with_value(connection.connection_str);
             state.screen = Screen::Primary;
         } else {
             state.screen = Screen::Connection;
