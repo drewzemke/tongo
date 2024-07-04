@@ -1,5 +1,5 @@
 run: 
-    cargo run -- -u mongodb://localhost:27017 
+    cargo run
 
 build:
     cargo build

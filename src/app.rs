@@ -49,7 +49,11 @@ impl<'a> App<'a> {
         // show the cursor if we're editing something
         match self.state.mode {
             Mode::EditingFilter => Some(self.state.filter_editor.cursor_pos),
-            Mode::EditingConnectionString => Some(self.state.conn_str_editor.cursor_pos),
+            Mode::CreatingNewConnection => match self.state.focus {
+                WidgetFocus::ConnectionStringEditor => Some(self.state.conn_str_editor.cursor_pos),
+                WidgetFocus::ConnectionNameEditor => Some(self.state.conn_name_editor.cursor_pos),
+                _ => None,
+            },
             _ => None,
         }
         .map_or_else(|| {}, |pos| frame.set_cursor(pos.0, pos.1));
