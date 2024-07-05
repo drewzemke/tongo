@@ -11,34 +11,10 @@ use ratatui::{
     widgets::{Block, List, ListItem, ListState, StatefulWidget},
 };
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct ConnectionListState {
     pub items: Vec<Connection>,
     pub state: ListState,
-}
-
-// HACK
-impl Default for ConnectionListState {
-    fn default() -> Self {
-        // HACK
-        let fake_list = [
-            Connection::new("Local".to_string(), "mongodb://localhost:27017".to_string()),
-            Connection::new(
-                "Other Connection".to_string(),
-                "mongodb://not-real-db.com".to_string(),
-            ),
-            Connection::new(
-                "Another!!!".to_string(),
-                "mongodb://localhost:27017".to_string(),
-            ),
-            Connection::new("Nice.".to_string(), "mongodb://localhost:27017".to_string()),
-        ];
-
-        Self {
-            items: fake_list.to_vec(),
-            state: ListState::default(),
-        }
-    }
 }
 
 #[derive(Debug, Default)]
