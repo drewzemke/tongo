@@ -67,6 +67,7 @@ pub struct State<'a> {
     pub focus: WidgetFocus,
     pub mode: Mode,
 
+    // mongo stuff
     client: Option<Client>,
     response_send: Sender<MongoResponse>,
     pub response_recv: Receiver<MongoResponse>,

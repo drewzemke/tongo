@@ -15,6 +15,8 @@ const DEBOUNCE: Duration = Duration::from_millis(20); // 50 FPS
 impl<'a> App<'a> {
     pub fn new(connection: Option<Connection>) -> Self {
         let mut state = State::new();
+        let connections = Connection::read_from_storage().unwrap_or_default();
+        state.connection_list.items = connections;
 
         if let Some(connection) = connection {
             state.set_conn_str(connection.connection_str.clone());
