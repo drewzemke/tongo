@@ -4,8 +4,8 @@ let
   rust = pkgs.rustPlatform;
 in
 rust.buildRustPackage rec {
-  pname = "mongodb-tui";
-  version = "0.5.0"; 
+  pname = "tongo";
+  version = "0.6.0"; 
 
   cargoLock.lockFile = ./Cargo.lock;
   src = pkgs.lib.cleanSource ./.;
