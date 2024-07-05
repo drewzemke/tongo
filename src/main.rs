@@ -17,21 +17,43 @@ mod widgets;
 #[derive(Parser)]
 #[command(author)]
 pub struct Args {
-    /// The connection string for the mongo server
+    #[clap(flatten)]
+    auto_connect: Option<AutoConnectArgs>,
+}
+
+#[derive(Debug, clap::Args)]
+#[group(required = false, multiple = false)]
+pub struct AutoConnectArgs {
+    /// Automatically connect to a given connection string
     #[arg(long, short)]
     url: Option<String>,
+
+    /// Automatically connect to a (previously stored) connection
+    #[arg(long, short)]
+    connection: Option<String>,
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
 
+    // load connections
+    let store_connections = Connection::read_from_storage().unwrap_or_default();
+
+    // connect to a connection based on command line argument (if applicable)
     let connection = args
-        .url
-        .map(|url| Connection::new("Unnamed Connection".to_string(), url));
+        .auto_connect
+        .and_then(|group| match (group.url, group.connection) {
+            (Some(url), _) => Some(Connection::new("Unnamed Connection".to_string(), url)),
+            (_, Some(conn_name)) => store_connections
+                .iter()
+                .find(|c| c.name.to_lowercase() == conn_name.to_lowercase())
+                .cloned(),
+            _ => unreachable!(),
+        });
 
     let mut terminal = setup_terminal()?;
-    let mut app = App::new(connection);
+    let mut app = App::new(connection, store_connections);
     let res = app.run(&mut terminal);
 
     restore_terminal(terminal)?;
