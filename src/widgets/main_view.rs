@@ -60,11 +60,11 @@ impl<'a> MainView<'a> {
     pub fn handle_event(event: &Event, state: &mut State) -> bool {
         match event {
             Event::Key(key) => match key.code {
-                KeyCode::Char('\n' | ' ') => state.main_view.state.toggle_selected(),
-                KeyCode::Left => state.main_view.state.key_left(),
-                KeyCode::Right => state.main_view.state.key_right(),
-                KeyCode::Down => state.main_view.state.key_down(),
-                KeyCode::Up => state.main_view.state.key_up(),
+                KeyCode::Char(' ') | KeyCode::Enter => state.main_view.state.toggle_selected(),
+                KeyCode::Left | KeyCode::Char('h') => state.main_view.state.key_left(),
+                KeyCode::Right | KeyCode::Char('l') => state.main_view.state.key_right(),
+                KeyCode::Down | KeyCode::Char('j') => state.main_view.state.key_down(),
+                KeyCode::Up | KeyCode::Char('k') => state.main_view.state.key_up(),
                 KeyCode::Home => state.main_view.state.select_first(),
                 KeyCode::End => state.main_view.state.select_last(),
                 KeyCode::PageDown => state.main_view.state.scroll_down(3),
