@@ -10,6 +10,8 @@ pub trait ListWidget {
     type Item;
     type State;
 
+    fn title() -> &'static str;
+
     fn items(state: &Self::State) -> Iter<Self::Item>;
 
     fn item_to_str(item: &Self::Item) -> String;
@@ -33,7 +35,7 @@ pub trait ListWidget {
         let list = List::new(items)
             .block(
                 Block::bordered()
-                    .title("Databases")
+                    .title(Self::title())
                     .border_style(Style::default().fg(border_color)),
             )
             .highlight_style(Style::default().bold().reversed().white());
