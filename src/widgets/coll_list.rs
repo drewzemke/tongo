@@ -57,6 +57,7 @@ impl<'a> CollList<'a> {
                     true
                 }
                 KeyCode::Enter => {
+                    state.main_view.page = 0;
                     state.exec_query();
                     state.exec_count();
                     state.focus = WidgetFocus::MainView;
