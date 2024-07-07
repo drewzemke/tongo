@@ -1,4 +1,5 @@
 use crate::state::{Mode, Screen, State, WidgetFocus};
+use crate::widgets::list_widget::ListWidget;
 use crate::widgets::{
     coll_list::CollList, db_list::DbList, filter_input::FilterInput, main_view::MainView,
 };
@@ -35,7 +36,7 @@ impl<'a> StatefulWidget for PrimaryScreen<'a> {
         let main_view_top = main_view_layout[0];
         let main_view_btm = main_view_layout[1];
 
-        DbList::default().render(sidebar_top, buf, state);
+        DbList::render(sidebar_top, buf, state);
         CollList::default().render(sidebar_btm, buf, state);
         FilterInput::default().render(main_view_top, buf, state);
         MainView::default().render(main_view_btm, buf, state);
