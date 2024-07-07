@@ -1,7 +1,7 @@
 use super::list_widget::ListWidget;
 use crate::state::{State, WidgetFocus};
 use mongodb::results::DatabaseSpecification;
-use ratatui::widgets::ListState;
+use ratatui::{prelude::*, widgets::ListState};
 
 #[derive(Debug, Default)]
 pub struct DatabaseListState {
@@ -30,8 +30,8 @@ impl<'a> ListWidget for DbList<'a> {
         state.db_list.items.iter()
     }
 
-    fn item_to_str(item: &Self::Item) -> String {
-        item.name.clone()
+    fn item_to_str(item: &Self::Item) -> Text<'static> {
+        item.name.clone().into()
     }
 
     fn is_focused(state: &Self::State) -> bool {
