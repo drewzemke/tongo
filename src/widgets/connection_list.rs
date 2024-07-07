@@ -36,9 +36,11 @@ impl<'a> ListWidget for ConnectionList<'a> {
     }
 
     fn item_to_str(item: &Self::Item) -> Text<'static> {
+        let masked_conn_str = ConnectionList::mask_password(&item.connection_str);
+
         Text::from(vec![
             Line::from(item.name.clone()),
-            Line::from(format!(" {}", item.connection_str)).gray(),
+            Line::from(format!(" {masked_conn_str}")).gray(),
         ])
     }
 
@@ -78,5 +80,52 @@ impl<'a> ListWidget for ConnectionList<'a> {
         } else {
             false
         }
+    }
+}
+
+impl<'a> ConnectionList<'a> {
+    pub fn mask_password(conn_str: &str) -> String {
+        let Some((before_slashes, after_slashes)) = conn_str.split_once("//") else {
+            return String::from(conn_str);
+        };
+        let Some((user_and_pw, after_at)) = after_slashes.split_once('@') else {
+            return String::from(conn_str);
+        };
+        let Some((user, _)) = user_and_pw.split_once(':') else {
+            return String::from(conn_str);
+        };
+        format!("{before_slashes}//{user}:******@{after_at}")
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_mask_password() {
+        let conn_str = "mongodb://user:D1fficultP%40ssw0rd@cluster0.example.mongodb.net/";
+        let masked_str = ConnectionList::mask_password(conn_str);
+        let expected = "mongodb://user:******@cluster0.example.mongodb.net/";
+
+        assert_eq!(masked_str, expected);
+    }
+
+    #[test]
+    fn test_mask_password_with_srv() {
+        let conn_str = "mongodb+srv://user:D1fficultP%40ssw0rd@cluster0.example.mongodb.net/";
+        let masked_str = ConnectionList::mask_password(conn_str);
+        let expected = "mongodb+srv://user:******@cluster0.example.mongodb.net/";
+
+        assert_eq!(masked_str, expected);
+    }
+
+    #[test]
+    fn test_mask_password_no_passwd() {
+        let conn_str = "mongodb://cluster0.example.mongodb.net/";
+        let masked_str = ConnectionList::mask_password(conn_str);
+        let expected = "mongodb://cluster0.example.mongodb.net/";
+
+        assert_eq!(masked_str, expected);
     }
 }
