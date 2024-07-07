@@ -71,7 +71,7 @@ impl<'a> MainView<'a> {
                 KeyCode::PageUp => state.main_view.state.scroll_up(3),
                 // next page
                 KeyCode::Char('n') => {
-                    let end = state.main_view.page * PAGE_SIZE + PAGE_SIZE - 1;
+                    let end = (state.main_view.page + 1) * PAGE_SIZE;
                     if end < state.main_view.count as usize {
                         state.main_view.page += 1;
                         state.exec_query();
