@@ -78,12 +78,12 @@ impl<'a> ConnStrInput<'a> {
                         let input = state.conn_str_editor.input.value();
                         state.set_conn_str(input.to_string());
 
-                        // QUESTION: is this the right place for this file call?
                         let new_conn = Connection::new(
                             state.conn_name_editor.input.value().to_string(),
                             state.conn_str_editor.input.value().to_string(),
                         );
                         state.connection_list.items.push(new_conn);
+                        // QUESTION: is this the right place for this file call?
                         Connection::write_to_storage(&state.connection_list.items).unwrap_or_else(
                             |_| {
                                 state.status_bar.message = Some(
