@@ -67,6 +67,20 @@ impl<'a> ConnectionList<'a> {
                     state.exec_get_collections();
                     true
                 }
+                KeyCode::Char('D') => {
+                    let Some(index_to_delete) = state.connection_list.state.selected() else {
+                        return false;
+                    };
+                    state.connection_list.items.remove(index_to_delete);
+                    Connection::write_to_storage(&state.connection_list.items).unwrap_or_else(
+                        |_| {
+                            state.status_bar.message = Some(
+                                "An error occurred while saving connection preferences".to_string(),
+                            );
+                        },
+                    );
+                    true
+                }
                 KeyCode::Enter => {
                     let conn = state
                         .connection_list
