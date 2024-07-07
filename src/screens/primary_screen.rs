@@ -37,7 +37,7 @@ impl<'a> StatefulWidget for PrimaryScreen<'a> {
         let main_view_btm = main_view_layout[1];
 
         DbList::render(sidebar_top, buf, state);
-        CollList::default().render(sidebar_btm, buf, state);
+        CollList::render(sidebar_btm, buf, state);
         FilterInput::default().render(main_view_top, buf, state);
         MainView::default().render(main_view_btm, buf, state);
     }

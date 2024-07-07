@@ -1,8 +1,7 @@
+use super::list_widget::ListWidget;
 use crate::state::{State, WidgetFocus};
 use mongodb::results::DatabaseSpecification;
 use ratatui::widgets::ListState;
-
-use super::list_widget::ListWidget;
 
 #[derive(Debug, Default)]
 pub struct DatabaseListState {
@@ -18,6 +17,10 @@ pub struct DbList<'a> {
 impl<'a> ListWidget for DbList<'a> {
     type Item = DatabaseSpecification;
     type State = State<'a>;
+
+    fn title() -> &'static str {
+        "Databases"
+    }
 
     fn list_state(state: &mut Self::State) -> &mut ListState {
         &mut state.db_list.state
