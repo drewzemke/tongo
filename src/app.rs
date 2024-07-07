@@ -2,6 +2,7 @@ use crate::connection::Connection;
 use crate::screens::connection_screen::ConnectionScreen;
 use crate::screens::primary_screen::PrimaryScreen;
 use crate::state::{Mode, Screen, State, WidgetFocus};
+use crate::widgets::status_bar::StatusBar;
 use crossterm::event::{Event, KeyCode, KeyModifiers};
 use ratatui::prelude::*;
 use std::time::{Duration, Instant};
@@ -34,18 +35,24 @@ impl<'a> App<'a> {
     }
 
     fn draw(&mut self, frame: &mut Frame) {
+        let frame_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Percentage(100), Constraint::Length(1)])
+            .split(frame.size());
+        let content = frame_layout[0];
+        let btm_line = frame_layout[1];
+
         match self.state.screen {
             Screen::Primary => {
-                PrimaryScreen::default().render(frame.size(), frame.buffer_mut(), &mut self.state);
+                PrimaryScreen::default().render(content, frame.buffer_mut(), &mut self.state);
             }
             Screen::Connection => {
-                ConnectionScreen::default().render(
-                    frame.size(),
-                    frame.buffer_mut(),
-                    &mut self.state,
-                );
+                ConnectionScreen::default().render(content, frame.buffer_mut(), &mut self.state);
             }
         }
+
+        // status bar
+        StatusBar::default().render(btm_line, frame.buffer_mut(), &mut self.state);
 
         // show the cursor if we're editing something
         match self.state.mode {

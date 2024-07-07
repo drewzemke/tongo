@@ -85,6 +85,12 @@ pub struct State<'a> {
     pub new_data: bool,
 }
 
+impl<'a> Default for State<'a> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<'a> State<'a> {
     pub fn new() -> Self {
         let (response_send, response_recv) = mpsc::channel::<MongoResponse>();
