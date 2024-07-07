@@ -14,7 +14,7 @@ pub trait ListWidget {
 
     fn items(state: &Self::State) -> Iter<Self::Item>;
 
-    fn item_to_str(item: &Self::Item) -> String;
+    fn item_to_str(item: &Self::Item) -> Text<'static>;
 
     fn is_focused(state: &Self::State) -> bool;
 
@@ -23,6 +23,10 @@ pub trait ListWidget {
     fn on_change(_state: &mut Self::State) {}
 
     fn on_select(_state: &mut Self::State) {}
+
+    fn on_event(_event: &Event, _state: &mut Self::State) -> bool {
+        false
+    }
 
     fn render(area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let focused = Self::is_focused(state);
@@ -44,7 +48,7 @@ pub trait ListWidget {
     }
 
     fn handle_event(event: &Event, state: &mut Self::State) -> bool {
-        if let Event::Key(key) = event {
+        let updated = if let Event::Key(key) = event {
             match key.code {
                 KeyCode::Char('j') | KeyCode::Down => {
                     Self::list_state(state).select_next();
@@ -64,6 +68,8 @@ pub trait ListWidget {
             }
         } else {
             false
-        }
+        };
+
+        Self::on_event(event, state) || updated
     }
 }

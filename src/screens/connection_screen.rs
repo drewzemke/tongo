@@ -2,6 +2,7 @@ use crate::state::{Mode, State, WidgetFocus};
 use crate::widgets::conn_name_input::ConnNameInput;
 use crate::widgets::conn_str_input::ConnStrInput;
 use crate::widgets::connection_list::ConnectionList;
+use crate::widgets::list_widget::ListWidget;
 use crossterm::event::{Event, KeyCode};
 use ratatui::prelude::*;
 
@@ -33,11 +34,11 @@ impl<'a> StatefulWidget for ConnectionScreen<'a> {
                 .horizontal_margin(2)
                 .split(frame_right);
 
-            ConnectionList::default().render(frame_left, buf, state);
+            ConnectionList::render(frame_left, buf, state);
             ConnNameInput::default().render(right_layout[1], buf, state);
             ConnStrInput::default().render(right_layout[3], buf, state);
         } else {
-            ConnectionList::default().render(area, buf, state);
+            ConnectionList::render(area, buf, state);
         }
     }
 }
