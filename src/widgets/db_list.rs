@@ -1,11 +1,8 @@
 use crate::state::{State, WidgetFocus};
-use crossterm::event::{Event, KeyCode};
 use mongodb::results::DatabaseSpecification;
-use ratatui::{
-    prelude::*,
-    style::{Color, Style},
-    widgets::{Block, List, ListItem, ListState, StatefulWidget},
-};
+use ratatui::widgets::ListState;
+
+use super::list_widget::ListWidget;
 
 #[derive(Debug, Default)]
 pub struct DatabaseListState {
@@ -18,54 +15,31 @@ pub struct DbList<'a> {
     marker: std::marker::PhantomData<State<'a>>,
 }
 
-impl<'a> StatefulWidget for DbList<'a> {
+impl<'a> ListWidget for DbList<'a> {
+    type Item = DatabaseSpecification;
     type State = State<'a>;
 
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let focused = state.focus == WidgetFocus::DatabaseList;
-        let border_color = if focused { Color::Green } else { Color::White };
-
-        let items: Vec<ListItem> = state
-            .db_list
-            .items
-            .iter()
-            .map(|db| ListItem::new(db.name.clone()))
-            .collect();
-
-        let list = List::new(items)
-            .block(
-                Block::bordered()
-                    .title("Databases")
-                    .border_style(Style::default().fg(border_color)),
-            )
-            .highlight_style(Style::default().bold().reversed().white());
-
-        StatefulWidget::render(list, area, buf, &mut state.db_list.state);
+    fn list_state(state: &mut Self::State) -> &mut ListState {
+        &mut state.db_list.state
     }
-}
 
-impl<'a> DbList<'a> {
-    pub fn handle_event(event: &Event, state: &mut State) -> bool {
-        if let Event::Key(key) = event {
-            match key.code {
-                KeyCode::Char('j') | KeyCode::Down => {
-                    state.db_list.state.select_next();
-                    state.exec_get_collections();
-                    true
-                }
-                KeyCode::Char('k') | KeyCode::Up => {
-                    state.db_list.state.select_previous();
-                    state.exec_get_collections();
-                    true
-                }
-                KeyCode::Enter => {
-                    state.focus = WidgetFocus::CollectionList;
-                    true
-                }
-                _ => false,
-            }
-        } else {
-            false
-        }
+    fn items(state: &Self::State) -> std::slice::Iter<Self::Item> {
+        state.db_list.items.iter()
+    }
+
+    fn item_to_str(item: &Self::Item) -> String {
+        item.name.clone()
+    }
+
+    fn is_focused(state: &Self::State) -> bool {
+        state.focus == WidgetFocus::DatabaseList
+    }
+
+    fn on_change(state: &mut Self::State) {
+        state.exec_get_collections();
+    }
+
+    fn on_select(state: &mut Self::State) {
+        state.focus = WidgetFocus::CollectionList;
     }
 }
