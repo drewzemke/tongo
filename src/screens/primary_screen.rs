@@ -1,7 +1,6 @@
 use crate::state::{Mode, Screen, State, WidgetFocus};
 use crate::widgets::{
     coll_list::CollList, db_list::DbList, filter_input::FilterInput, main_view::MainView,
-    status_bar::StatusBar,
 };
 use crossterm::event::{Event, KeyCode};
 use ratatui::prelude::*;
@@ -15,18 +14,10 @@ impl<'a> StatefulWidget for PrimaryScreen<'a> {
     type State = State<'a>;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        // TODO: change status bar visibility based on whether there's an error?
-        let frame_layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Percentage(100), Constraint::Length(1)])
-            .split(area);
-        let content = frame_layout[0];
-        let btm_line = frame_layout[1];
-
         let content_layout = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(20), Constraint::Min(20)])
-            .split(content);
+            .split(area);
         let sidebar = content_layout[0];
         let main_view = content_layout[1];
 
@@ -48,7 +39,6 @@ impl<'a> StatefulWidget for PrimaryScreen<'a> {
         CollList::default().render(sidebar_btm, buf, state);
         FilterInput::default().render(main_view_top, buf, state);
         MainView::default().render(main_view_btm, buf, state);
-        StatusBar::default().render(btm_line, buf, state);
     }
 }
 

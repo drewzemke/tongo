@@ -8,6 +8,7 @@ use std::io::Stdout;
 mod app;
 mod connection;
 mod files;
+mod key_hint;
 mod screens;
 mod state;
 mod tree;
