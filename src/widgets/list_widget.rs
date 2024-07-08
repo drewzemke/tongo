@@ -51,12 +51,22 @@ pub trait ListWidget {
         let updated = if let Event::Key(key) = event {
             match key.code {
                 KeyCode::Char('j') | KeyCode::Down => {
-                    Self::list_state(state).select_next();
+                    // jump to the top if we're at the bottom
+                    if Self::list_state(state).selected() == Some(Self::items(state).len() - 1) {
+                        Self::list_state(state).select_first();
+                    } else {
+                        Self::list_state(state).select_next();
+                    }
                     Self::on_change(state);
                     true
                 }
                 KeyCode::Char('k') | KeyCode::Up => {
-                    Self::list_state(state).select_previous();
+                    // jump to the bottom if we're at the top
+                    if Self::list_state(state).selected() == Some(0) {
+                        Self::list_state(state).select_last();
+                    } else {
+                        Self::list_state(state).select_previous();
+                    }
                     Self::on_change(state);
                     true
                 }
