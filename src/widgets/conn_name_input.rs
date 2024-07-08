@@ -1,13 +1,6 @@
-#![allow(clippy::cast_possible_truncation)]
-
+use super::input_widget::InputWidget;
 use crate::state::{Mode, Screen, State, WidgetFocus};
-use crossterm::event::{Event, KeyCode};
-use ratatui::{
-    prelude::*,
-    style::{Color, Style},
-    widgets::{Block, Borders, Clear, Paragraph, Widget},
-};
-use tui_input::{backend::crossterm::EventHandler, Input};
+use tui_input::Input;
 
 #[derive(Debug, Default)]
 pub struct ConnNameEditorState {
@@ -20,68 +13,44 @@ pub struct ConnNameInput<'a> {
     marker: std::marker::PhantomData<State<'a>>,
 }
 
-impl<'a> StatefulWidget for ConnNameInput<'a> {
+impl<'a> InputWidget for ConnNameInput<'a> {
     type State = State<'a>;
 
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let editing = state.mode == Mode::CreatingNewConnection
-            && state.focus == WidgetFocus::ConnectionNameEditor;
-        let border_color = if editing { Color::Yellow } else { Color::White };
-
-        // figure the right amount to scroll the input by
-        let input_scroll = state
-            .conn_name_editor
-            .input
-            .visual_scroll(area.width as usize - 2);
-        let input_widget = Paragraph::new(state.conn_name_editor.input.value())
-            .scroll((0, input_scroll as u16))
-            .block(
-                Block::default()
-                    .title("Name")
-                    .border_style(Style::default().fg(border_color))
-                    .borders(Borders::ALL),
-            );
-
-        // update cursor position if we're in an editing state
-        state.conn_name_editor.cursor_pos = (
-            area.x
-                + (state
-                    .conn_name_editor
-                    .input
-                    .visual_cursor()
-                    .max(input_scroll)
-                    - input_scroll) as u16
-                + 1,
-            area.y + 1,
-        );
-
-        Clear.render(area, buf);
-        input_widget.render(area, buf);
+    fn title() -> &'static str {
+        "Name"
     }
-}
 
-impl<'a> ConnNameInput<'a> {
-    pub fn handle_event(event: &Event, state: &mut State) -> bool {
-        match state.mode {
-            Mode::CreatingNewConnection => match event {
-                Event::Key(key) => match key.code {
-                    KeyCode::Esc => {
-                        state.screen = Screen::Connection;
-                        state.mode = Mode::Navigating;
-                        state.focus = WidgetFocus::ConnectionList;
-                        true
-                    }
-                    KeyCode::Enter | KeyCode::Tab => {
-                        state.screen = Screen::Connection;
-                        state.mode = Mode::CreatingNewConnection;
-                        state.focus = WidgetFocus::ConnectionStringEditor;
-                        true
-                    }
-                    _ => state.conn_name_editor.input.handle_event(event).is_some(),
-                },
-                _ => false,
-            },
-            _ => false,
-        }
+    fn is_focused(state: &Self::State) -> bool {
+        state.mode == Mode::CreatingNewConnection
+            && state.focus == WidgetFocus::ConnectionNameEditor
+    }
+
+    fn is_editing(state: &Self::State) -> bool {
+        state.mode == Mode::CreatingNewConnection
+            && state.focus == WidgetFocus::ConnectionNameEditor
+    }
+
+    fn input(state: &mut Self::State) -> &mut Input {
+        &mut state.conn_name_editor.input
+    }
+
+    fn cursor_pos(state: &mut Self::State) -> &mut (u16, u16) {
+        &mut state.conn_name_editor.cursor_pos
+    }
+
+    fn on_cancel(state: &mut Self::State) {
+        state.screen = Screen::Connection;
+        state.mode = Mode::Navigating;
+        state.focus = WidgetFocus::ConnectionList;
+    }
+
+    fn on_confirm(state: &mut Self::State) {
+        state.screen = Screen::Connection;
+        state.mode = Mode::CreatingNewConnection;
+        state.focus = WidgetFocus::ConnectionStringEditor;
+    }
+
+    fn on_tab(state: &mut Self::State) {
+        Self::on_confirm(state);
     }
 }
