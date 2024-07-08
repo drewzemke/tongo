@@ -5,7 +5,7 @@ let
 in
 rust.buildRustPackage rec {
   pname = "tongo";
-  version = "0.6.0"; 
+  version = "0.7.0"; 
 
   cargoLock.lockFile = ./Cargo.lock;
   src = pkgs.lib.cleanSource ./.;
