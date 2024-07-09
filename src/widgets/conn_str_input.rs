@@ -55,33 +55,39 @@ impl<'a> InputWidget for ConnStrInput<'a> {
         &mut state.conn_str_editor.cursor_pos
     }
 
-    fn on_cancel(state: &mut Self::State) {
+    fn on_edit_start(state: &mut Self::State) {
         state.screen = Screen::Connection;
         state.mode = Mode::CreatingNewConnection;
-        state.focus = WidgetFocus::ConnectionNameEditor;
+        state.focus = WidgetFocus::ConnectionStringEditor;
     }
 
-    fn on_confirm(state: &mut Self::State) {
-        let input = state.conn_str_editor.input.value();
-        state.set_conn_str(input.to_string());
+    fn on_edit_end(state: &mut Self::State, confirmed: bool) {
+        if confirmed {
+            let input = state.conn_str_editor.input.value();
+            state.set_conn_str(input.to_string());
 
-        let new_conn = Connection::new(
-            state.conn_name_editor.input.value().to_string(),
-            state.conn_str_editor.input.value().to_string(),
-        );
-        state.connection_list.items.push(new_conn);
-        // QUESTION: is this the right place for this file call?
-        Connection::write_to_storage(&state.connection_list.items).unwrap_or_else(|_| {
-            state.status_bar.message =
-                Some("An error occurred while saving connection preferences".to_string());
-        });
+            let new_conn = Connection::new(
+                state.conn_name_editor.input.value().to_string(),
+                state.conn_str_editor.input.value().to_string(),
+            );
+            state.connection_list.items.push(new_conn);
+            // QUESTION: is this the right place for this file call?
+            Connection::write_to_storage(&state.connection_list.items).unwrap_or_else(|_| {
+                state.status_bar.message =
+                    Some("An error occurred while saving connection preferences".to_string());
+            });
 
-        state.screen = Screen::Primary;
-        state.mode = Mode::Navigating;
-        state.focus = WidgetFocus::DatabaseList;
+            state.screen = Screen::Primary;
+            state.mode = Mode::Navigating;
+            state.focus = WidgetFocus::DatabaseList;
+        } else {
+            state.screen = Screen::Connection;
+            state.mode = Mode::CreatingNewConnection;
+            state.focus = WidgetFocus::ConnectionNameEditor;
+        }
     }
 
     fn on_tab(state: &mut Self::State) {
-        Self::on_cancel(state);
+        Self::on_edit_end(state, false);
     }
 }

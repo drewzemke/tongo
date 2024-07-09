@@ -40,22 +40,26 @@ impl<'a> InputWidget for FilterInput<'a> {
         &mut state.filter_editor.cursor_pos
     }
 
-    fn on_cancel(state: &mut Self::State) {
-        state.mode = Mode::Navigating;
+    fn on_edit_start(state: &mut Self::State) {
+        state.mode = Mode::EditingFilter;
     }
 
-    fn on_confirm(state: &mut Self::State) {
-        let filter_str = state.filter_editor.input.value();
-        let filter = serde_json::from_str::<serde_json::Value>(filter_str)
-            .ok()
-            .and_then(|value| mongodb::bson::to_document(&value).ok());
+    fn on_edit_end(state: &mut Self::State, confirmed: bool) {
+        if confirmed {
+            let filter_str = state.filter_editor.input.value();
+            let filter = serde_json::from_str::<serde_json::Value>(filter_str)
+                .ok()
+                .and_then(|value| mongodb::bson::to_document(&value).ok());
 
-        if let Some(doc) = filter {
-            state.filter_editor.filter = Some(doc);
-            state.exec_query();
-            state.exec_count();
+            if let Some(doc) = filter {
+                state.filter_editor.filter = Some(doc);
+                state.exec_query();
+                state.exec_count();
+                state.mode = Mode::Navigating;
+                state.focus = WidgetFocus::MainView;
+            }
+        } else {
             state.mode = Mode::Navigating;
-            state.focus = WidgetFocus::MainView;
         }
     }
 }
