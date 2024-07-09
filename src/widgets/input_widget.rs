@@ -20,11 +20,11 @@ pub trait InputWidget {
 
     fn cursor_pos(state: &mut Self::State) -> &mut (u16, u16);
 
-    fn on_cancel(_state: &mut Self::State) {}
+    fn on_edit_start(_state: &mut Self::State) {}
+
+    fn on_edit_end(_state: &mut Self::State, _confirmed: bool) {}
 
     fn on_tab(_state: &mut Self::State) {}
-
-    fn on_confirm(_state: &mut Self::State) {}
 
     fn render(area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let border_color = if Self::is_focused(state) {
@@ -60,23 +60,40 @@ pub trait InputWidget {
     }
 
     fn handle_event(event: &Event, state: &mut Self::State) -> bool {
-        match event {
-            Event::Key(key) => match key.code {
-                KeyCode::Esc => {
-                    Self::on_cancel(state);
-                    true
-                }
-                KeyCode::Enter => {
-                    Self::on_confirm(state);
-                    true
-                }
-                KeyCode::Tab => {
-                    Self::on_tab(state);
-                    true
-                }
-                _ => Self::input(state).handle_event(event).is_some(),
-            },
-            _ => false,
+        if Self::is_editing(state) {
+            match event {
+                Event::Key(key) => match key.code {
+                    KeyCode::Esc => {
+                        Self::on_edit_end(state, false);
+                        true
+                    }
+                    KeyCode::Enter => {
+                        Self::on_edit_end(state, true);
+                        true
+                    }
+                    KeyCode::Tab => {
+                        Self::on_tab(state);
+                        true
+                    }
+                    _ => Self::input(state).handle_event(event).is_some(),
+                },
+                _ => false,
+            }
+        } else {
+            match event {
+                Event::Key(key) => match key.code {
+                    KeyCode::Enter => {
+                        Self::on_edit_start(state);
+                        true
+                    }
+                    KeyCode::Tab => {
+                        Self::on_tab(state);
+                        true
+                    }
+                    _ => false,
+                },
+                _ => false,
+            }
         }
     }
 }

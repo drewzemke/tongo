@@ -38,19 +38,25 @@ impl<'a> InputWidget for ConnNameInput<'a> {
         &mut state.conn_name_editor.cursor_pos
     }
 
-    fn on_cancel(state: &mut Self::State) {
-        state.screen = Screen::Connection;
-        state.mode = Mode::Navigating;
-        state.focus = WidgetFocus::ConnectionList;
-    }
-
-    fn on_confirm(state: &mut Self::State) {
+    fn on_edit_start(state: &mut Self::State) {
         state.screen = Screen::Connection;
         state.mode = Mode::CreatingNewConnection;
         state.focus = WidgetFocus::ConnectionStringEditor;
     }
 
+    fn on_edit_end(state: &mut Self::State, confirmed: bool) {
+        state.screen = Screen::Connection;
+
+        if confirmed {
+            state.mode = Mode::CreatingNewConnection;
+            state.focus = WidgetFocus::ConnectionStringEditor;
+        } else {
+            state.mode = Mode::Navigating;
+            state.focus = WidgetFocus::ConnectionList;
+        }
+    }
+
     fn on_tab(state: &mut Self::State) {
-        Self::on_confirm(state);
+        Self::on_edit_end(state, true);
     }
 }
