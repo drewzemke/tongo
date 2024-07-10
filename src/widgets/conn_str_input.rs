@@ -19,17 +19,6 @@ pub struct ConnStrInput<'a> {
     marker: std::marker::PhantomData<State<'a>>,
 }
 
-#[derive(Debug, Default)]
-pub struct ConnNameEditorState {
-    pub input: Input,
-    pub cursor_pos: (u16, u16),
-}
-
-#[derive(Debug, Default)]
-pub struct ConnNameInput<'a> {
-    marker: std::marker::PhantomData<State<'a>>,
-}
-
 impl<'a> InputWidget for ConnStrInput<'a> {
     type State = State<'a>;
 
