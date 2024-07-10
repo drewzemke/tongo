@@ -9,9 +9,9 @@ repository = "https://github.com/drewzemke/tongo"
 readme = "README.md"
 
 [lints.clippy]
-pedantic = "warn"
-nursery = "warn"
-unwrap_used = "warn"
+pedantic = { level = "warn", priority = 1 }
+nursery = { level = "warn", priority = 1 }
+unwrap_used = { level = "warn", priority = 2 }
 
 [dependencies]
 anyhow = "1.0.86"
