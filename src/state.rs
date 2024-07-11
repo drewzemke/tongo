@@ -31,6 +31,7 @@ pub enum MongoResponse {
     Collections(Vec<CollectionSpecification>),
     Count(u64),
     NewClient(Client),
+    UpdateConfirmed,
     DeleteConfirmed,
     Error(Error),
 }
@@ -255,6 +256,40 @@ impl<'a> State<'a> {
         });
     }
 
+    pub fn exec_update_one(&self, filter: Document, update: Document) {
+        let client = match self.client {
+            Some(ref client) => client.clone(),
+            None => return,
+        };
+        let Some(db_name) = self.selected_db_name() else {
+            return;
+        };
+        let Some(coll_name) = self.selected_coll_name() else {
+            return;
+        };
+
+        let db = client.database(db_name);
+        let collection_name = coll_name.clone();
+        let sender = self.response_send.clone();
+
+        tokio::spawn(async move {
+            let response = db
+                .collection::<Bson>(&collection_name)
+                .update_one(filter, update, None)
+                .await
+                .map_or_else(MongoResponse::Error, |r| {
+                    if r.modified_count > 0 {
+                        MongoResponse::UpdateConfirmed
+                    } else {
+                        // TODO: refactor Error enum type to accept/display custom errors.
+                        MongoResponse::Error(Error::custom("Document was not updated."))
+                    }
+                });
+
+            sender.send(response).expect(SEND_ERR_MSG);
+        });
+    }
+
     pub fn exec_delete_one(&self, filter: Document) {
         let client = match self.client {
             Some(ref client) => client.clone(),
@@ -307,6 +342,7 @@ impl<'a> State<'a> {
                     state.open(vec![item.identifier().clone()]);
                 }
 
+                self.main_view.documents = content;
                 self.main_view.items = items;
                 self.main_view.state = state;
             }
@@ -320,7 +356,7 @@ impl<'a> State<'a> {
                 self.client = Some(client);
                 self.exec_get_dbs();
             }
-            MongoResponse::DeleteConfirmed => {
+            MongoResponse::DeleteConfirmed | MongoResponse::UpdateConfirmed => {
                 self.exec_query();
                 self.exec_count();
             }
