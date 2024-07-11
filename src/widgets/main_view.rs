@@ -7,6 +7,7 @@ use crate::{
 };
 use anyhow::Context;
 use crossterm::event::{Event, KeyCode, MouseEventKind};
+use edit::Builder;
 use mongodb::bson::{doc, Bson};
 use ratatui::{
     layout::Position,
@@ -141,7 +142,10 @@ impl<'a> MainView<'a> {
                         return false;
                     };
 
-                    let updated_string = edit::edit(doc_string).context("editing string");
+                    let updated_string =
+                        edit::edit_with_builder(doc_string, Builder::new().suffix(".json"))
+                            .context("editing string");
+
                     let new_doc = updated_string
                         .and_then(|s| {
                             serde_json::from_str::<serde_json::Value>(&s)

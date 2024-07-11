@@ -277,14 +277,7 @@ impl<'a> State<'a> {
                 .collection::<Bson>(&collection_name)
                 .update_one(filter, update, None)
                 .await
-                .map_or_else(MongoResponse::Error, |r| {
-                    if r.modified_count > 0 {
-                        MongoResponse::UpdateConfirmed
-                    } else {
-                        // TODO: refactor Error enum type to accept/display custom errors.
-                        MongoResponse::Error(Error::custom("Document was not updated."))
-                    }
-                });
+                .map_or_else(MongoResponse::Error, |_| MongoResponse::UpdateConfirmed);
 
             sender.send(response).expect(SEND_ERR_MSG);
         });
