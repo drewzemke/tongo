@@ -13,14 +13,14 @@ use crate::{
 };
 use futures::TryStreamExt;
 use mongodb::{
-    bson::Bson,
+    bson::{Bson, Document},
     error::Error,
     options::{ClientOptions, FindOptions},
     results::{CollectionSpecification, DatabaseSpecification},
     Client,
 };
 use std::sync::mpsc::{self, Receiver, Sender};
-use tui_tree_widget::{TreeItem, TreeState};
+use tui_tree_widget::TreeState;
 
 const PAGE_SIZE: usize = 5;
 const SEND_ERR_MSG: &str = "Error occurred while processing server response.";
@@ -31,6 +31,7 @@ pub enum MongoResponse {
     Collections(Vec<CollectionSpecification>),
     Count(u64),
     NewClient(Client),
+    DeleteConfirmed,
     Error(Error),
 }
 
@@ -254,13 +255,47 @@ impl<'a> State<'a> {
         });
     }
 
+    pub fn exec_delete_one(&self, filter: Document) {
+        let client = match self.client {
+            Some(ref client) => client.clone(),
+            None => return,
+        };
+        let Some(db_name) = self.selected_db_name() else {
+            return;
+        };
+        let Some(coll_name) = self.selected_coll_name() else {
+            return;
+        };
+
+        let db = client.database(db_name);
+        let collection_name = coll_name.clone();
+        let sender = self.response_send.clone();
+
+        tokio::spawn(async move {
+            let response = db
+                .collection::<Bson>(&collection_name)
+                .delete_one(filter, None)
+                .await
+                .map_or_else(MongoResponse::Error, |r| {
+                    if r.deleted_count > 0 {
+                        MongoResponse::DeleteConfirmed
+                    } else {
+                        // TODO: refactor Error enum type to accept/display custom errors.
+                        MongoResponse::Error(Error::custom("No documents were deleted."))
+                    }
+                });
+
+            sender.send(response).expect(SEND_ERR_MSG);
+        });
+    }
+
     pub fn update_content(&mut self, response: MongoResponse) {
         // Clear the status bar message if there is one.
         self.status_bar.message = None;
 
         match response {
             MongoResponse::Query(content) => {
-                let items: Vec<TreeItem<String>> = content
+                let items: Vec<_> = content
                     .iter()
                     .filter_map(|bson| bson.as_document().map(top_level_document))
                     .collect();
@@ -284,6 +319,10 @@ impl<'a> State<'a> {
             MongoResponse::NewClient(client) => {
                 self.client = Some(client);
                 self.exec_get_dbs();
+            }
+            MongoResponse::DeleteConfirmed => {
+                self.exec_query();
+                self.exec_count();
             }
             MongoResponse::Error(error) => {
                 self.status_bar.message = Some(error.kind.to_string());
