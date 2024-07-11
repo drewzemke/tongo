@@ -1,8 +1,12 @@
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::module_name_repetitions)]
 
-use crate::state::{State, WidgetFocus};
+use crate::{
+    state::{State, WidgetFocus},
+    tree::MongoKey,
+};
 use crossterm::event::{Event, KeyCode, MouseEventKind};
+use mongodb::bson::{doc, Bson};
 use ratatui::{
     layout::Position,
     prelude::*,
@@ -14,8 +18,8 @@ const PAGE_SIZE: usize = 5;
 
 #[derive(Debug, Default)]
 pub struct MainViewState<'a> {
-    pub state: TreeState<String>,
-    pub items: Vec<TreeItem<'a, String>>,
+    pub state: TreeState<MongoKey>,
+    pub items: Vec<TreeItem<'a, MongoKey>>,
     pub page: usize,
     pub count: u64,
 }
@@ -94,6 +98,19 @@ impl<'a> MainView<'a> {
                 KeyCode::Char('r') => {
                     state.exec_query();
                     state.exec_count();
+                    false
+                }
+                // delete current doc
+                KeyCode::Char('D') => {
+                    let filter = state
+                        .main_view
+                        .state
+                        .selected()
+                        .first()
+                        .map(|id| doc! { "_id" : Bson::from(id)});
+                    if let Some(filter) = filter {
+                        state.exec_delete_one(filter);
+                    }
                     false
                 }
                 _ => false,
