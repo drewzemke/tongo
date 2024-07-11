@@ -5,6 +5,7 @@ use crate::{
     state::{State, WidgetFocus},
     tree::MongoKey,
 };
+use anyhow::Context;
 use crossterm::event::{Event, KeyCode, MouseEventKind};
 use mongodb::bson::{doc, Bson};
 use ratatui::{
@@ -12,6 +13,7 @@ use ratatui::{
     prelude::*,
     widgets::{Block, Scrollbar, ScrollbarOrientation},
 };
+use serde_json::Value;
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 const PAGE_SIZE: usize = 5;
@@ -20,6 +22,7 @@ const PAGE_SIZE: usize = 5;
 pub struct MainViewState<'a> {
     pub state: TreeState<MongoKey>,
     pub items: Vec<TreeItem<'a, MongoKey>>,
+    pub documents: Vec<Bson>,
     pub page: usize,
     pub count: u64,
 }
@@ -111,6 +114,49 @@ impl<'a> MainView<'a> {
                     if let Some(filter) = filter {
                         state.exec_delete_one(filter);
                     }
+                    false
+                }
+
+                // edit current doc
+                KeyCode::Char('E') => {
+                    // TODO: better error handling
+                    let id = state.main_view.state.selected().first();
+                    let Some(id) = id else { return false };
+
+                    let filter = doc! { "_id" : Bson::from(id)};
+                    let doc = state
+                        .main_view
+                        .items
+                        .iter()
+                        .position(|tree_item| tree_item.identifier() == id)
+                        .and_then(|index| state.main_view.documents.get(index));
+                    let Some(doc) = doc else { return false };
+
+                    let doc_string = mongodb::bson::from_bson::<Value>(doc.clone())
+                        .context("converting doc to json")
+                        .and_then(|json| {
+                            serde_json::to_string_pretty(&json).context("converting json to string")
+                        });
+                    let Ok(doc_string) = doc_string else {
+                        return false;
+                    };
+
+                    let updated_string = edit::edit(doc_string).context("editing string");
+                    let new_doc = updated_string
+                        .and_then(|s| {
+                            serde_json::from_str::<serde_json::Value>(&s)
+                                .context("converting string to json")
+                        })
+                        .and_then(|value| {
+                            mongodb::bson::to_document(&value).context("converting json to doc")
+                        });
+                    let Ok(new_doc) = new_doc else {
+                        return false;
+                    };
+
+                    let update = doc! { "$set": new_doc };
+
+                    state.exec_update_one(filter, update);
                     false
                 }
                 _ => false,
