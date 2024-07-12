@@ -84,7 +84,9 @@ pub struct State<'a> {
     pub filter_editor: FilterEditorState,
     pub status_bar: StatusBarState,
 
+    // TODO: replace with an event system?
     pub new_data: bool,
+    pub clear_screen: bool,
 }
 
 impl<'a> Default for State<'a> {
@@ -115,6 +117,7 @@ impl<'a> State<'a> {
             connection_list: ConnectionListState::default(),
 
             new_data: false,
+            clear_screen: false,
         }
     }
 

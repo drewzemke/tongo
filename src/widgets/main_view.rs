@@ -1,12 +1,20 @@
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::module_name_repetitions)]
+// TODO: remove
+#![allow(clippy::too_many_lines)]
+
+use std::io;
 
 use crate::{
     state::{State, WidgetFocus},
     tree::MongoKey,
 };
 use anyhow::Context;
-use crossterm::event::{Event, KeyCode, MouseEventKind};
+use crossterm::{
+    event::{Event, KeyCode, MouseEventKind},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen},
+    ExecutableCommand,
+};
 use edit::Builder;
 use mongodb::bson::{doc, Bson};
 use ratatui::{
@@ -142,9 +150,16 @@ impl<'a> MainView<'a> {
                         return false;
                     };
 
+                    io::stdout()
+                        .execute(LeaveAlternateScreen)
+                        .expect("prep terminal");
                     let updated_string =
                         edit::edit_with_builder(doc_string, Builder::new().suffix(".json"))
                             .context("editing string");
+                    io::stdout()
+                        .execute(EnterAlternateScreen)
+                        .expect("reset terminal");
+                    state.clear_screen = true;
 
                     let new_doc = updated_string
                         .and_then(|s| {
