@@ -98,6 +98,11 @@ impl<'a> App<'a> {
                 self.state.new_data = false;
             }
 
+            if self.state.clear_screen {
+                terminal.clear()?;
+                self.state.clear_screen = false;
+            }
+
             if update {
                 terminal.draw(|frame| {
                     self.draw(frame);
