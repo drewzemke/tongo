@@ -63,7 +63,8 @@ pub trait ListWidget {
                 KeyCode::Char('k') | KeyCode::Up => {
                     // jump to the bottom if we're at the top
                     if Self::list_state(state).selected() == Some(0) {
-                        Self::list_state(state).select_last();
+                        let num_items = Self::items(state).len();
+                        Self::list_state(state).select(Some(num_items.saturating_sub(1)));
                     } else {
                         Self::list_state(state).select_previous();
                     }
