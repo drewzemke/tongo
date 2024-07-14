@@ -53,7 +53,7 @@ impl<'a> InputWidget for FilterInput<'a> {
 
             if let Some(doc) = filter {
                 state.filter_editor.filter = Some(doc);
-                state.exec_query();
+                state.exec_query(true);
                 state.exec_count();
                 state.mode = Mode::Navigating;
                 state.focus = WidgetFocus::MainView;
