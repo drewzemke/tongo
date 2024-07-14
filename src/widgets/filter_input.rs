@@ -1,7 +1,10 @@
 #![allow(clippy::cast_possible_truncation)]
 
 use super::input_widget::InputWidget;
-use crate::state::{Mode, State, WidgetFocus};
+use crate::{
+    json_labeler::JsonLabels,
+    state::{Mode, State, WidgetFocus},
+};
 use mongodb::bson::Document;
 use tui_input::Input;
 
@@ -9,6 +12,7 @@ use tui_input::Input;
 pub struct FilterEditorState {
     pub input: Input,
     pub filter: Option<Document>,
+    pub json_labels: JsonLabels,
     pub cursor_pos: (u16, u16),
 }
 
@@ -32,6 +36,10 @@ impl<'a> InputWidget for FilterInput<'a> {
         state.mode == Mode::EditingFilter
     }
 
+    fn json_labels(state: &Self::State) -> Option<&JsonLabels> {
+        Some(&state.filter_editor.json_labels)
+    }
+
     fn input(state: &mut Self::State) -> &mut Input {
         &mut state.filter_editor.input
     }
@@ -42,6 +50,12 @@ impl<'a> InputWidget for FilterInput<'a> {
 
     fn on_edit_start(state: &mut Self::State) {
         state.mode = Mode::EditingFilter;
+    }
+
+    fn on_change(state: &mut Self::State) {
+        // update json labels
+        let value = state.filter_editor.input.value().to_string();
+        state.filter_editor.json_labels = state.json_labeler.label_line(&value).unwrap_or_default();
     }
 
     fn on_edit_end(state: &mut Self::State, confirmed: bool) {

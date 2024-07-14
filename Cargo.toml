@@ -20,10 +20,12 @@ crossterm = "0.27.0"
 dirs = "5.0.1"
 edit = "0.1.5"
 futures = "0.3.30"
+itertools = "0.13.0"
 mongodb = "2.8.2"
 ratatui = "0.27.0"
 serde = { version = "1.0.203", features = ["derive"] }
 serde_json = "1.0.117"
+syntect = "5.2.0"
 tokio = { version = "1.38.0", features = ["full"] }
 tui-input = "0.9.0"
 tui-tree-widget = "0.21.0"
