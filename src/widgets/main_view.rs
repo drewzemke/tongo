@@ -90,7 +90,7 @@ impl<'a> MainView<'a> {
                     let end = (state.main_view.page + 1) * PAGE_SIZE;
                     if end < state.main_view.count as usize {
                         state.main_view.page += 1;
-                        state.exec_query(true);
+                        state.exec_query(true, false);
                         true
                     } else {
                         false
@@ -100,7 +100,7 @@ impl<'a> MainView<'a> {
                 KeyCode::Char('p') => {
                     if state.main_view.page > 0 {
                         state.main_view.page -= 1;
-                        state.exec_query(true);
+                        state.exec_query(true, false);
                         true
                     } else {
                         false
@@ -108,7 +108,7 @@ impl<'a> MainView<'a> {
                 }
                 // refresh
                 KeyCode::Char('r') => {
-                    state.exec_query(false);
+                    state.exec_query(false, false);
                     state.exec_count();
                     false
                 }
