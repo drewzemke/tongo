@@ -8,6 +8,7 @@ use std::io::Stdout;
 mod app;
 mod connection;
 mod files;
+mod json_labeler;
 mod key_hint;
 mod screens;
 mod state;

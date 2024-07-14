@@ -3,14 +3,21 @@
 use crossterm::event::{Event, KeyCode};
 use ratatui::{
     prelude::*,
+    text::Span,
     widgets::{Block, Borders, Clear, Paragraph},
 };
 use tui_input::{backend::crossterm::EventHandler, Input};
+
+use crate::json_labeler::{JsonLabel, JsonLabels};
 
 pub trait InputWidget {
     type State;
 
     fn title() -> &'static str;
+
+    fn json_labels(_state: &Self::State) -> Option<&JsonLabels> {
+        None
+    }
 
     fn is_focused(state: &Self::State) -> bool;
 
@@ -23,6 +30,8 @@ pub trait InputWidget {
     fn on_edit_start(_state: &mut Self::State) {}
 
     fn on_edit_end(_state: &mut Self::State, _confirmed: bool) {}
+
+    fn on_change(_state: &mut Self::State) {}
 
     fn on_tab(_state: &mut Self::State) {}
 
@@ -39,14 +48,39 @@ pub trait InputWidget {
 
         // figure the right amount to scroll the input by
         let input_scroll = Self::input(state).visual_scroll(area.width as usize - 2);
-        let input_widget = Paragraph::new(Self::input(state).value())
-            .scroll((0, input_scroll as u16))
-            .block(
-                Block::default()
-                    .title(Self::title())
-                    .border_style(Style::default().fg(border_color))
-                    .borders(Borders::ALL),
-            );
+
+        // create the text
+        let input_str = Self::input(state).value().to_string();
+        let text = Self::json_labels(state).map_or_else(
+            || Text::from(input_str),
+            |labels| {
+                let spans: Vec<_> = labels
+                    .iter()
+                    .map(|(s, label)| {
+                        let style = match label {
+                            JsonLabel::Punctuation => Style::default().gray(),
+                            JsonLabel::Number => Style::default().yellow(),
+                            JsonLabel::Key => Style::default().white(),
+                            JsonLabel::Value => Style::default().green(),
+                            JsonLabel::Constant => Style::default().cyan(),
+                            JsonLabel::Whitespace => Style::default(),
+                            JsonLabel::Error => Style::default().on_red(),
+                        };
+
+                        Span::styled(s, style)
+                    })
+                    .collect();
+                let line = Line::from(spans);
+                Text::from(line)
+            },
+        );
+
+        let input_widget = Paragraph::new(text).scroll((0, input_scroll as u16)).block(
+            Block::default()
+                .title(Self::title())
+                .border_style(Style::default().fg(border_color))
+                .borders(Borders::ALL),
+        );
         Clear.render(area, buf);
         input_widget.render(area, buf);
 
@@ -75,7 +109,11 @@ pub trait InputWidget {
                         Self::on_tab(state);
                         true
                     }
-                    _ => Self::input(state).handle_event(event).is_some(),
+                    _ => {
+                        let updated = Self::input(state).handle_event(event);
+                        Self::on_change(state);
+                        updated.is_some()
+                    }
                 },
                 _ => false,
             }

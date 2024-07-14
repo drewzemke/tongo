@@ -1,6 +1,7 @@
 #![allow(clippy::cast_possible_wrap)]
 
 use crate::{
+    json_labeler::JsonLabeler,
     tree::top_level_document,
     widgets::{
         coll_list::CollectionListState, conn_name_input::ConnNameEditorState,
@@ -86,6 +87,9 @@ pub struct State<'a> {
     pub filter_editor: FilterEditorState,
     pub status_bar: StatusBarState,
 
+    // should this be elsewhere?
+    pub json_labeler: JsonLabeler,
+
     // TODO: replace with an event system?
     pub new_data: bool,
     pub clear_screen: bool,
@@ -117,6 +121,8 @@ impl<'a> State<'a> {
             filter_editor: FilterEditorState::default(),
             status_bar: StatusBarState::default(),
             connection_list: ConnectionListState::default(),
+
+            json_labeler: JsonLabeler::new(),
 
             new_data: false,
             clear_screen: false,
