@@ -1,14 +1,12 @@
 #![allow(clippy::cast_possible_wrap)]
 
-use super::widgets::{
-    coll_list::CollectionListState, db_list::DatabaseListState, filter_input::FilterEditorState,
-    main_view::MainViewState, status_bar::StatusBarState,
-};
 use crate::{
     tree::top_level_document,
     widgets::{
-        conn_name_input::ConnNameEditorState, conn_str_input::ConnStrEditorState,
-        connection_list::ConnectionListState,
+        coll_list::CollectionListState, conn_name_input::ConnNameEditorState,
+        conn_str_input::ConnStrEditorState, connection_list::ConnectionListState,
+        db_list::DatabaseListState, filter_input::FilterEditorState, main_view::MainViewState,
+        status_bar::StatusBarState,
     },
 };
 use futures::TryStreamExt;
@@ -26,7 +24,7 @@ const PAGE_SIZE: usize = 5;
 const SEND_ERR_MSG: &str = "Error occurred while processing server response.";
 
 pub enum MongoResponse {
-    Query(Vec<Bson>),
+    Query { docs: Vec<Bson>, reset: bool },
     Databases(Vec<DatabaseSpecification>),
     Collections(Vec<CollectionSpecification>),
     Count(u64),
@@ -192,7 +190,7 @@ impl<'a> State<'a> {
         });
     }
 
-    pub fn exec_query(&self) {
+    pub fn exec_query(&self, reset_tree_state: bool) {
         let client = match self.client {
             Some(ref client) => client.clone(),
             None => return,
@@ -209,23 +207,27 @@ impl<'a> State<'a> {
         let sender = self.response_send.clone();
 
         let filter = self.filter_editor.filter.clone();
-        let skip = self.main_view.page * PAGE_SIZE;
-        let mut options = FindOptions::default();
-        options.skip = Some(skip as u64);
-        options.limit = Some(PAGE_SIZE as i64);
+        let options = FindOptions::builder()
+            .skip((self.main_view.page * PAGE_SIZE) as u64)
+            .limit(PAGE_SIZE as i64)
+            .build();
 
         tokio::spawn(async move {
             let cursor = db
                 .collection::<Bson>(&collection_name)
                 .find(filter, options)
                 .await;
-            let response = match cursor {
-                Ok(cursor) => cursor
-                    .try_collect::<Vec<_>>()
-                    .await
-                    .map_or_else(MongoResponse::Error, MongoResponse::Query),
-                Err(err) => MongoResponse::Error(err),
-            };
+            let response =
+                match cursor {
+                    Ok(cursor) => cursor.try_collect::<Vec<_>>().await.map_or_else(
+                        MongoResponse::Error,
+                        |docs| MongoResponse::Query {
+                            docs,
+                            reset: reset_tree_state,
+                        },
+                    ),
+                    Err(err) => MongoResponse::Error(err),
+                };
 
             sender.send(response).expect(SEND_ERR_MSG);
         });
@@ -325,22 +327,23 @@ impl<'a> State<'a> {
         self.status_bar.message = None;
 
         match response {
-            MongoResponse::Query(content) => {
-                let items: Vec<_> = content
+            MongoResponse::Query { docs, reset } => {
+                let items: Vec<_> = docs
                     .iter()
                     .filter_map(|bson| bson.as_document().map(top_level_document))
                     .collect();
 
-                // initial state has all top-level documents expanded
-                // TODO: figure out how/when to _not_ update the state
-                let mut state = TreeState::default();
-                for item in &items {
-                    state.open(vec![item.identifier().clone()]);
+                if reset {
+                    // reset state to have all top-level documents expanded
+                    let mut state = TreeState::default();
+                    for item in &items {
+                        state.open(vec![item.identifier().clone()]);
+                    }
+                    self.main_view.state = state;
                 }
 
-                self.main_view.documents = content;
+                self.main_view.documents = docs;
                 self.main_view.items = items;
-                self.main_view.state = state;
             }
             MongoResponse::Count(count) => self.main_view.count = count,
             MongoResponse::Databases(dbs) => self.db_list.items = dbs,
@@ -353,7 +356,7 @@ impl<'a> State<'a> {
                 self.exec_get_dbs();
             }
             MongoResponse::DeleteConfirmed | MongoResponse::UpdateConfirmed => {
-                self.exec_query();
+                self.exec_query(false);
                 self.exec_count();
             }
             MongoResponse::Error(error) => {
