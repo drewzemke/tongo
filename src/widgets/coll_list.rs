@@ -40,7 +40,7 @@ impl<'a> ListWidget for CollList<'a> {
 
     fn on_select(state: &mut Self::State) {
         state.main_view.page = 0;
-        state.exec_query(true);
+        state.exec_query(true, true);
         state.exec_count();
         state.focus = WidgetFocus::MainView;
     }

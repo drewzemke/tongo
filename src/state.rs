@@ -24,7 +24,11 @@ const PAGE_SIZE: usize = 5;
 const SEND_ERR_MSG: &str = "Error occurred while processing server response.";
 
 pub enum MongoResponse {
-    Query { docs: Vec<Bson>, reset: bool },
+    Query {
+        docs: Vec<Bson>,
+        reset_selection: bool,
+        reset_page: bool,
+    },
     Databases(Vec<DatabaseSpecification>),
     Collections(Vec<CollectionSpecification>),
     Count(u64),
@@ -190,7 +194,7 @@ impl<'a> State<'a> {
         });
     }
 
-    pub fn exec_query(&self, reset_tree_state: bool) {
+    pub fn exec_query(&self, reset_selection: bool, reset_page: bool) {
         let client = match self.client {
             Some(ref client) => client.clone(),
             None => return,
@@ -207,8 +211,13 @@ impl<'a> State<'a> {
         let sender = self.response_send.clone();
 
         let filter = self.filter_editor.filter.clone();
+        let skip = if reset_page {
+            0
+        } else {
+            self.main_view.page * PAGE_SIZE
+        };
         let options = FindOptions::builder()
-            .skip((self.main_view.page * PAGE_SIZE) as u64)
+            .skip(skip as u64)
             .limit(PAGE_SIZE as i64)
             .build();
 
@@ -223,7 +232,8 @@ impl<'a> State<'a> {
                         MongoResponse::Error,
                         |docs| MongoResponse::Query {
                             docs,
-                            reset: reset_tree_state,
+                            reset_selection,
+                            reset_page,
                         },
                     ),
                     Err(err) => MongoResponse::Error(err),
@@ -327,19 +337,27 @@ impl<'a> State<'a> {
         self.status_bar.message = None;
 
         match response {
-            MongoResponse::Query { docs, reset } => {
+            MongoResponse::Query {
+                docs,
+                reset_selection,
+                reset_page,
+            } => {
                 let items: Vec<_> = docs
                     .iter()
                     .filter_map(|bson| bson.as_document().map(top_level_document))
                     .collect();
 
-                if reset {
+                if reset_selection {
                     // reset state to have all top-level documents expanded
                     let mut state = TreeState::default();
                     for item in &items {
                         state.open(vec![item.identifier().clone()]);
                     }
                     self.main_view.state = state;
+                }
+
+                if reset_page {
+                    self.main_view.page = 0;
                 }
 
                 self.main_view.documents = docs;
@@ -356,7 +374,7 @@ impl<'a> State<'a> {
                 self.exec_get_dbs();
             }
             MongoResponse::DeleteConfirmed | MongoResponse::UpdateConfirmed => {
-                self.exec_query(false);
+                self.exec_query(false, false);
                 self.exec_count();
             }
             MongoResponse::Error(error) => {
