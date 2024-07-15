@@ -16,7 +16,7 @@ use crossterm::{
     ExecutableCommand,
 };
 use edit::Builder;
-use mongodb::bson::{doc, Bson};
+use mongodb::bson::{doc, oid::ObjectId, Bson};
 use ratatui::{
     layout::Position,
     prelude::*,
@@ -141,6 +141,7 @@ impl<'a> MainView<'a> {
                         .and_then(|index| state.main_view.documents.get(index));
                     let Some(doc) = doc else { return false };
 
+                    //////
                     let doc_string = mongodb::bson::from_bson::<Value>(doc.clone())
                         .context("converting doc to json")
                         .and_then(|json| {
@@ -172,10 +173,54 @@ impl<'a> MainView<'a> {
                     let Ok(new_doc) = new_doc else {
                         return false;
                     };
+                    //////
 
                     let update = doc! { "$set": new_doc };
 
                     state.exec_update_one(filter, update);
+                    false
+                }
+
+                // insert new doc
+                KeyCode::Char('I') => {
+                    // TODO: better error handling
+                    let doc = doc! { "_id" : ObjectId::new() };
+
+                    //////
+                    let doc_string = mongodb::bson::from_document::<Value>(doc)
+                        .context("converting doc to json")
+                        .and_then(|json| {
+                            serde_json::to_string_pretty(&json).context("converting json to string")
+                        });
+                    let Ok(doc_string) = doc_string else {
+                        return false;
+                    };
+
+                    io::stdout()
+                        .execute(LeaveAlternateScreen)
+                        .expect("prep terminal");
+                    let updated_string =
+                        edit::edit_with_builder(doc_string, Builder::new().suffix(".json"))
+                            .context("editing string");
+                    io::stdout()
+                        .execute(EnterAlternateScreen)
+                        .expect("reset terminal");
+                    state.clear_screen = true;
+
+                    let new_doc = updated_string
+                        .and_then(|s| {
+                            serde_json::from_str::<serde_json::Value>(&s)
+                                .context("converting string to json")
+                        })
+                        .and_then(|value| {
+                            mongodb::bson::to_document(&value).context("converting json to doc")
+                        });
+                    let Ok(new_doc) = new_doc else {
+                        return false;
+                    };
+                    //////
+
+                    state.exec_insert_one(new_doc);
                     false
                 }
                 _ => false,
