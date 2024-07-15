@@ -34,6 +34,7 @@ pub enum MongoResponse {
     Collections(Vec<CollectionSpecification>),
     Count(u64),
     NewClient(Client),
+    InsertConfirmed,
     UpdateConfirmed,
     DeleteConfirmed,
     Error(Error),
@@ -277,6 +278,33 @@ impl<'a> State<'a> {
         });
     }
 
+    pub fn exec_insert_one(&self, doc: Document) {
+        let client = match self.client {
+            Some(ref client) => client.clone(),
+            None => return,
+        };
+        let Some(db_name) = self.selected_db_name() else {
+            return;
+        };
+        let Some(coll_name) = self.selected_coll_name() else {
+            return;
+        };
+
+        let db = client.database(db_name);
+        let collection_name = coll_name.clone();
+        let sender = self.response_send.clone();
+
+        tokio::spawn(async move {
+            let response = db
+                .collection::<Document>(&collection_name)
+                .insert_one(doc, None)
+                .await
+                .map_or_else(MongoResponse::Error, |_| MongoResponse::InsertConfirmed);
+
+            sender.send(response).expect(SEND_ERR_MSG);
+        });
+    }
+
     pub fn exec_update_one(&self, filter: Document, update: Document) {
         let client = match self.client {
             Some(ref client) => client.clone(),
@@ -379,7 +407,9 @@ impl<'a> State<'a> {
                 self.client = Some(client);
                 self.exec_get_dbs();
             }
-            MongoResponse::DeleteConfirmed | MongoResponse::UpdateConfirmed => {
+            MongoResponse::DeleteConfirmed
+            | MongoResponse::UpdateConfirmed
+            | MongoResponse::InsertConfirmed => {
                 self.exec_query(false, false);
                 self.exec_count();
             }
