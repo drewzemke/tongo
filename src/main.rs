@@ -7,6 +7,7 @@ use std::io::Stdout;
 
 mod app;
 mod connection;
+mod edit_doc;
 mod files;
 mod json_labeler;
 mod key_hint;

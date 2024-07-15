@@ -3,26 +3,18 @@
 // TODO: remove
 #![allow(clippy::too_many_lines)]
 
-use std::io;
-
 use crate::{
+    edit_doc::edit_doc,
     state::{State, WidgetFocus},
     tree::MongoKey,
 };
-use anyhow::Context;
-use crossterm::{
-    event::{Event, KeyCode, MouseEventKind},
-    terminal::{EnterAlternateScreen, LeaveAlternateScreen},
-    ExecutableCommand,
-};
-use edit::Builder;
-use mongodb::bson::{doc, oid::ObjectId, Bson};
+use crossterm::event::{Event, KeyCode, MouseEventKind};
+use mongodb::bson::{doc, oid::ObjectId, Bson, Document};
 use ratatui::{
     layout::Position,
     prelude::*,
     widgets::{Block, Scrollbar, ScrollbarOrientation},
 };
-use serde_json::Value;
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 const PAGE_SIZE: usize = 5;
@@ -34,6 +26,24 @@ pub struct MainViewState<'a> {
     pub documents: Vec<Bson>,
     pub page: usize,
     pub count: u64,
+}
+
+impl<'a> MainViewState<'a> {
+    pub fn selected_doc(&self) -> Option<&Document> {
+        let id = self.state.selected().first()?;
+
+        let bson = self
+            .items
+            .iter()
+            .position(|tree_item| tree_item.identifier() == id)
+            .and_then(|index| self.documents.get(index));
+
+        if let Some(Bson::Document(doc)) = bson {
+            Some(doc)
+        } else {
+            None
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -112,6 +122,7 @@ impl<'a> MainView<'a> {
                     state.exec_count();
                     false
                 }
+
                 // delete current doc
                 KeyCode::Char('D') => {
                     let filter = state
@@ -128,157 +139,53 @@ impl<'a> MainView<'a> {
 
                 // edit current doc
                 KeyCode::Char('E') => {
-                    // TODO: better error handling
                     let id = state.main_view.state.selected().first();
                     let Some(id) = id else { return false };
 
+                    let Some(doc) = state.main_view.selected_doc() else {
+                        return false;
+                    };
+
+                    let Ok(new_doc) = edit_doc(doc.clone()) else {
+                        return false;
+                    };
+
                     let filter = doc! { "_id" : Bson::from(id)};
-                    let doc = state
-                        .main_view
-                        .items
-                        .iter()
-                        .position(|tree_item| tree_item.identifier() == id)
-                        .and_then(|index| state.main_view.documents.get(index));
-                    let Some(doc) = doc else { return false };
-
-                    //////
-                    let doc_string = mongodb::bson::from_bson::<Value>(doc.clone())
-                        .context("converting doc to json")
-                        .and_then(|json| {
-                            serde_json::to_string_pretty(&json).context("converting json to string")
-                        });
-                    let Ok(doc_string) = doc_string else {
-                        return false;
-                    };
-
-                    io::stdout()
-                        .execute(LeaveAlternateScreen)
-                        .expect("prep terminal");
-                    let updated_string =
-                        edit::edit_with_builder(doc_string, Builder::new().suffix(".json"))
-                            .context("editing string");
-                    io::stdout()
-                        .execute(EnterAlternateScreen)
-                        .expect("reset terminal");
-                    state.clear_screen = true;
-
-                    let new_doc = updated_string
-                        .and_then(|s| {
-                            serde_json::from_str::<serde_json::Value>(&s)
-                                .context("converting string to json")
-                        })
-                        .and_then(|value| {
-                            mongodb::bson::to_document(&value).context("converting json to doc")
-                        });
-                    let Ok(new_doc) = new_doc else {
-                        return false;
-                    };
-                    //////
-
                     let update = doc! { "$set": new_doc };
 
                     state.exec_update_one(filter, update);
+                    state.clear_screen = true;
                     false
                 }
 
                 // duplicate current doc
                 KeyCode::Char('C') => {
-                    // TODO: better error handling
-                    let id = state.main_view.state.selected().first();
-                    let Some(id) = id else { return false };
-
-                    let doc = state
-                        .main_view
-                        .items
-                        .iter()
-                        .position(|tree_item| tree_item.identifier() == id)
-                        .and_then(|index| state.main_view.documents.get(index));
-                    let Some(Bson::Document(doc)) = doc else {
+                    let Some(doc) = state.main_view.selected_doc() else {
                         return false;
                     };
 
                     let mut duplicated_doc = doc.clone();
                     let _ = duplicated_doc.insert("_id", ObjectId::new());
-                    let new_doc = Bson::Document(duplicated_doc);
 
-                    //////
-                    let doc_string = mongodb::bson::from_bson::<Value>(new_doc)
-                        .context("converting doc to json")
-                        .and_then(|json| {
-                            serde_json::to_string_pretty(&json).context("converting json to string")
-                        });
-                    let Ok(doc_string) = doc_string else {
+                    let Ok(new_doc) = edit_doc(duplicated_doc) else {
                         return false;
                     };
-
-                    io::stdout()
-                        .execute(LeaveAlternateScreen)
-                        .expect("prep terminal");
-                    let updated_string =
-                        edit::edit_with_builder(doc_string, Builder::new().suffix(".json"))
-                            .context("editing string");
-                    io::stdout()
-                        .execute(EnterAlternateScreen)
-                        .expect("reset terminal");
-                    state.clear_screen = true;
-
-                    let new_doc = updated_string
-                        .and_then(|s| {
-                            serde_json::from_str::<serde_json::Value>(&s)
-                                .context("converting string to json")
-                        })
-                        .and_then(|value| {
-                            mongodb::bson::to_document(&value).context("converting json to doc")
-                        });
-                    let Ok(new_doc) = new_doc else {
-                        return false;
-                    };
-                    //////
 
                     state.exec_insert_one(new_doc);
+                    state.clear_screen = true;
                     false
                 }
 
                 // insert new doc
                 KeyCode::Char('I') => {
-                    // TODO: better error handling
                     let doc = doc! { "_id" : ObjectId::new() };
 
-                    //////
-                    let doc_string = mongodb::bson::from_document::<Value>(doc)
-                        .context("converting doc to json")
-                        .and_then(|json| {
-                            serde_json::to_string_pretty(&json).context("converting json to string")
-                        });
-                    let Ok(doc_string) = doc_string else {
+                    let Ok(new_doc) = edit_doc(doc) else {
                         return false;
                     };
-
-                    io::stdout()
-                        .execute(LeaveAlternateScreen)
-                        .expect("prep terminal");
-                    let updated_string =
-                        edit::edit_with_builder(doc_string, Builder::new().suffix(".json"))
-                            .context("editing string");
-                    io::stdout()
-                        .execute(EnterAlternateScreen)
-                        .expect("reset terminal");
-                    state.clear_screen = true;
-
-                    let new_doc = updated_string
-                        .and_then(|s| {
-                            serde_json::from_str::<serde_json::Value>(&s)
-                                .context("converting string to json")
-                        })
-                        .and_then(|value| {
-                            mongodb::bson::to_document(&value).context("converting json to doc")
-                        });
-                    let Ok(new_doc) = new_doc else {
-                        return false;
-                    };
-                    //////
 
                     state.exec_insert_one(new_doc);
+                    state.clear_screen = true;
                     false
                 }
                 _ => false,
