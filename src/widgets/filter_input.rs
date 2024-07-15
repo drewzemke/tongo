@@ -2,18 +2,32 @@
 
 use super::input_widget::InputWidget;
 use crate::{
-    json_labeler::JsonLabels,
+    json_labeler::{JsonLabel, JsonLabels},
     state::{Mode, State, WidgetFocus},
 };
+use crossterm::event::{Event, KeyCode};
 use mongodb::bson::Document;
 use tui_input::Input;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct FilterEditorState {
     pub input: Input,
     pub filter: Option<Document>,
     pub json_labels: JsonLabels,
     pub cursor_pos: (u16, u16),
+}
+
+const DEFAULT_FILTER: &str = "{}";
+
+impl Default for FilterEditorState {
+    fn default() -> Self {
+        Self {
+            input: Input::default().with_value(DEFAULT_FILTER.to_string()),
+            filter: None,
+            json_labels: vec![(DEFAULT_FILTER.to_string(), JsonLabel::Punctuation)],
+            cursor_pos: (0, 0),
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -74,6 +88,21 @@ impl<'a> InputWidget for FilterInput<'a> {
             }
         } else {
             state.mode = Mode::Navigating;
+        }
+    }
+
+    fn on_event(event: &Event, state: &mut Self::State) -> bool {
+        if let Event::Key(key) = event {
+            if key.code == KeyCode::Char('R') {
+                state.filter_editor.input = Input::default().with_value(DEFAULT_FILTER.to_string());
+                Self::on_change(state);
+                Self::on_edit_end(state, true);
+                true
+            } else {
+                false
+            }
+        } else {
+            false
         }
     }
 }

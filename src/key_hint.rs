@@ -52,6 +52,7 @@ impl KeyHint {
                     ],
                     WidgetFocus::FilterEditor => vec![
                         Self::new("enter", "edit filter"),
+                        Self::new("R", "reset filter"),
                         Self::new("HJKL", "change focus"),
                         Self::new("esc", "back"),
                         Self::new("q", "quit"),

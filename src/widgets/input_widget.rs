@@ -4,7 +4,7 @@ use crossterm::event::{Event, KeyCode};
 use ratatui::{
     prelude::*,
     text::Span,
-    widgets::{Block, Borders, Clear, Paragraph},
+    widgets::{Block, Borders, Clear, Padding, Paragraph},
 };
 use tui_input::{backend::crossterm::EventHandler, Input};
 
@@ -35,6 +35,10 @@ pub trait InputWidget {
 
     fn on_tab(_state: &mut Self::State) {}
 
+    fn on_event(_event: &Event, _state: &mut Self::State) -> bool {
+        false
+    }
+
     fn render(area: Rect, buf: &mut Buffer, state: &mut Self::State) {
         let border_color = if Self::is_focused(state) {
             if Self::is_editing(state) {
@@ -47,7 +51,7 @@ pub trait InputWidget {
         };
 
         // figure the right amount to scroll the input by
-        let input_scroll = Self::input(state).visual_scroll(area.width as usize - 2);
+        let input_scroll = Self::input(state).visual_scroll(area.width as usize - 5);
 
         // create the text
         let input_str = Self::input(state).value().to_string();
@@ -79,6 +83,7 @@ pub trait InputWidget {
             Block::default()
                 .title(Self::title())
                 .border_style(Style::default().fg(border_color))
+                .padding(Padding::horizontal(1))
                 .borders(Borders::ALL),
         );
         Clear.render(area, buf);
@@ -88,13 +93,13 @@ pub trait InputWidget {
         *Self::cursor_pos(state) = (
             area.x
                 + (Self::input(state).visual_cursor().max(input_scroll) - input_scroll) as u16
-                + 1,
+                + 2,
             area.y + 1,
         );
     }
 
     fn handle_event(event: &Event, state: &mut Self::State) -> bool {
-        if Self::is_editing(state) {
+        let updated = if Self::is_editing(state) {
             match event {
                 Event::Key(key) => match key.code {
                     KeyCode::Esc => {
@@ -132,6 +137,8 @@ pub trait InputWidget {
                 },
                 _ => false,
             }
-        }
+        };
+
+        Self::on_event(event, state) || updated
     }
 }
