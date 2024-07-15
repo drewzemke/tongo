@@ -181,6 +181,64 @@ impl<'a> MainView<'a> {
                     false
                 }
 
+                // duplicate current doc
+                KeyCode::Char('C') => {
+                    // TODO: better error handling
+                    let id = state.main_view.state.selected().first();
+                    let Some(id) = id else { return false };
+
+                    let doc = state
+                        .main_view
+                        .items
+                        .iter()
+                        .position(|tree_item| tree_item.identifier() == id)
+                        .and_then(|index| state.main_view.documents.get(index));
+                    let Some(Bson::Document(doc)) = doc else {
+                        return false;
+                    };
+
+                    let mut duplicated_doc = doc.clone();
+                    let _ = duplicated_doc.insert("_id", ObjectId::new());
+                    let new_doc = Bson::Document(duplicated_doc);
+
+                    //////
+                    let doc_string = mongodb::bson::from_bson::<Value>(new_doc)
+                        .context("converting doc to json")
+                        .and_then(|json| {
+                            serde_json::to_string_pretty(&json).context("converting json to string")
+                        });
+                    let Ok(doc_string) = doc_string else {
+                        return false;
+                    };
+
+                    io::stdout()
+                        .execute(LeaveAlternateScreen)
+                        .expect("prep terminal");
+                    let updated_string =
+                        edit::edit_with_builder(doc_string, Builder::new().suffix(".json"))
+                            .context("editing string");
+                    io::stdout()
+                        .execute(EnterAlternateScreen)
+                        .expect("reset terminal");
+                    state.clear_screen = true;
+
+                    let new_doc = updated_string
+                        .and_then(|s| {
+                            serde_json::from_str::<serde_json::Value>(&s)
+                                .context("converting string to json")
+                        })
+                        .and_then(|value| {
+                            mongodb::bson::to_document(&value).context("converting json to doc")
+                        });
+                    let Ok(new_doc) = new_doc else {
+                        return false;
+                    };
+                    //////
+
+                    state.exec_insert_one(new_doc);
+                    false
+                }
+
                 // insert new doc
                 KeyCode::Char('I') => {
                     // TODO: better error handling
