@@ -60,6 +60,7 @@ impl KeyHint {
                     WidgetFocus::MainView => vec![
                         Self::new("←↑↓→/hjkl", "navigate"),
                         Self::new("space", "expand/collapse"),
+                        Self::new("n/p", "next/prev page"),
                         Self::new("I", "insert doc"),
                         Self::new("E", "edit doc"),
                         Self::new("C", "duplicate doc"),
