@@ -1,7 +1,5 @@
 #![allow(clippy::cast_possible_truncation)]
 #![allow(clippy::module_name_repetitions)]
-// TODO: remove
-#![allow(clippy::too_many_lines)]
 
 use crate::{
     edit_doc::edit_doc,
@@ -146,15 +144,15 @@ impl<'a> MainView<'a> {
                         return false;
                     };
 
+                    state.clear_screen = true;
                     let Ok(new_doc) = edit_doc(doc.clone()) else {
-                        return false;
+                        return true;
                     };
 
                     let filter = doc! { "_id" : Bson::from(id)};
                     let update = doc! { "$set": new_doc };
 
                     state.exec_update_one(filter, update);
-                    state.clear_screen = true;
                     false
                 }
 
@@ -167,12 +165,12 @@ impl<'a> MainView<'a> {
                     let mut duplicated_doc = doc.clone();
                     let _ = duplicated_doc.insert("_id", ObjectId::new());
 
+                    state.clear_screen = true;
                     let Ok(new_doc) = edit_doc(duplicated_doc) else {
-                        return false;
+                        return true;
                     };
 
                     state.exec_insert_one(new_doc);
-                    state.clear_screen = true;
                     false
                 }
 
@@ -180,12 +178,12 @@ impl<'a> MainView<'a> {
                 KeyCode::Char('I') => {
                     let doc = doc! { "_id" : ObjectId::new() };
 
+                    state.clear_screen = true;
                     let Ok(new_doc) = edit_doc(doc) else {
-                        return false;
+                        return true;
                     };
 
                     state.exec_insert_one(new_doc);
-                    state.clear_screen = true;
                     false
                 }
                 _ => false,
