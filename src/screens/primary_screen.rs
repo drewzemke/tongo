@@ -92,8 +92,6 @@ impl<'a> PrimaryScreen<'a> {
                         state.focus = WidgetFocus::ConnectionList;
                         true
                     }
-                    // TODO: refactor this into a closure and call it
-                    // in the other wildcard cases
                     _ => match state.focus {
                         WidgetFocus::DatabaseList => DbList::handle_event(event, state),
                         WidgetFocus::CollectionList => CollList::handle_event(event, state),
