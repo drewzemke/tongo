@@ -1,9 +1,9 @@
 use ratatui::{layout::Rect, Frame};
 
-use crate::command::{Command, CommandInfo};
+use crate::command::{Command, CommandGroup};
 
 pub trait Component {
-    fn commands(&self) -> Vec<CommandInfo> {
+    fn commands(&self) -> Vec<CommandGroup> {
         vec![]
     }
 
