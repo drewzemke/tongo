@@ -1,9 +1,9 @@
 #![allow(clippy::module_name_repetitions)]
 
-use crate::{key_hint::KeyHint, state::State};
+use crate::{command::CommandInfo, component::Component};
 use ratatui::{
     prelude::*,
-    widgets::{Block, Padding, Paragraph, StatefulWidget, Wrap},
+    widgets::{Block, Padding, Paragraph, Wrap},
 };
 
 #[derive(Debug, Default)]
@@ -12,20 +12,18 @@ pub struct StatusBarState {
 }
 
 #[derive(Debug, Default)]
-pub struct StatusBar<'a> {
-    marker: std::marker::PhantomData<State<'a>>,
+pub struct StatusBar {
+    pub commands: Vec<CommandInfo>,
+    pub message: Option<String>,
 }
 
-impl<'a> StatefulWidget for StatusBar<'a> {
-    type State = State<'a>;
-
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        let content = state.status_bar.message.as_ref().map_or_else(
+impl Component for StatusBar {
+    fn render(&self, frame: &mut Frame, area: Rect) {
+        let content = self.message.as_ref().map_or_else(
             || {
-                let key_hints = KeyHint::from_state(state);
                 Line::from(
-                    key_hints
-                        .into_iter()
+                    self.commands
+                        .iter()
                         .flat_map(Into::<Vec<Span>>::into)
                         .collect::<Vec<Span>>(),
                 )
@@ -41,15 +39,6 @@ impl<'a> StatefulWidget for StatusBar<'a> {
         let paragraph = Paragraph::new(content)
             .wrap(Wrap::default())
             .block(Block::default().padding(Padding::horizontal(1)));
-        Widget::render(paragraph, area, buf);
-
-        // // this is to debug computing keys based on selected stuff
-        // else {
-        //     let text = state.main_view.state.selected().join(".");
-        //     let paragraph = Paragraph::new(text)
-        //         .wrap(Wrap::default())
-        //         .block(Block::default().padding(Padding::horizontal(1)));
-        //     Widget::render(paragraph, area, buf);
-        // }
+        frame.render_widget(paragraph, area);
     }
 }
