@@ -1,6 +1,6 @@
 #![allow(clippy::module_name_repetitions)]
 
-use crate::{command::CommandInfo, component::Component};
+use crate::{command::CommandGroup, component::Component};
 use ratatui::{
     prelude::*,
     widgets::{Block, Padding, Paragraph, Wrap},
@@ -13,7 +13,7 @@ pub struct StatusBarState {
 
 #[derive(Debug, Default)]
 pub struct StatusBar {
-    pub commands: Vec<CommandInfo>,
+    pub commands: Vec<CommandGroup>,
     pub message: Option<String>,
 }
 
