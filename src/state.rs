@@ -5,9 +5,8 @@ use crate::{
     tree::top_level_document,
     widgets::{
         coll_list::CollectionListState, conn_name_input::ConnNameEditorState,
-        conn_str_input::ConnStrEditorState, connection_list::ConnectionListState,
-        db_list::DatabaseListState, filter_input::FilterEditorState, main_view::MainViewState,
-        status_bar::StatusBarState,
+        conn_str_input::ConnStrEditorState, db_list::DatabaseListState,
+        filter_input::FilterEditorState, main_view::MainViewState, status_bar::StatusBarState,
     },
 };
 use futures::TryStreamExt;
@@ -82,7 +81,7 @@ pub struct State<'a> {
     pub main_view: MainViewState<'a>,
     pub db_list: DatabaseListState,
     pub coll_list: CollectionListState,
-    pub connection_list: ConnectionListState,
+    // pub connection_list: ConnectionListState,
     pub conn_str_editor: ConnStrEditorState,
     pub conn_name_editor: ConnNameEditorState,
     pub filter_editor: FilterEditorState,
@@ -121,8 +120,7 @@ impl<'a> State<'a> {
             conn_name_editor: ConnNameEditorState::default(),
             filter_editor: FilterEditorState::default(),
             status_bar: StatusBarState::default(),
-            connection_list: ConnectionListState::default(),
-
+            // connection_list: ConnectionListState::default(),
             json_labeler: JsonLabeler::new(),
 
             new_data: false,
@@ -146,7 +144,7 @@ impl<'a> State<'a> {
             .map(|coll| &coll.name)
     }
 
-    pub fn set_conn_str(&mut self, url: String) {
+    pub fn set_conn_str(&self, url: String) {
         let sender = self.response_send.clone();
 
         tokio::spawn(async move {
