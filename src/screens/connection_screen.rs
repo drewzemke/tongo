@@ -1,10 +1,13 @@
+use crate::command::CommandGroup;
+use crate::component::{Component, ComponentCommand};
+use crate::event::Event;
 use crate::state::{Mode, State, WidgetFocus};
 use crate::widgets::conn_name_input::ConnNameInput;
 use crate::widgets::conn_str_input::ConnStrInput;
-use crate::widgets::connection_list::ConnectionList;
+use crate::widgets::connection_list::{ConnectionList, ConnectionListV2};
 use crate::widgets::input_widget::InputWidget;
 use crate::widgets::list_widget::ListWidget;
-use crossterm::event::{Event, KeyCode};
+use crossterm::event::{Event as CrosstermEvent, KeyCode};
 use ratatui::prelude::*;
 
 #[derive(Debug, Default)]
@@ -45,7 +48,7 @@ impl<'a> StatefulWidget for ConnectionScreen<'a> {
 }
 
 impl<'a> ConnectionScreen<'a> {
-    pub fn handle_event(event: &Event, state: &mut State) -> bool {
+    pub fn handle_event(event: &CrosstermEvent, state: &mut State) -> bool {
         match state.mode {
             Mode::CreatingNewConnection => match state.focus {
                 WidgetFocus::ConnectionStringEditor => ConnStrInput::handle_event(event, state),
@@ -53,7 +56,7 @@ impl<'a> ConnectionScreen<'a> {
                 _ => false,
             },
             Mode::Navigating => match event {
-                Event::Key(key) => match key.code {
+                CrosstermEvent::Key(key) => match key.code {
                     KeyCode::Char('q') => {
                         state.mode = Mode::Exiting;
                         true
@@ -68,10 +71,42 @@ impl<'a> ConnectionScreen<'a> {
                         _ => false,
                     },
                 },
-                Event::Resize(_, _) => true,
+                CrosstermEvent::Resize(_, _) => true,
                 _ => false,
             },
             _ => false,
         }
+    }
+}
+
+// #[derive(Debug, Default)]
+// enum ModeV2 {
+//     #[default]
+//     Navigating,
+//     CreatingNewConnection,
+// }
+
+#[derive(Debug, Default)]
+#[allow(clippy::module_name_repetitions)]
+pub struct ConnectionScreenV2 {
+    // pub mode: ModeV2,
+    pub connection_list: ConnectionListV2,
+}
+
+impl Component for ConnectionScreenV2 {
+    fn commands(&self) -> Vec<CommandGroup> {
+        // TODO: should depend on mode
+        let mut out = vec![];
+        out.append(&mut self.connection_list.commands());
+        out
+    }
+
+    fn handle_command(&mut self, command: ComponentCommand) -> Vec<Event> {
+        self.connection_list.handle_command(command)
+    }
+
+    fn render(&mut self, frame: &mut Frame, area: Rect) {
+        // TODO: should depend on mode
+        self.connection_list.render(frame, area);
     }
 }

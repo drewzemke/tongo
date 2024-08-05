@@ -18,7 +18,7 @@ pub struct StatusBar {
 }
 
 impl Component for StatusBar {
-    fn render(&self, frame: &mut Frame, area: Rect) {
+    fn render(&mut self, frame: &mut Frame, area: Rect) {
         let content = self.message.as_ref().map_or_else(
             || {
                 Line::from(

@@ -1,11 +1,14 @@
 #![allow(clippy::module_name_repetitions)]
 
-use super::list_widget::ListWidget;
+use super::list_widget::{list_draw, list_nav_down, list_nav_up, ListWidget};
 use crate::{
+    command::{Command, CommandGroup},
+    component::{Component, ComponentCommand},
     connection::Connection,
-    state::{Mode, Screen, State, WidgetFocus},
+    event::Event,
+    state::{State, WidgetFocus},
 };
-use crossterm::event::{Event, KeyCode};
+use crossterm::event::{Event as CrosstermEvent, KeyCode};
 use ratatui::{prelude::*, widgets::ListState};
 
 #[derive(Debug, Default)]
@@ -48,22 +51,8 @@ impl<'a> ListWidget for ConnectionList<'a> {
         state.focus == WidgetFocus::DatabaseList
     }
 
-    fn on_select(state: &mut Self::State) {
-        let conn = state
-            .connection_list
-            .state
-            .selected()
-            .and_then(|index| state.connection_list.items.get(index));
-        if let Some(conn) = conn {
-            state.set_conn_str(conn.connection_str.clone());
-            state.screen = Screen::Primary;
-            state.mode = Mode::Navigating;
-            state.focus = WidgetFocus::DatabaseList;
-        }
-    }
-
-    fn on_event(event: &Event, state: &mut Self::State) -> bool {
-        if let Event::Key(key) = event {
+    fn on_event(event: &CrosstermEvent, state: &mut Self::State) -> bool {
+        if let CrosstermEvent::Key(key) = event {
             if key.code == KeyCode::Char('D') {
                 let Some(index_to_delete) = state.connection_list.state.selected() else {
                     return false;
@@ -80,6 +69,59 @@ impl<'a> ListWidget for ConnectionList<'a> {
         } else {
             false
         }
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct ConnectionListV2 {
+    pub items: Vec<Connection>,
+    pub state: ListState,
+}
+
+impl Component for ConnectionListV2 {
+    fn commands(&self) -> Vec<CommandGroup> {
+        vec![
+            CommandGroup::new(vec![Command::NavUp, Command::NavDown], "↑↓/jk", "navigate"),
+            CommandGroup::new(vec![Command::Confirm], "enter", "connect"),
+            CommandGroup::new(vec![Command::CreateNew], "n", "new conn."),
+            CommandGroup::new(vec![Command::Delete], "D", "delete conn."),
+        ]
+    }
+
+    fn handle_command(&mut self, command: ComponentCommand) -> Vec<Event> {
+        if let ComponentCommand::Command(command) = command {
+            match command {
+                Command::NavUp => {
+                    list_nav_up(&mut self.state, self.items.len());
+                    vec![Event::ListSelectionChanged]
+                }
+                Command::NavDown => {
+                    list_nav_down(&mut self.state, self.items.len());
+                    vec![Event::ListSelectionChanged]
+                }
+                Command::Confirm => self.get_selected_conn_str().map_or_else(Vec::new, |conn| {
+                    vec![Event::ConnectionSelected(conn.clone())]
+                }),
+                Command::CreateNew => todo!(),
+                Command::Delete => todo!(),
+                _ => vec![],
+            }
+        } else {
+            vec![]
+        }
+    }
+
+    fn render(&mut self, frame: &mut Frame, area: Rect) {
+        let items = self.items.iter().map(ConnectionList::item_to_str);
+        list_draw(frame, area, items, &mut self.state, "Connections", true);
+    }
+}
+
+impl ConnectionListV2 {
+    fn get_selected_conn_str(&self) -> Option<&Connection> {
+        self.state
+            .selected()
+            .and_then(|index| self.items.get(index))
     }
 }
 

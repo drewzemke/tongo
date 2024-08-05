@@ -10,6 +10,7 @@ mod command;
 mod component;
 mod connection;
 mod edit_doc;
+mod event;
 mod files;
 mod json_labeler;
 mod key_hint;

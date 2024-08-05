@@ -146,7 +146,7 @@ impl<'a> State<'a> {
             .map(|coll| &coll.name)
     }
 
-    pub fn set_conn_str(&mut self, url: String) {
+    pub fn set_conn_str(&self, url: String) {
         let sender = self.response_send.clone();
 
         tokio::spawn(async move {
