@@ -7,9 +7,10 @@ use std::io::Stdout;
 
 mod app;
 mod command;
-mod component;
+mod components;
 mod connection;
 mod edit_doc;
+mod event;
 mod files;
 mod json_labeler;
 mod key_hint;

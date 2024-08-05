@@ -1,10 +1,12 @@
+use crate::command::CommandGroup;
+use crate::components::connection_list::ConnectionList;
+use crate::components::{Component, ComponentCommand};
+use crate::event::Event;
 use crate::state::{Mode, State, WidgetFocus};
 use crate::widgets::conn_name_input::ConnNameInput;
 use crate::widgets::conn_str_input::ConnStrInput;
-use crate::widgets::connection_list::ConnectionList;
 use crate::widgets::input_widget::InputWidget;
-use crate::widgets::list_widget::ListWidget;
-use crossterm::event::{Event, KeyCode};
+use crossterm::event::{Event as CrosstermEvent, KeyCode};
 use ratatui::prelude::*;
 
 #[derive(Debug, Default)]
@@ -35,17 +37,17 @@ impl<'a> StatefulWidget for ConnectionScreen<'a> {
                 .horizontal_margin(2)
                 .split(frame_right);
 
-            ConnectionList::render(frame_left, buf, state);
+            // ConnectionList::render(frame_left, buf, state);
             ConnNameInput::render(right_layout[1], buf, state);
             ConnStrInput::render(right_layout[3], buf, state);
         } else {
-            ConnectionList::render(area, buf, state);
+            // ConnectionList::render(area, buf, state);
         }
     }
 }
 
 impl<'a> ConnectionScreen<'a> {
-    pub fn handle_event(event: &Event, state: &mut State) -> bool {
+    pub fn handle_event(event: &CrosstermEvent, state: &mut State) -> bool {
         match state.mode {
             Mode::CreatingNewConnection => match state.focus {
                 WidgetFocus::ConnectionStringEditor => ConnStrInput::handle_event(event, state),
@@ -53,7 +55,7 @@ impl<'a> ConnectionScreen<'a> {
                 _ => false,
             },
             Mode::Navigating => match event {
-                Event::Key(key) => match key.code {
+                CrosstermEvent::Key(key) => match key.code {
                     KeyCode::Char('q') => {
                         state.mode = Mode::Exiting;
                         true
@@ -64,14 +66,56 @@ impl<'a> ConnectionScreen<'a> {
                         true
                     }
                     _ => match state.focus {
-                        WidgetFocus::ConnectionList => ConnectionList::handle_event(event, state),
+                        // WidgetFocus::ConnectionList => ConnectionList::handle_event(event, state),
                         _ => false,
                     },
                 },
-                Event::Resize(_, _) => true,
+                CrosstermEvent::Resize(_, _) => true,
                 _ => false,
             },
             _ => false,
         }
+    }
+}
+
+#[derive(Debug, Default)]
+enum ModeV2 {
+    #[default]
+    Navigating,
+    CreatingNewConnection,
+}
+
+#[derive(Debug, Default)]
+#[allow(clippy::module_name_repetitions)]
+pub struct ConnectionScreenV2 {
+    pub mode: ModeV2,
+    pub connection_list: ConnectionList,
+}
+
+impl Component for ConnectionScreenV2 {
+    fn commands(&self) -> Vec<CommandGroup> {
+        // TODO: should depend on mode
+        let mut out = vec![];
+        out.append(&mut self.connection_list.commands());
+        out
+    }
+
+    fn handle_command(&mut self, command: ComponentCommand) -> Vec<Event> {
+        self.connection_list.handle_command(command)
+    }
+
+    fn handle_event(&mut self, event: Event) -> bool {
+        match &event {
+            Event::NewConnectionStarted => {
+                self.mode = ModeV2::CreatingNewConnection;
+                true
+            }
+            _ => false,
+        }
+    }
+
+    fn render(&mut self, frame: &mut Frame, area: Rect) {
+        // TODO: should depend on mode
+        self.connection_list.render(frame, area);
     }
 }

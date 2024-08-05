@@ -59,12 +59,12 @@ impl<'a> InputWidget for ConnStrInput<'a> {
                 state.conn_name_editor.input.value().to_string(),
                 state.conn_str_editor.input.value().to_string(),
             );
-            state.connection_list.items.push(new_conn);
+            // state.connection_list.items.push(new_conn);
             // QUESTION: is this the right place for this file call?
-            Connection::write_to_storage(&state.connection_list.items).unwrap_or_else(|_| {
-                state.status_bar.message =
-                    Some("An error occurred while saving connection preferences".to_string());
-            });
+            // Connection::write_to_storage(&state.connection_list.items).unwrap_or_else(|_| {
+            //     state.status_bar.message =
+            //         Some("An error occurred while saving connection preferences".to_string());
+            // });
 
             state.screen = Screen::Primary;
             state.mode = Mode::Navigating;

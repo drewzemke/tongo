@@ -1,7 +1,6 @@
 pub mod coll_list;
 pub mod conn_name_input;
 pub mod conn_str_input;
-pub mod connection_list;
 pub mod db_list;
 pub mod filter_input;
 pub mod input_widget;

@@ -1,6 +1,6 @@
 #![allow(clippy::module_name_repetitions)]
 
-use crate::{command::CommandGroup, component::Component};
+use crate::{command::CommandGroup, components::Component};
 use ratatui::{
     prelude::*,
     widgets::{Block, Padding, Paragraph, Wrap},
@@ -18,7 +18,7 @@ pub struct StatusBar {
 }
 
 impl Component for StatusBar {
-    fn render(&self, frame: &mut Frame, area: Rect) {
+    fn render(&mut self, frame: &mut Frame, area: Rect) {
         let content = self.message.as_ref().map_or_else(
             || {
                 Line::from(
