@@ -31,7 +31,10 @@ impl<'a> App<'a> {
             items: all_connections,
             ..Default::default()
         };
-        let connection_screen = ConnectionScreenV2 { connection_list };
+        let connection_screen = ConnectionScreenV2 {
+            connection_list,
+            ..Default::default()
+        };
 
         if let Some(connection) = connection {
             state.set_conn_str(connection.connection_str.clone());
@@ -212,15 +215,19 @@ impl<'a> Component for App<'a> {
     }
 
     fn handle_event(&mut self, event: Event) -> bool {
-        match event {
+        let internal_update = match &event {
             Event::ConnectionSelected(connection) => {
-                self.state.set_conn_str(connection.connection_str);
+                self.state.set_conn_str(connection.connection_str.clone());
                 self.state.screen = Screen::Primary;
                 self.state.mode = Mode::Navigating;
                 self.state.focus = WidgetFocus::DatabaseList;
                 true
             }
             Event::ListSelectionChanged => true,
-        }
+            _ => false,
+        };
+        let conn_scr_update = self.connection_screen.handle_event(event);
+
+        internal_update || conn_scr_update
     }
 }

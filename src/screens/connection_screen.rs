@@ -79,17 +79,17 @@ impl<'a> ConnectionScreen<'a> {
     }
 }
 
-// #[derive(Debug, Default)]
-// enum ModeV2 {
-//     #[default]
-//     Navigating,
-//     CreatingNewConnection,
-// }
+#[derive(Debug, Default)]
+enum ModeV2 {
+    #[default]
+    Navigating,
+    CreatingNewConnection,
+}
 
 #[derive(Debug, Default)]
 #[allow(clippy::module_name_repetitions)]
 pub struct ConnectionScreenV2 {
-    // pub mode: ModeV2,
+    pub mode: ModeV2,
     pub connection_list: ConnectionListV2,
 }
 
@@ -103,6 +103,16 @@ impl Component for ConnectionScreenV2 {
 
     fn handle_command(&mut self, command: ComponentCommand) -> Vec<Event> {
         self.connection_list.handle_command(command)
+    }
+
+    fn handle_event(&mut self, event: Event) -> bool {
+        match &event {
+            Event::NewConnectionStarted => {
+                self.mode = ModeV2::CreatingNewConnection;
+                true
+            }
+            _ => false,
+        }
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {

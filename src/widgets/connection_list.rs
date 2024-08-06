@@ -102,7 +102,7 @@ impl Component for ConnectionListV2 {
                 Command::Confirm => self.get_selected_conn_str().map_or_else(Vec::new, |conn| {
                     vec![Event::ConnectionSelected(conn.clone())]
                 }),
-                Command::CreateNew => todo!(),
+                Command::CreateNew => vec![Event::NewConnectionStarted],
                 Command::Delete => todo!(),
                 _ => vec![],
             }
