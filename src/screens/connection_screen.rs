@@ -1,5 +1,5 @@
 use crate::command::CommandGroup;
-use crate::component::{Component, ComponentCommand};
+use crate::components::{Component, ComponentCommand};
 use crate::event::Event;
 use crate::state::{Mode, State, WidgetFocus};
 use crate::widgets::conn_name_input::ConnNameInput;

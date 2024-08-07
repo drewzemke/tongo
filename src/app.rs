@@ -1,5 +1,5 @@
 use crate::command::{Command, CommandGroup};
-use crate::component::{Component, ComponentCommand};
+use crate::components::{Component, ComponentCommand};
 use crate::connection::Connection;
 use crate::event::Event;
 use crate::screens::connection_screen::{ConnectionScreen, ConnectionScreenV2};

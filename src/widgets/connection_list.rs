@@ -1,9 +1,9 @@
 #![allow(clippy::module_name_repetitions)]
 
-use super::list_widget::{list_draw, list_nav_down, list_nav_up, ListWidget};
+use super::list_widget::{list_nav_down, list_nav_up, ListWidget};
 use crate::{
     command::{Command, CommandGroup},
-    component::{Component, ComponentCommand},
+    components::{list::ListComponent, Component, ComponentCommand},
     connection::Connection,
     event::Event,
     state::{State, WidgetFocus},
@@ -91,6 +91,7 @@ impl Component for ConnectionListV2 {
     fn handle_command(&mut self, command: ComponentCommand) -> Vec<Event> {
         if let ComponentCommand::Command(command) = command {
             match command {
+                // TODO: these should be passed to a `handle_command` in ListComponent
                 Command::NavUp => {
                     list_nav_up(&mut self.state, self.items.len());
                     vec![Event::ListSelectionChanged]
@@ -112,8 +113,36 @@ impl Component for ConnectionListV2 {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        let items = self.items.iter().map(ConnectionList::item_to_str);
-        list_draw(frame, area, items, &mut self.state, "Connections", true);
+        ListComponent::render(self, area, frame.buffer_mut());
+    }
+}
+
+impl ListComponent for ConnectionListV2 {
+    type Item = Connection;
+
+    fn title() -> &'static str {
+        "Connections"
+    }
+
+    fn items(&self) -> std::slice::Iter<Self::Item> {
+        self.items.iter()
+    }
+
+    fn item_to_str(item: &Self::Item) -> Text<'static> {
+        let masked_conn_str = ConnectionList::mask_password(&item.connection_str);
+
+        Text::from(vec![
+            Line::from(item.name.clone()),
+            Line::from(format!(" {masked_conn_str}")).gray(),
+        ])
+    }
+
+    fn is_focused(&self) -> bool {
+        true
+    }
+
+    fn list_state(&mut self) -> &mut ListState {
+        &mut self.state
     }
 }
 

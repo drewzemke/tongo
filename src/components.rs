@@ -1,10 +1,11 @@
-use crossterm::event::Event as CrosstermEvent;
-use ratatui::{layout::Rect, Frame};
-
 use crate::{
     command::{Command, CommandGroup},
     event::Event,
 };
+use crossterm::event::Event as CrosstermEvent;
+use ratatui::{layout::Rect, Frame};
+
+pub mod list;
 
 // FIXME: crappy name
 #[allow(clippy::module_name_repetitions)]

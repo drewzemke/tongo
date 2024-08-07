@@ -1,6 +1,6 @@
 #![allow(clippy::module_name_repetitions)]
 
-use crate::{command::CommandGroup, component::Component};
+use crate::{command::CommandGroup, components::Component};
 use ratatui::{
     prelude::*,
     widgets::{Block, Padding, Paragraph, Wrap},
