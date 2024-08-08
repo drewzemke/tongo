@@ -1,12 +1,11 @@
 use crate::command::CommandGroup;
+use crate::components::connection_list::ConnectionList;
 use crate::components::{Component, ComponentCommand};
 use crate::event::Event;
 use crate::state::{Mode, State, WidgetFocus};
 use crate::widgets::conn_name_input::ConnNameInput;
 use crate::widgets::conn_str_input::ConnStrInput;
-use crate::widgets::connection_list::{ConnectionList, ConnectionListV2};
 use crate::widgets::input_widget::InputWidget;
-use crate::widgets::list_widget::ListWidget;
 use crossterm::event::{Event as CrosstermEvent, KeyCode};
 use ratatui::prelude::*;
 
@@ -38,11 +37,11 @@ impl<'a> StatefulWidget for ConnectionScreen<'a> {
                 .horizontal_margin(2)
                 .split(frame_right);
 
-            ConnectionList::render(frame_left, buf, state);
+            // ConnectionList::render(frame_left, buf, state);
             ConnNameInput::render(right_layout[1], buf, state);
             ConnStrInput::render(right_layout[3], buf, state);
         } else {
-            ConnectionList::render(area, buf, state);
+            // ConnectionList::render(area, buf, state);
         }
     }
 }
@@ -67,7 +66,7 @@ impl<'a> ConnectionScreen<'a> {
                         true
                     }
                     _ => match state.focus {
-                        WidgetFocus::ConnectionList => ConnectionList::handle_event(event, state),
+                        // WidgetFocus::ConnectionList => ConnectionList::handle_event(event, state),
                         _ => false,
                     },
                 },
@@ -90,7 +89,7 @@ enum ModeV2 {
 #[allow(clippy::module_name_repetitions)]
 pub struct ConnectionScreenV2 {
     pub mode: ModeV2,
-    pub connection_list: ConnectionListV2,
+    pub connection_list: ConnectionList,
 }
 
 impl Component for ConnectionScreenV2 {

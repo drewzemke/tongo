@@ -1,6 +1,6 @@
-use super::{Component, ComponentCommand};
 use crate::{
     command::{Command, CommandGroup},
+    components::{Component, ComponentCommand},
     event::Event,
 };
 use ratatui::{
@@ -44,7 +44,7 @@ impl<T: ListComponent> Component for T {
         out
     }
 
-    fn handle_command(&mut self, command: super::ComponentCommand) -> Vec<Event> {
+    fn handle_command(&mut self, command: ComponentCommand) -> Vec<Event> {
         let mut out = vec![];
         if let ComponentCommand::Command(command) = command {
             match command {

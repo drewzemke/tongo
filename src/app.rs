@@ -1,11 +1,11 @@
 use crate::command::{Command, CommandGroup};
+use crate::components::connection_list::ConnectionList;
 use crate::components::{Component, ComponentCommand};
 use crate::connection::Connection;
 use crate::event::Event;
 use crate::screens::connection_screen::{ConnectionScreen, ConnectionScreenV2};
 use crate::screens::primary_screen::PrimaryScreen;
 use crate::state::{Mode, Screen, State, WidgetFocus};
-use crate::widgets::connection_list::ConnectionListV2;
 use crate::widgets::status_bar::StatusBar;
 use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
 use ratatui::prelude::*;
@@ -25,9 +25,8 @@ const DEBOUNCE: Duration = Duration::from_millis(20); // 50 FPS
 impl<'a> App<'a> {
     pub fn new(connection: Option<Connection>, all_connections: Vec<Connection>) -> Self {
         let mut state = State::new();
-        state.connection_list.items.clone_from(&all_connections);
 
-        let connection_list = ConnectionListV2 {
+        let connection_list = ConnectionList {
             items: all_connections,
             ..Default::default()
         };
@@ -224,6 +223,10 @@ impl<'a> Component for App<'a> {
                 true
             }
             Event::ListSelectionChanged => true,
+            Event::ErrorOccurred(error) => {
+                self.status_bar.message = Some(error.clone());
+                true
+            }
             _ => false,
         };
         let conn_scr_update = self.connection_screen.handle_event(event);

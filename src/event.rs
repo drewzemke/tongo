@@ -4,5 +4,7 @@ use crate::connection::Connection;
 pub enum Event {
     ListSelectionChanged,
     ConnectionSelected(Connection),
+    ConnectionDeleted,
+    ErrorOccurred(String),
     NewConnectionStarted,
 }

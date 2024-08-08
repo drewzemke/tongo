@@ -5,7 +5,8 @@ use crate::{
 use crossterm::event::Event as CrosstermEvent;
 use ratatui::{layout::Rect, Frame};
 
-pub mod list;
+pub mod connection_list;
+pub mod generic;
 
 // FIXME: crappy name
 #[allow(clippy::module_name_repetitions)]

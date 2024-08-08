@@ -1,84 +1,19 @@
-#![allow(clippy::module_name_repetitions)]
-
-use super::list_widget::ListWidget;
+use super::generic::list::ListComponent;
 use crate::{
     command::{Command, CommandGroup},
-    components::{list::ListComponent, ComponentCommand},
+    components::ComponentCommand,
     connection::Connection,
     event::Event,
-    state::{State, WidgetFocus},
 };
-use crossterm::event::{Event as CrosstermEvent, KeyCode};
 use ratatui::{prelude::*, widgets::ListState};
 
 #[derive(Debug, Default)]
-pub struct ConnectionListState {
+pub struct ConnectionList {
     pub items: Vec<Connection>,
     pub state: ListState,
 }
 
-#[derive(Debug, Default)]
-pub struct ConnectionList<'a> {
-    marker: std::marker::PhantomData<State<'a>>,
-}
-
-impl<'a> ListWidget for ConnectionList<'a> {
-    type Item = Connection;
-    type State = State<'a>;
-
-    fn title() -> &'static str {
-        "Connections"
-    }
-
-    fn list_state(state: &mut Self::State) -> &mut ListState {
-        &mut state.connection_list.state
-    }
-
-    fn items(state: &Self::State) -> std::slice::Iter<Self::Item> {
-        state.connection_list.items.iter()
-    }
-
-    fn item_to_str(item: &Self::Item) -> Text<'static> {
-        let masked_conn_str = ConnectionList::mask_password(&item.connection_str);
-
-        Text::from(vec![
-            Line::from(item.name.clone()),
-            Line::from(format!(" {masked_conn_str}")).gray(),
-        ])
-    }
-
-    fn is_focused(state: &Self::State) -> bool {
-        state.focus == WidgetFocus::DatabaseList
-    }
-
-    fn on_event(event: &CrosstermEvent, state: &mut Self::State) -> bool {
-        if let CrosstermEvent::Key(key) = event {
-            if key.code == KeyCode::Char('D') {
-                let Some(index_to_delete) = state.connection_list.state.selected() else {
-                    return false;
-                };
-                state.connection_list.items.remove(index_to_delete);
-                Connection::write_to_storage(&state.connection_list.items).unwrap_or_else(|_| {
-                    state.status_bar.message =
-                        Some("An error occurred while saving connection preferences".to_string());
-                });
-                true
-            } else {
-                false
-            }
-        } else {
-            false
-        }
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct ConnectionListV2 {
-    pub items: Vec<Connection>,
-    pub state: ListState,
-}
-
-impl ListComponent for ConnectionListV2 {
+impl ListComponent for ConnectionList {
     type Item = Connection;
 
     fn title() -> &'static str {
@@ -90,7 +25,7 @@ impl ListComponent for ConnectionListV2 {
     }
 
     fn item_to_str(item: &Self::Item) -> Text<'static> {
-        let masked_conn_str = ConnectionList::mask_password(&item.connection_str);
+        let masked_conn_str = Self::mask_password(&item.connection_str);
 
         Text::from(vec![
             Line::from(item.name.clone()),
@@ -121,7 +56,20 @@ impl ListComponent for ConnectionListV2 {
                     vec![Event::ConnectionSelected(conn.clone())]
                 }),
                 Command::CreateNew => vec![Event::NewConnectionStarted],
-                Command::Delete => todo!(),
+                Command::Delete => {
+                    let Some(index_to_delete) = self.state.selected() else {
+                        return vec![];
+                    };
+                    self.items.remove(index_to_delete);
+                    let write_result = Connection::write_to_storage(&self.items);
+                    if write_result.is_ok() {
+                        vec![Event::ConnectionDeleted]
+                    } else {
+                        vec![Event::ErrorOccurred(
+                            "An error occurred while saving connection preferences".to_string(),
+                        )]
+                    }
+                }
                 _ => vec![],
             }
         } else {
@@ -130,16 +78,14 @@ impl ListComponent for ConnectionListV2 {
     }
 }
 
-impl ConnectionListV2 {
+impl ConnectionList {
     fn get_selected_conn_str(&self) -> Option<&Connection> {
         self.state
             .selected()
             .and_then(|index| self.items.get(index))
     }
-}
 
-impl<'a> ConnectionList<'a> {
-    pub fn mask_password(conn_str: &str) -> String {
+    fn mask_password(conn_str: &str) -> String {
         let Some((before_slashes, after_slashes)) = conn_str.split_once("//") else {
             return String::from(conn_str);
         };
