@@ -1,9 +1,9 @@
 #![allow(clippy::module_name_repetitions)]
 
-use super::list_widget::{list_nav_down, list_nav_up, ListWidget};
+use super::list_widget::ListWidget;
 use crate::{
     command::{Command, CommandGroup},
-    components::{list::ListComponent, Component, ComponentCommand},
+    components::{list::ListComponent, ComponentCommand},
     connection::Connection,
     event::Event,
     state::{State, WidgetFocus},
@@ -78,45 +78,6 @@ pub struct ConnectionListV2 {
     pub state: ListState,
 }
 
-impl Component for ConnectionListV2 {
-    fn commands(&self) -> Vec<CommandGroup> {
-        vec![
-            CommandGroup::new(vec![Command::NavUp, Command::NavDown], "↑↓/jk", "navigate"),
-            CommandGroup::new(vec![Command::Confirm], "enter", "connect"),
-            CommandGroup::new(vec![Command::CreateNew], "n", "new conn."),
-            CommandGroup::new(vec![Command::Delete], "D", "delete conn."),
-        ]
-    }
-
-    fn handle_command(&mut self, command: ComponentCommand) -> Vec<Event> {
-        if let ComponentCommand::Command(command) = command {
-            match command {
-                // TODO: these should be passed to a `handle_command` in ListComponent
-                Command::NavUp => {
-                    list_nav_up(&mut self.state, self.items.len());
-                    vec![Event::ListSelectionChanged]
-                }
-                Command::NavDown => {
-                    list_nav_down(&mut self.state, self.items.len());
-                    vec![Event::ListSelectionChanged]
-                }
-                Command::Confirm => self.get_selected_conn_str().map_or_else(Vec::new, |conn| {
-                    vec![Event::ConnectionSelected(conn.clone())]
-                }),
-                Command::CreateNew => vec![Event::NewConnectionStarted],
-                Command::Delete => todo!(),
-                _ => vec![],
-            }
-        } else {
-            vec![]
-        }
-    }
-
-    fn render(&mut self, frame: &mut Frame, area: Rect) {
-        ListComponent::render(self, area, frame.buffer_mut());
-    }
-}
-
 impl ListComponent for ConnectionListV2 {
     type Item = Connection;
 
@@ -143,6 +104,29 @@ impl ListComponent for ConnectionListV2 {
 
     fn list_state(&mut self) -> &mut ListState {
         &mut self.state
+    }
+
+    fn commands(&self) -> Vec<CommandGroup> {
+        vec![
+            CommandGroup::new(vec![Command::Confirm], "enter", "connect"),
+            CommandGroup::new(vec![Command::CreateNew], "n", "new conn."),
+            CommandGroup::new(vec![Command::Delete], "D", "delete conn."),
+        ]
+    }
+
+    fn handle_command(&mut self, command: ComponentCommand) -> Vec<Event> {
+        if let ComponentCommand::Command(command) = command {
+            match command {
+                Command::Confirm => self.get_selected_conn_str().map_or_else(Vec::new, |conn| {
+                    vec![Event::ConnectionSelected(conn.clone())]
+                }),
+                Command::CreateNew => vec![Event::NewConnectionStarted],
+                Command::Delete => todo!(),
+                _ => vec![],
+            }
+        } else {
+            vec![]
+        }
     }
 }
 

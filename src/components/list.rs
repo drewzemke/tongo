@@ -1,4 +1,8 @@
-use crossterm::event::{Event, KeyCode};
+use super::{Component, ComponentCommand};
+use crate::{
+    command::{Command, CommandGroup},
+    event::Event,
+};
 use ratatui::{
     prelude::*,
     style::{Color, Style},
@@ -6,6 +10,7 @@ use ratatui::{
 };
 use std::slice::Iter;
 
+#[allow(clippy::module_name_repetitions)]
 pub trait ListComponent {
     type Item;
 
@@ -19,15 +24,64 @@ pub trait ListComponent {
 
     fn list_state(&mut self) -> &mut ListState;
 
-    fn on_change(&mut self) {}
+    fn commands(&self) -> Vec<crate::command::CommandGroup> {
+        vec![]
+    }
 
-    fn on_select(&mut self) {}
+    fn handle_command(&mut self, _command: ComponentCommand) -> Vec<Event> {
+        vec![]
+    }
+}
 
-    fn on_event(&mut self, _event: &Event) -> bool {
+impl<T: ListComponent> Component for T {
+    fn commands(&self) -> Vec<crate::command::CommandGroup> {
+        let mut out = vec![CommandGroup::new(
+            vec![Command::NavUp, Command::NavDown],
+            "↑↓/jk",
+            "navigate",
+        )];
+        out.append(&mut ListComponent::commands(self));
+        out
+    }
+
+    fn handle_command(&mut self, command: super::ComponentCommand) -> Vec<Event> {
+        let mut out = vec![];
+        if let ComponentCommand::Command(command) = command {
+            match command {
+                Command::NavUp => {
+                    let num_items = self.items().len();
+                    let list_state = self.list_state();
+                    // jump to the bottom if we're at the top
+                    if list_state.selected() == Some(0) {
+                        list_state.select(Some(num_items.saturating_sub(1)));
+                    } else {
+                        list_state.select_previous();
+                    }
+                    out.push(Event::ListSelectionChanged);
+                }
+                Command::NavDown => {
+                    let num_items = self.items().len();
+                    let list_state = self.list_state();
+                    // jump to the top if we're at the bottom
+                    if list_state.selected() == Some(num_items - 1) {
+                        list_state.select_first();
+                    } else {
+                        list_state.select_next();
+                    }
+                    out.push(Event::ListSelectionChanged);
+                }
+                _ => {}
+            }
+        }
+        out.append(&mut ListComponent::handle_command(self, command));
+        out
+    }
+
+    fn handle_event(&mut self, _event: Event) -> bool {
         false
     }
 
-    fn render(&mut self, area: Rect, buf: &mut Buffer) {
+    fn render(&mut self, frame: &mut Frame, area: Rect) {
         let focused = self.is_focused();
         let border_color = if focused { Color::Green } else { Color::White };
 
@@ -44,46 +98,6 @@ pub trait ListComponent {
             )
             .highlight_style(Style::default().bold().reversed().white());
 
-        StatefulWidget::render(list, area, buf, self.list_state());
-    }
-
-    fn handle_event(&mut self, event: &Event) -> bool {
-        let updated = if let Event::Key(key) = event {
-            match key.code {
-                KeyCode::Char('j') | KeyCode::Down => {
-                    let num_items = self.items().len();
-                    let list_state = self.list_state();
-                    // jump to the top if we're at the bottom
-                    if list_state.selected() == Some(num_items - 1) {
-                        list_state.select_first();
-                    } else {
-                        list_state.select_next();
-                    }
-                    self.on_change();
-                    true
-                }
-                KeyCode::Char('k') | KeyCode::Up => {
-                    let num_items = self.items().len();
-                    let list_state = self.list_state();
-                    // jump to the bottom if we're at the top
-                    if list_state.selected() == Some(0) {
-                        list_state.select(Some(num_items.saturating_sub(1)));
-                    } else {
-                        list_state.select_previous();
-                    }
-                    self.on_change();
-                    true
-                }
-                KeyCode::Enter => {
-                    self.on_select();
-                    true
-                }
-                _ => false,
-            }
-        } else {
-            false
-        };
-
-        self.on_event(event) || updated
+        StatefulWidget::render(list, area, frame.buffer_mut(), self.list_state());
     }
 }

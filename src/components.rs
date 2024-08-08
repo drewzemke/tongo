@@ -19,7 +19,6 @@ pub trait Component {
         vec![]
     }
 
-    // TODO: this should return a list of events
     fn handle_command(&mut self, _command: ComponentCommand) -> Vec<Event> {
         vec![]
     }
