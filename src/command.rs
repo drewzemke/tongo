@@ -1,4 +1,4 @@
-#![allow(clippy::module_name_repetitions, clippy::match_same_arms)]
+#![allow(clippy::match_same_arms)]
 
 use crossterm::event::KeyCode;
 use ratatui::{
@@ -64,7 +64,7 @@ impl Command {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct CommandGroup {
     pub commands: Vec<Command>,
     // TODO: get from key fn

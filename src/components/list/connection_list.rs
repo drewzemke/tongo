@@ -1,4 +1,4 @@
-use super::generic::list::ListComponent;
+use super::ListComponent;
 use crate::{
     command::{Command, CommandGroup},
     components::ComponentCommand,
@@ -37,6 +37,8 @@ impl ListComponent for ConnectionList {
         true
     }
 
+    fn focus(&self) {}
+
     fn list_state(&mut self) -> &mut ListState {
         &mut self.state
     }
@@ -49,31 +51,30 @@ impl ListComponent for ConnectionList {
         ]
     }
 
-    fn handle_command(&mut self, command: ComponentCommand) -> Vec<Event> {
-        if let ComponentCommand::Command(command) = command {
-            match command {
-                Command::Confirm => self.get_selected_conn_str().map_or_else(Vec::new, |conn| {
-                    vec![Event::ConnectionSelected(conn.clone())]
-                }),
-                Command::CreateNew => vec![Event::NewConnectionStarted],
-                Command::Delete => {
-                    let Some(index_to_delete) = self.state.selected() else {
-                        return vec![];
-                    };
-                    self.items.remove(index_to_delete);
-                    let write_result = Connection::write_to_storage(&self.items);
-                    if write_result.is_ok() {
-                        vec![Event::ConnectionDeleted]
-                    } else {
-                        vec![Event::ErrorOccurred(
-                            "An error occurred while saving connection preferences".to_string(),
-                        )]
-                    }
+    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+        let ComponentCommand::Command(command) = command else {
+            return vec![];
+        };
+        match command {
+            Command::Confirm => self.get_selected_conn_str().map_or_else(Vec::new, |conn| {
+                vec![Event::ConnectionSelected(conn.clone())]
+            }),
+            Command::CreateNew => vec![Event::NewConnectionStarted],
+            Command::Delete => {
+                let Some(index_to_delete) = self.state.selected() else {
+                    return vec![];
+                };
+                self.items.remove(index_to_delete);
+                let write_result = Connection::write_to_storage(&self.items);
+                if write_result.is_ok() {
+                    vec![Event::ConnectionDeleted]
+                } else {
+                    vec![Event::ErrorOccurred(
+                        "An error occurred while saving connection preferences".to_string(),
+                    )]
                 }
-                _ => vec![],
             }
-        } else {
-            vec![]
+            _ => vec![],
         }
     }
 }

@@ -1,24 +1,147 @@
-use crate::command::CommandGroup;
-use crate::components::connection_list::ConnectionList;
-use crate::components::{Component, ComponentCommand};
+use crate::app::AppFocus;
+use crate::command::{Command, CommandGroup};
+use crate::components::input::Input;
+use crate::components::list::connection_list::ConnectionList;
+use crate::components::{Component, ComponentCommand, UniqueType};
+use crate::connection::Connection;
 use crate::event::Event;
-use crate::state::{Mode, State, WidgetFocus};
-use crate::widgets::conn_name_input::ConnNameInput;
-use crate::widgets::conn_str_input::ConnStrInput;
-use crate::widgets::input_widget::InputWidget;
-use crossterm::event::{Event as CrosstermEvent, KeyCode};
 use ratatui::prelude::*;
+use std::{cell::RefCell, rc::Rc};
 
-#[derive(Debug, Default)]
-pub struct ConnectionScreen<'a> {
-    marker: std::marker::PhantomData<State<'a>>,
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub enum ConnScreenFocus {
+    #[default]
+    ConnList,
+    NameInput,
+    StringInput,
 }
 
-impl<'a> StatefulWidget for ConnectionScreen<'a> {
-    type State = State<'a>;
+#[derive(Debug, Default)]
+pub struct ConnectionScreen {
+    app_focus: Rc<RefCell<AppFocus>>,
+    conn_list: ConnectionList,
+    conn_name_input: Input,
+    conn_str_input: Input,
+}
 
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        if state.mode == Mode::CreatingNewConnection {
+impl ConnectionScreen {
+    pub fn new(
+        connection_list: ConnectionList,
+        app_focus: Rc<RefCell<AppFocus>>,
+        cursor_pos: Rc<RefCell<(u16, u16)>>,
+    ) -> Self {
+        let connection_name_input = Input::new(
+            "Name",
+            cursor_pos.clone(),
+            vec![
+                CommandGroup::new(vec![Command::Confirm], "enter", "next field"),
+                CommandGroup::new(vec![Command::Back], "esc", "back"),
+            ],
+            app_focus.clone(),
+            AppFocus::ConnScreen(ConnScreenFocus::NameInput),
+            vec![Event::FocusedForward],
+            vec![Event::FocusedBackward, Event::RawModeExited],
+        );
+
+        let connection_string_input = Input::new(
+            "Connection String",
+            cursor_pos,
+            vec![
+                CommandGroup::new(vec![Command::Confirm], "enter", "connect"),
+                CommandGroup::new(vec![Command::Back], "esc", "prev field"),
+            ],
+            app_focus.clone(),
+            AppFocus::ConnScreen(ConnScreenFocus::StringInput),
+            vec![Event::FocusedForward, Event::RawModeExited],
+            vec![Event::FocusedBackward],
+        );
+
+        Self {
+            app_focus,
+            conn_list: connection_list,
+            conn_name_input: connection_name_input,
+            conn_str_input: connection_string_input,
+        }
+    }
+
+    /// Narrows the shared `AppFocus` variable into the focus enum for this componenent
+    fn internal_focus(&self) -> Option<ConnScreenFocus> {
+        match &*self.app_focus.borrow() {
+            AppFocus::ConnScreen(focus) => Some(focus.clone()),
+            AppFocus::PrimaryScreen => None,
+        }
+    }
+}
+
+impl Component<UniqueType> for ConnectionScreen {
+    fn commands(&self) -> Vec<CommandGroup> {
+        match self.internal_focus() {
+            Some(ConnScreenFocus::ConnList) => self.conn_list.commands(),
+            Some(ConnScreenFocus::NameInput) => self.conn_name_input.commands(),
+            Some(ConnScreenFocus::StringInput) => self.conn_str_input.commands(),
+            None => vec![],
+        }
+    }
+
+    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+        match self.internal_focus() {
+            Some(ConnScreenFocus::ConnList) => self.conn_list.handle_command(command),
+            Some(ConnScreenFocus::NameInput) => self.conn_name_input.handle_command(command),
+            Some(ConnScreenFocus::StringInput) => self.conn_str_input.handle_command(command),
+            None => vec![],
+        }
+    }
+
+    fn handle_event(&mut self, event: &Event) -> Vec<Event> {
+        let mut out = vec![];
+        match event {
+            Event::NewConnectionStarted => {
+                self.conn_name_input.focus();
+                self.conn_name_input.start_editing();
+                out.push(Event::RawModeEntered);
+            }
+            Event::FocusedForward => match self.internal_focus() {
+                Some(ConnScreenFocus::NameInput) => {
+                    self.conn_name_input.stop_editing();
+                    self.conn_str_input.focus();
+                    self.conn_str_input.start_editing();
+                }
+                Some(ConnScreenFocus::StringInput) => {
+                    let conn = Connection::new(
+                        self.conn_name_input.inner_input.value().to_string(),
+                        self.conn_str_input.inner_input.value().to_string(),
+                    );
+                    out.push(Event::ConnectionCreated(conn));
+                }
+                Some(ConnScreenFocus::ConnList) | None => {}
+            },
+            Event::FocusedBackward => match self.internal_focus() {
+                Some(ConnScreenFocus::NameInput) => {
+                    self.conn_list.focus();
+                    self.conn_name_input.stop_editing();
+                }
+                Some(ConnScreenFocus::StringInput) => {
+                    self.conn_name_input.focus();
+                    self.conn_name_input.start_editing();
+                    self.conn_str_input.stop_editing();
+                }
+                Some(ConnScreenFocus::ConnList) | None => {}
+            },
+            Event::ConnectionCreated(conn) => {
+                self.conn_list.items.push(conn.clone());
+            }
+            _ => {}
+        };
+        out.append(&mut self.conn_list.handle_event(event));
+        out.append(&mut self.conn_name_input.handle_event(event));
+        out.append(&mut self.conn_str_input.handle_event(event));
+        out
+    }
+
+    fn render(&mut self, frame: &mut Frame, area: Rect) {
+        if self.internal_focus() == Some(ConnScreenFocus::NameInput)
+            || self.internal_focus() == Some(ConnScreenFocus::StringInput)
+        {
             let frame_layout = Layout::default()
                 .direction(Direction::Horizontal)
                 .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
@@ -37,85 +160,19 @@ impl<'a> StatefulWidget for ConnectionScreen<'a> {
                 .horizontal_margin(2)
                 .split(frame_right);
 
-            // ConnectionList::render(frame_left, buf, state);
-            ConnNameInput::render(right_layout[1], buf, state);
-            ConnStrInput::render(right_layout[3], buf, state);
+            self.conn_list.render(frame, frame_left);
+            self.conn_name_input.render(frame, right_layout[1]);
+            self.conn_str_input.render(frame, right_layout[3]);
         } else {
-            // ConnectionList::render(area, buf, state);
-        }
-    }
-}
-
-impl<'a> ConnectionScreen<'a> {
-    pub fn handle_event(event: &CrosstermEvent, state: &mut State) -> bool {
-        match state.mode {
-            Mode::CreatingNewConnection => match state.focus {
-                WidgetFocus::ConnectionStringEditor => ConnStrInput::handle_event(event, state),
-                WidgetFocus::ConnectionNameEditor => ConnNameInput::handle_event(event, state),
-                _ => false,
-            },
-            Mode::Navigating => match event {
-                CrosstermEvent::Key(key) => match key.code {
-                    KeyCode::Char('q') => {
-                        state.mode = Mode::Exiting;
-                        true
-                    }
-                    KeyCode::Char('n') => {
-                        state.mode = Mode::CreatingNewConnection;
-                        state.focus = WidgetFocus::ConnectionNameEditor;
-                        true
-                    }
-                    _ => match state.focus {
-                        // WidgetFocus::ConnectionList => ConnectionList::handle_event(event, state),
-                        _ => false,
-                    },
-                },
-                CrosstermEvent::Resize(_, _) => true,
-                _ => false,
-            },
-            _ => false,
-        }
-    }
-}
-
-#[derive(Debug, Default)]
-enum ModeV2 {
-    #[default]
-    Navigating,
-    CreatingNewConnection,
-}
-
-#[derive(Debug, Default)]
-#[allow(clippy::module_name_repetitions)]
-pub struct ConnectionScreenV2 {
-    pub mode: ModeV2,
-    pub connection_list: ConnectionList,
-}
-
-impl Component for ConnectionScreenV2 {
-    fn commands(&self) -> Vec<CommandGroup> {
-        // TODO: should depend on mode
-        let mut out = vec![];
-        out.append(&mut self.connection_list.commands());
-        out
-    }
-
-    fn handle_command(&mut self, command: ComponentCommand) -> Vec<Event> {
-        self.connection_list.handle_command(command)
-    }
-
-    fn handle_event(&mut self, event: Event) -> bool {
-        match &event {
-            Event::NewConnectionStarted => {
-                self.mode = ModeV2::CreatingNewConnection;
-                true
-            }
-            _ => false,
+            self.conn_list.render(frame, area);
         }
     }
 
-    fn render(&mut self, frame: &mut Frame, area: Rect) {
-        // TODO: should depend on mode
-        self.connection_list.render(frame, area);
+    fn focus(&self) {
+        *self.app_focus.borrow_mut() = AppFocus::ConnScreen(ConnScreenFocus::default());
+    }
+
+    fn is_focused(&self) -> bool {
+        matches!(*self.app_focus.borrow(), AppFocus::ConnScreen(..))
     }
 }

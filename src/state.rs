@@ -4,8 +4,7 @@ use crate::{
     json_labeler::JsonLabeler,
     tree::top_level_document,
     widgets::{
-        coll_list::CollectionListState, conn_name_input::ConnNameEditorState,
-        conn_str_input::ConnStrEditorState, db_list::DatabaseListState,
+        coll_list::CollectionListState, db_list::DatabaseListState,
         filter_input::FilterEditorState, main_view::MainViewState, status_bar::StatusBarState,
     },
 };
@@ -82,8 +81,7 @@ pub struct State<'a> {
     pub db_list: DatabaseListState,
     pub coll_list: CollectionListState,
     // pub connection_list: ConnectionListState,
-    pub conn_str_editor: ConnStrEditorState,
-    pub conn_name_editor: ConnNameEditorState,
+    // pub conn_str_editor: ConnStrEditorState,
     pub filter_editor: FilterEditorState,
     pub status_bar: StatusBarState,
 
@@ -116,8 +114,7 @@ impl<'a> State<'a> {
             main_view: MainViewState::default(),
             db_list: DatabaseListState::default(),
             coll_list: CollectionListState::default(),
-            conn_str_editor: ConnStrEditorState::default(),
-            conn_name_editor: ConnNameEditorState::default(),
+            // conn_str_editor: ConnStrEditorState::default(),
             filter_editor: FilterEditorState::default(),
             status_bar: StatusBarState::default(),
             // connection_list: ConnectionListState::default(),

@@ -1,6 +1,6 @@
 use crate::{
     command::{Command, CommandGroup},
-    components::{Component, ComponentCommand},
+    components::{Component, ComponentCommand, ListType},
     event::Event,
 };
 use ratatui::{
@@ -10,7 +10,8 @@ use ratatui::{
 };
 use std::slice::Iter;
 
-#[allow(clippy::module_name_repetitions)]
+pub mod connection_list;
+
 pub trait ListComponent {
     type Item;
 
@@ -20,6 +21,8 @@ pub trait ListComponent {
 
     fn item_to_str(item: &Self::Item) -> Text<'static>;
 
+    fn focus(&self);
+
     fn is_focused(&self) -> bool;
 
     fn list_state(&mut self) -> &mut ListState;
@@ -28,12 +31,12 @@ pub trait ListComponent {
         vec![]
     }
 
-    fn handle_command(&mut self, _command: ComponentCommand) -> Vec<Event> {
+    fn handle_command(&mut self, _command: &ComponentCommand) -> Vec<Event> {
         vec![]
     }
 }
 
-impl<T: ListComponent> Component for T {
+impl<T: ListComponent> Component<ListType> for T {
     fn commands(&self) -> Vec<crate::command::CommandGroup> {
         let mut out = vec![CommandGroup::new(
             vec![Command::NavUp, Command::NavDown],
@@ -44,7 +47,7 @@ impl<T: ListComponent> Component for T {
         out
     }
 
-    fn handle_command(&mut self, command: ComponentCommand) -> Vec<Event> {
+    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
         let mut out = vec![];
         if let ComponentCommand::Command(command) = command {
             match command {
@@ -77,8 +80,8 @@ impl<T: ListComponent> Component for T {
         out
     }
 
-    fn handle_event(&mut self, _event: Event) -> bool {
-        false
+    fn handle_event(&mut self, _event: &Event) -> Vec<Event> {
+        vec![]
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
@@ -99,5 +102,13 @@ impl<T: ListComponent> Component for T {
             .highlight_style(Style::default().bold().reversed().white());
 
         StatefulWidget::render(list, area, frame.buffer_mut(), self.list_state());
+    }
+
+    fn focus(&self) {
+        ListComponent::focus(self);
+    }
+
+    fn is_focused(&self) -> bool {
+        ListComponent::is_focused(self)
     }
 }
