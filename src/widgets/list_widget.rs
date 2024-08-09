@@ -94,26 +94,3 @@ pub fn list_nav_down(list_state: &mut ListState, num_items: usize) -> bool {
     }
     true
 }
-
-pub fn list_draw<'a>(
-    frame: &mut Frame,
-    area: Rect,
-    items: impl Iterator<Item = Text<'a>>,
-    state: &mut ListState,
-    title: &str,
-    focused: bool,
-) {
-    let border_color = if focused { Color::Green } else { Color::White };
-
-    let items: Vec<ListItem> = items.map(|item| ListItem::new(item.clone())).collect();
-
-    let list = List::new(items)
-        .block(
-            Block::bordered()
-                .title(title)
-                .border_style(Style::default().fg(border_color)),
-        )
-        .highlight_style(Style::default().bold().reversed().white());
-
-    StatefulWidget::render(list, area, frame.buffer_mut(), state);
-}

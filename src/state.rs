@@ -4,9 +4,9 @@ use crate::{
     json_labeler::JsonLabeler,
     tree::top_level_document,
     widgets::{
-        coll_list::CollectionListState, conn_name_input::ConnNameEditorState,
-        conn_str_input::ConnStrEditorState, db_list::DatabaseListState,
-        filter_input::FilterEditorState, main_view::MainViewState, status_bar::StatusBarState,
+        coll_list::CollectionListState, conn_str_input::ConnStrEditorState,
+        db_list::DatabaseListState, filter_input::FilterEditorState, main_view::MainViewState,
+        status_bar::StatusBarState,
     },
 };
 use futures::TryStreamExt;
@@ -83,7 +83,6 @@ pub struct State<'a> {
     pub coll_list: CollectionListState,
     // pub connection_list: ConnectionListState,
     pub conn_str_editor: ConnStrEditorState,
-    pub conn_name_editor: ConnNameEditorState,
     pub filter_editor: FilterEditorState,
     pub status_bar: StatusBarState,
 
@@ -117,7 +116,6 @@ impl<'a> State<'a> {
             db_list: DatabaseListState::default(),
             coll_list: CollectionListState::default(),
             conn_str_editor: ConnStrEditorState::default(),
-            conn_name_editor: ConnNameEditorState::default(),
             filter_editor: FilterEditorState::default(),
             status_bar: StatusBarState::default(),
             // connection_list: ConnectionListState::default(),

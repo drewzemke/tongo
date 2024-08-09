@@ -1,22 +1,25 @@
 use crate::command::{Command, CommandGroup};
-use crate::components::connection_list::ConnectionList;
-use crate::components::{Component, ComponentCommand};
+use crate::components::list::connection_list::ConnectionList;
+use crate::components::{Component, ComponentCommand, UniqueType};
 use crate::connection::Connection;
 use crate::event::Event;
-use crate::screens::connection_screen::{ConnectionScreen, ConnectionScreenV2};
+use crate::screens::connection_screen::ConnectionScreen;
 use crate::screens::primary_screen::PrimaryScreen;
 use crate::state::{Mode, Screen, State, WidgetFocus};
 use crate::widgets::status_bar::StatusBar;
 use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
 use ratatui::prelude::*;
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 pub struct App<'a> {
     state: State<'a>,
 
     raw_mode: bool,
-    commands: Vec<CommandGroup>,
-    connection_screen: ConnectionScreenV2,
+    // commands: Vec<CommandGroup>,
+    cursor_pos: Rc<RefCell<(u16, u16)>>,
+    connection_screen: ConnectionScreen,
     status_bar: StatusBar,
 }
 
@@ -30,10 +33,7 @@ impl<'a> App<'a> {
             items: all_connections,
             ..Default::default()
         };
-        let connection_screen = ConnectionScreenV2 {
-            connection_list,
-            ..Default::default()
-        };
+        let connection_screen = ConnectionScreen::new(connection_list);
 
         if let Some(connection) = connection {
             state.set_conn_str(connection.connection_str.clone());
@@ -52,53 +52,16 @@ impl<'a> App<'a> {
             state,
 
             raw_mode: false,
-            commands: vec![],
+            // commands: vec![],
+            cursor_pos: Rc::new(RefCell::new((0, 0))),
             connection_screen,
             status_bar: StatusBar::default(),
         }
     }
 
-    fn draw(&mut self, frame: &mut Frame) {
-        let frame_layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Percentage(100), Constraint::Length(1)])
-            .split(frame.size());
-        let content = frame_layout[0];
-        let btm_line = frame_layout[1];
-
-        match self.state.screen {
-            Screen::Primary => {
-                PrimaryScreen::default().render(content, frame.buffer_mut(), &mut self.state);
-            }
-            Screen::Connection => {
-                self.connection_screen.render(frame, content);
-            }
-        }
-
-        // status bar
-        // HACK suboptimal stuff while refactoring around commands
-        self.status_bar
-            .message
-            .clone_from(&self.state.status_bar.message);
-        self.status_bar.commands = self.commands();
-        self.status_bar.render(frame, btm_line);
-
-        // show the cursor if we're editing something
-        match self.state.mode {
-            Mode::EditingFilter => Some(self.state.filter_editor.cursor_pos),
-            Mode::CreatingNewConnection => match self.state.focus {
-                WidgetFocus::ConnectionStringEditor => Some(self.state.conn_str_editor.cursor_pos),
-                WidgetFocus::ConnectionNameEditor => Some(self.state.conn_name_editor.cursor_pos),
-                _ => None,
-            },
-            _ => None,
-        }
-        .map_or_else(|| {}, |pos| frame.set_cursor(pos.0, pos.1));
-    }
-
     pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> std::io::Result<()> {
         // initial draw call
-        terminal.draw(|frame| self.draw(frame))?;
+        terminal.draw(|frame| self.render(frame, frame.size()))?;
 
         let debounce: Option<Instant> = None;
 
@@ -120,7 +83,7 @@ impl<'a> App<'a> {
 
             let mut update = false;
             for event in events {
-                if self.handle_event(event) {
+                if self.handle_event(&event) {
                     update = true;
                 }
             }
@@ -142,7 +105,7 @@ impl<'a> App<'a> {
 
             if update {
                 terminal.draw(|frame| {
-                    self.draw(frame);
+                    self.render(frame, frame.size());
                 })?;
             }
         }
@@ -157,9 +120,16 @@ impl<'a> App<'a> {
                 return vec![];
             }
 
-            // if in raw mode, just pass the whole event
+            // if in raw mode, check for enter or escape
+            // otherwise just pass the whole event
             if self.raw_mode {
-                return self.handle_command(ComponentCommand::RawEvent(event));
+                if key.code == KeyCode::Enter {
+                    return self.handle_command(&ComponentCommand::Command(Command::Confirm));
+                }
+                if key.code == KeyCode::Esc {
+                    return self.handle_command(&ComponentCommand::Command(Command::Back));
+                }
+                return self.handle_command(&ComponentCommand::RawEvent(event));
             }
 
             // map the key to a command if we're not in raw mode
@@ -172,14 +142,13 @@ impl<'a> App<'a> {
 
             // handle the command
             if let Some(command) = command {
-                return self.handle_command(ComponentCommand::Command(command));
+                return self.handle_command(&ComponentCommand::Command(command));
             }
         }
 
         // TODO: remove, eventually
-        match self.state.screen {
-            Screen::Primary => PrimaryScreen::handle_event(event, &mut self.state),
-            Screen::Connection => ConnectionScreen::handle_event(event, &mut self.state),
+        if let Screen::Primary = self.state.screen {
+            PrimaryScreen::handle_event(event, &mut self.state);
         };
 
         // HACK shouldn't be returning something here
@@ -187,7 +156,7 @@ impl<'a> App<'a> {
     }
 }
 
-impl<'a> Component for App<'a> {
+impl<'a> Component<UniqueType> for App<'a> {
     fn commands(&self) -> Vec<CommandGroup> {
         let mut out = if self.raw_mode {
             vec![]
@@ -205,7 +174,7 @@ impl<'a> Component for App<'a> {
     }
 
     #[must_use]
-    fn handle_command(&mut self, command: ComponentCommand) -> Vec<Event> {
+    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
         if matches!(command, ComponentCommand::Command(Command::Quit)) {
             self.state.mode = Mode::Exiting;
             return vec![];
@@ -213,8 +182,8 @@ impl<'a> Component for App<'a> {
         self.connection_screen.handle_command(command)
     }
 
-    fn handle_event(&mut self, event: Event) -> bool {
-        let internal_update = match &event {
+    fn handle_event(&mut self, event: &Event) -> bool {
+        let internal_update = match event {
             Event::ConnectionSelected(connection) => {
                 self.state.set_conn_str(connection.connection_str.clone());
                 self.state.screen = Screen::Primary;
@@ -227,10 +196,50 @@ impl<'a> Component for App<'a> {
                 self.status_bar.message = Some(error.clone());
                 true
             }
+            Event::NewConnectionStarted | Event::RawModeEntered => {
+                self.raw_mode = true;
+                true
+            }
+            Event::RawModeExited => {
+                self.raw_mode = false;
+                true
+            }
             _ => false,
         };
         let conn_scr_update = self.connection_screen.handle_event(event);
 
         internal_update || conn_scr_update
+    }
+
+    fn render(&mut self, frame: &mut Frame, area: Rect) {
+        let frame_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Percentage(100), Constraint::Length(1)])
+            .split(area);
+        let content = frame_layout[0];
+        let btm_line = frame_layout[1];
+
+        match self.state.screen {
+            Screen::Primary => {
+                PrimaryScreen::default().render(content, frame.buffer_mut(), &mut self.state);
+            }
+            Screen::Connection => {
+                self.connection_screen.render(frame, content);
+            }
+        }
+
+        // status bar
+        // HACK suboptimal stuff while refactoring around commands
+        self.status_bar
+            .message
+            .clone_from(&self.state.status_bar.message);
+        self.status_bar.commands = self.commands();
+        self.status_bar.render(frame, btm_line);
+
+        // show the cursor if we're editing something
+        if self.raw_mode {
+            let (x, y) = *self.cursor_pos.borrow();
+            frame.set_cursor(x, y);
+        }
     }
 }

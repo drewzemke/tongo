@@ -1,6 +1,9 @@
 #![allow(clippy::module_name_repetitions)]
 
-use crate::{command::CommandGroup, components::Component};
+use crate::{
+    command::CommandGroup,
+    components::{Component, UniqueType},
+};
 use ratatui::{
     prelude::*,
     widgets::{Block, Padding, Paragraph, Wrap},
@@ -17,7 +20,7 @@ pub struct StatusBar {
     pub message: Option<String>,
 }
 
-impl Component for StatusBar {
+impl Component<UniqueType> for StatusBar {
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         let content = self.message.as_ref().map_or_else(
             || {
