@@ -1,5 +1,4 @@
 #![allow(clippy::cast_possible_truncation)]
-#![allow(clippy::module_name_repetitions)]
 
 use crate::{
     edit_doc::edit_doc,
