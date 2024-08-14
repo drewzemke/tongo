@@ -68,7 +68,7 @@ impl ConnectionScreen {
     fn internal_focus(&self) -> Option<ConnScreenFocus> {
         match &*self.app_focus.borrow() {
             AppFocus::ConnScreen(focus) => Some(focus.clone()),
-            AppFocus::PrimaryScreen => None,
+            AppFocus::PrimaryScreen(..) => None,
         }
     }
 }

@@ -1,11 +1,11 @@
 #![allow(clippy::cast_possible_wrap)]
 
 use crate::{
+    components::status_bar::StatusBarState,
     json_labeler::JsonLabeler,
     tree::top_level_document,
     widgets::{
-        coll_list::CollectionListState, db_list::DatabaseListState,
-        filter_input::FilterEditorState, main_view::MainViewState, status_bar::StatusBarState,
+        coll_list::CollectionListState, filter_input::FilterEditorState, main_view::MainViewState,
     },
 };
 use futures::TryStreamExt;
@@ -16,11 +16,18 @@ use mongodb::{
     results::{CollectionSpecification, DatabaseSpecification},
     Client,
 };
+use ratatui::widgets::ListState;
 use std::sync::mpsc::{self, Receiver, Sender};
 use tui_tree_widget::TreeState;
 
 const PAGE_SIZE: usize = 5;
 const SEND_ERR_MSG: &str = "Error occurred while processing server response.";
+
+#[derive(Default)]
+struct DatabaseListState {
+    pub items: Vec<DatabaseSpecification>,
+    pub state: ListState,
+}
 
 pub enum MongoResponse {
     Query {
