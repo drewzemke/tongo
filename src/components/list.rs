@@ -10,7 +10,9 @@ use ratatui::{
 };
 use std::slice::Iter;
 
+pub mod coll_list;
 pub mod connection_list;
+pub mod db_list;
 
 pub trait ListComponent {
     type Item;
@@ -32,6 +34,10 @@ pub trait ListComponent {
     }
 
     fn handle_command(&mut self, _command: &ComponentCommand) -> Vec<Event> {
+        vec![]
+    }
+
+    fn handle_event(&mut self, _event: &Event) -> Vec<Event> {
         vec![]
     }
 }
@@ -80,8 +86,8 @@ impl<T: ListComponent> Component<ListType> for T {
         out
     }
 
-    fn handle_event(&mut self, _event: &Event) -> Vec<Event> {
-        vec![]
+    fn handle_event(&mut self, event: &Event) -> Vec<Event> {
+        ListComponent::handle_event(self, event)
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {

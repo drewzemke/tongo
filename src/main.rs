@@ -6,6 +6,7 @@ use ratatui::{backend::CrosstermBackend, Terminal};
 use std::io::Stdout;
 
 mod app;
+mod client;
 mod command;
 mod components;
 mod connection;

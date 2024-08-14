@@ -1,20 +1,22 @@
 use crate::{
+    client::Client,
     command::{Command, CommandGroup},
-    components::{list::connection_list::ConnectionList, Component, ComponentCommand, UniqueType},
+    components::{
+        list::connection_list::ConnectionList, status_bar::StatusBar, Component, ComponentCommand,
+        UniqueType,
+    },
     connection::Connection,
     event::Event,
     screens::{
         connection_screen::{ConnScreenFocus, ConnectionScreen},
-        primary_screen::PrimaryScreen,
+        primary_screen::{PrimaryScreenFocus, PrimaryScreenV2},
     },
     state::{Mode, Screen, State, WidgetFocus},
-    widgets::status_bar::StatusBar,
 };
 use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
 use ratatui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
-    widgets::StatefulWidget,
     Frame, Terminal,
 };
 use std::{
@@ -27,7 +29,7 @@ use std::{
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum AppFocus {
     ConnScreen(ConnScreenFocus),
-    PrimaryScreen,
+    PrimaryScreen(PrimaryScreenFocus),
 }
 
 impl Default for AppFocus {
@@ -36,15 +38,21 @@ impl Default for AppFocus {
     }
 }
 
+#[derive(Default)]
 pub struct App<'a> {
     state: State<'a>,
-
-    focus: Rc<RefCell<AppFocus>>,
     raw_mode: bool,
-    // commands: Vec<CommandGroup>,
-    cursor_pos: Rc<RefCell<(u16, u16)>>,
-    connection_screen: ConnectionScreen,
+    client: Client,
+
+    // components
+    conn_screen: ConnectionScreen,
+    primary_screen: PrimaryScreenV2,
     status_bar: StatusBar,
+
+    // shared data
+    focus: Rc<RefCell<AppFocus>>,
+    cursor_pos: Rc<RefCell<(u16, u16)>>,
+    // commands: Vec<CommandGroup>,
 }
 
 const DEBOUNCE: Duration = Duration::from_millis(20); // 50 FPS
@@ -65,7 +73,7 @@ impl<'a> App<'a> {
             //     .conn_str_editor
             //     .input
             //     .with_value(connection.connection_str);
-            AppFocus::PrimaryScreen
+            AppFocus::PrimaryScreen(PrimaryScreenFocus::DbList)
         } else {
             state.screen = Screen::Connection;
             state.mode = Mode::Navigating;
@@ -74,6 +82,7 @@ impl<'a> App<'a> {
         };
         let focus = Rc::new(RefCell::new(focus));
 
+        let primary_screen = PrimaryScreenV2::new(focus.clone());
         let connection_screen =
             ConnectionScreen::new(connection_list, focus.clone(), cursor_pos.clone());
 
@@ -81,11 +90,14 @@ impl<'a> App<'a> {
             state,
 
             raw_mode: false,
-            focus,
+            primary_screen,
+            conn_screen: connection_screen,
+
             // commands: vec![],
+            focus,
             cursor_pos,
-            connection_screen,
-            status_bar: StatusBar::default(),
+
+            ..Default::default()
         }
     }
 
@@ -108,15 +120,16 @@ impl<'a> App<'a> {
                 let event = crossterm::event::read()?;
                 self.handle_user_event(&event)
             } else {
-                vec![]
+                // FIXME: how do I make it so that we don't _always_ redraw?
+                // this causes a redraw every frame
+                vec![Event::Tick]
             };
 
-            let mut update = false;
+            let mut update = true;
 
             // process events
             let mut events_deque = VecDeque::from(events);
             while let Some(event) = events_deque.pop_front() {
-                update = true;
                 let new_events = self.handle_event(&event);
                 for new_event in new_events {
                     events_deque.push_back(new_event);
@@ -181,13 +194,7 @@ impl<'a> App<'a> {
             }
         }
 
-        // TODO: remove, eventually
-        if self.state.screen == Screen::Primary {
-            PrimaryScreen::handle_event(event, &mut self.state);
-        };
-
-        // HACK shouldn't be returning something here
-        vec![Event::ListSelectionChanged]
+        vec![]
     }
 }
 
@@ -199,11 +206,12 @@ impl<'a> Component<UniqueType> for App<'a> {
             vec![CommandGroup::new(vec![Command::Quit], "q", "quit")]
         };
 
+        out.append(&mut self.client.commands());
         out.append(&mut self.status_bar.commands());
 
-        // TODO: should be based on app state
-        if self.state.screen == Screen::Connection {
-            out.append(&mut self.connection_screen.commands());
+        match *self.focus.borrow() {
+            AppFocus::ConnScreen(_) => out.append(&mut self.conn_screen.commands()),
+            AppFocus::PrimaryScreen(_) => out.append(&mut self.primary_screen.commands()),
         }
         out
     }
@@ -214,17 +222,19 @@ impl<'a> Component<UniqueType> for App<'a> {
             self.state.mode = Mode::Exiting;
             return vec![];
         }
-        self.connection_screen.handle_command(command)
+        let mut out = vec![];
+        out.append(&mut self.client.handle_command(command));
+        out.append(&mut self.conn_screen.handle_command(command));
+        out.append(&mut self.primary_screen.handle_command(command));
+        out
     }
 
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
         let mut out = vec![];
         match event {
             Event::ConnectionCreated(conn) | Event::ConnectionSelected(conn) => {
-                self.state.set_conn_str(conn.connection_str.clone());
-                self.state.screen = Screen::Primary;
-                self.state.mode = Mode::Navigating;
-                self.state.focus = WidgetFocus::DatabaseList;
+                self.client.set_conn_str(conn.connection_str.clone());
+                self.primary_screen.focus();
             }
             Event::ErrorOccurred(error) => {
                 self.status_bar.message = Some(error.clone());
@@ -237,7 +247,9 @@ impl<'a> Component<UniqueType> for App<'a> {
             }
             _ => {}
         };
-        out.append(&mut self.connection_screen.handle_event(event));
+        out.append(&mut self.client.handle_event(event));
+        out.append(&mut self.conn_screen.handle_event(event));
+        out.append(&mut self.primary_screen.handle_event(event));
         out
     }
 
@@ -249,13 +261,9 @@ impl<'a> Component<UniqueType> for App<'a> {
         let content = frame_layout[0];
         let btm_line = frame_layout[1];
 
-        match self.state.screen {
-            Screen::Primary => {
-                PrimaryScreen::default().render(content, frame.buffer_mut(), &mut self.state);
-            }
-            Screen::Connection => {
-                self.connection_screen.render(frame, content);
-            }
+        match &*self.focus.borrow() {
+            AppFocus::PrimaryScreen(..) => self.primary_screen.render(frame, content),
+            AppFocus::ConnScreen(..) => self.conn_screen.render(frame, content),
         }
 
         // status bar

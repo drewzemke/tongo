@@ -7,6 +7,7 @@ use ratatui::{layout::Rect, Frame};
 
 pub mod input;
 pub mod list;
+pub mod status_bar;
 
 // FIXME: crappy name
 pub enum ComponentCommand<'a> {

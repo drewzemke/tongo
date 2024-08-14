@@ -1,21 +1,74 @@
-use crate::state::{Mode, Screen, State, WidgetFocus};
-use crate::widgets::input_widget::InputWidget;
-use crate::widgets::list_widget::ListWidget;
-use crate::widgets::{
-    coll_list::CollList, db_list::DbList, filter_input::FilterInput, main_view::MainView,
+use crate::{
+    app::AppFocus,
+    command::CommandGroup,
+    components::{
+        list::{coll_list::CollList, db_list::DbList},
+        Component, ComponentCommand, UniqueType,
+    },
+    event::Event,
+    state::{Mode, Screen, State, WidgetFocus},
+    widgets::{filter_input::FilterInput, input_widget::InputWidget, main_view::MainView},
 };
-use crossterm::event::{Event, KeyCode};
+use crossterm::event::{Event as CrosstermEvent, KeyCode};
 use ratatui::prelude::*;
+use std::{cell::RefCell, rc::Rc};
 
-#[derive(Debug, Default)]
-pub struct PrimaryScreen<'a> {
-    marker: std::marker::PhantomData<State<'a>>,
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub enum PrimaryScreenFocus {
+    #[default]
+    DbList,
+    CollList,
 }
 
-impl<'a> StatefulWidget for PrimaryScreen<'a> {
-    type State = State<'a>;
+#[derive(Debug, Default)]
+pub struct PrimaryScreenV2 {
+    app_focus: Rc<RefCell<AppFocus>>,
+    db_list: DbList,
+    coll_list: CollList,
+}
 
-    fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+impl PrimaryScreenV2 {
+    pub fn new(app_focus: Rc<RefCell<AppFocus>>) -> Self {
+        Self {
+            app_focus,
+            ..Default::default()
+        }
+    }
+
+    /// Narrows the shared `AppFocus` variable into the focus enum for this componenent
+    fn internal_focus(&self) -> Option<PrimaryScreenFocus> {
+        match &*self.app_focus.borrow() {
+            AppFocus::ConnScreen(..) => None,
+            AppFocus::PrimaryScreen(focus) => Some(focus.clone()),
+        }
+    }
+}
+
+impl Component<UniqueType> for PrimaryScreenV2 {
+    fn commands(&self) -> Vec<CommandGroup> {
+        match self.internal_focus() {
+            Some(PrimaryScreenFocus::DbList) => self.db_list.commands(),
+            Some(PrimaryScreenFocus::CollList) => self.coll_list.commands(),
+            None => vec![],
+        }
+    }
+
+    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+        match self.internal_focus() {
+            Some(PrimaryScreenFocus::DbList) => self.db_list.handle_command(command),
+            Some(PrimaryScreenFocus::CollList) => self.coll_list.handle_command(command),
+            None => vec![],
+        }
+    }
+
+    fn handle_event(&mut self, event: &Event) -> Vec<Event> {
+        let mut out = vec![];
+        out.append(&mut self.db_list.handle_event(event));
+        out.append(&mut self.coll_list.handle_event(event));
+        out
+    }
+
+    fn render(&mut self, frame: &mut Frame, area: Rect) {
         let content_layout = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([Constraint::Percentage(20), Constraint::Min(20)])
@@ -37,19 +90,32 @@ impl<'a> StatefulWidget for PrimaryScreen<'a> {
         let main_view_top = main_view_layout[0];
         let main_view_btm = main_view_layout[1];
 
-        DbList::render(sidebar_top, buf, state);
-        CollList::render(sidebar_btm, buf, state);
-        FilterInput::render(main_view_top, buf, state);
-        MainView::default().render(main_view_btm, buf, state);
+        self.db_list.render(frame, sidebar_top);
+        self.coll_list.render(frame, sidebar_btm);
+        // FilterInput::render(main_view_top, buf, state);
+        // MainView::default().render(main_view_btm, buf, state);
+    }
+
+    fn focus(&self) {
+        *self.app_focus.borrow_mut() = AppFocus::PrimaryScreen(PrimaryScreenFocus::default());
+    }
+
+    fn is_focused(&self) -> bool {
+        matches!(*self.app_focus.borrow(), AppFocus::PrimaryScreen(..))
     }
 }
 
+#[derive(Debug, Default)]
+pub struct PrimaryScreen<'a> {
+    marker: std::marker::PhantomData<State<'a>>,
+}
+
 impl<'a> PrimaryScreen<'a> {
-    pub fn handle_event(event: &Event, state: &mut State) -> bool {
+    pub fn handle_event(event: &CrosstermEvent, state: &mut State) -> bool {
         match state.mode {
             Mode::EditingFilter => FilterInput::handle_event(event, state),
             Mode::Navigating => match event {
-                Event::Key(key) => match key.code {
+                CrosstermEvent::Key(key) => match key.code {
                     KeyCode::Char('q') => {
                         state.mode = Mode::Exiting;
                         true
@@ -93,14 +159,14 @@ impl<'a> PrimaryScreen<'a> {
                         true
                     }
                     _ => match state.focus {
-                        WidgetFocus::DatabaseList => DbList::handle_event(event, state),
-                        WidgetFocus::CollectionList => CollList::handle_event(event, state),
+                        // WidgetFocus::DatabaseList => DbList::handle_event(event, state),
+                        // WidgetFocus::CollectionList => CollList::handle_event(event, state),
                         WidgetFocus::MainView => MainView::handle_event(event, state),
                         WidgetFocus::FilterEditor => FilterInput::handle_event(event, state),
                         _ => false,
                     },
                 },
-                Event::Resize(_, _) => true,
+                CrosstermEvent::Resize(_, _) => true,
                 _ => false,
             },
             _ => false,
