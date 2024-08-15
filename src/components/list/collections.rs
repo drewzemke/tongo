@@ -8,12 +8,12 @@ use mongodb::results::CollectionSpecification;
 use ratatui::{prelude::*, widgets::ListState};
 
 #[derive(Debug, Default)]
-pub struct CollList {
+pub struct Collections {
     pub items: Vec<CollectionSpecification>,
     pub state: ListState,
 }
 
-impl ListComponent for CollList {
+impl ListComponent for Collections {
     type Item = CollectionSpecification;
 
     fn title() -> &'static str {
@@ -63,7 +63,7 @@ impl ListComponent for CollList {
     }
 }
 
-impl CollList {
+impl Collections {
     fn get_selected(&self) -> Option<&CollectionSpecification> {
         self.state
             .selected()

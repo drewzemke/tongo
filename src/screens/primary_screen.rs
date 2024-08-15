@@ -2,7 +2,7 @@ use crate::{
     app::AppFocus,
     command::CommandGroup,
     components::{
-        list::{coll_list::CollList, db_list::DbList},
+        list::{collections::Collections, databases::Databases},
         Component, ComponentCommand, UniqueType,
     },
     event::Event,
@@ -23,8 +23,8 @@ pub enum PrimaryScreenFocus {
 #[derive(Debug, Default)]
 pub struct PrimaryScreenV2 {
     app_focus: Rc<RefCell<AppFocus>>,
-    db_list: DbList,
-    coll_list: CollList,
+    db_list: Databases,
+    coll_list: Collections,
 }
 
 impl PrimaryScreenV2 {
