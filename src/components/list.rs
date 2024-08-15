@@ -10,9 +10,9 @@ use ratatui::{
 };
 use std::slice::Iter;
 
-pub mod coll_list;
-pub mod connection_list;
-pub mod db_list;
+pub mod collections;
+pub mod connections;
+pub mod databases;
 
 pub trait ListComponent {
     type Item;

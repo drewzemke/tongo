@@ -8,12 +8,12 @@ use crate::{
 use ratatui::{prelude::*, widgets::ListState};
 
 #[derive(Debug, Default)]
-pub struct ConnectionList {
+pub struct Connections {
     pub items: Vec<Connection>,
     pub state: ListState,
 }
 
-impl ListComponent for ConnectionList {
+impl ListComponent for Connections {
     type Item = Connection;
 
     fn title() -> &'static str {
@@ -79,7 +79,7 @@ impl ListComponent for ConnectionList {
     }
 }
 
-impl ConnectionList {
+impl Connections {
     fn get_selected_conn_str(&self) -> Option<&Connection> {
         self.state
             .selected()
@@ -107,7 +107,7 @@ mod tests {
     #[test]
     fn test_mask_password() {
         let conn_str = "mongodb://user:D1fficultP%40ssw0rd@cluster0.example.mongodb.net/";
-        let masked_str = ConnectionList::mask_password(conn_str);
+        let masked_str = Connections::mask_password(conn_str);
         let expected = "mongodb://user:******@cluster0.example.mongodb.net/";
 
         assert_eq!(masked_str, expected);
@@ -116,7 +116,7 @@ mod tests {
     #[test]
     fn test_mask_password_with_srv() {
         let conn_str = "mongodb+srv://user:D1fficultP%40ssw0rd@cluster0.example.mongodb.net/";
-        let masked_str = ConnectionList::mask_password(conn_str);
+        let masked_str = Connections::mask_password(conn_str);
         let expected = "mongodb+srv://user:******@cluster0.example.mongodb.net/";
 
         assert_eq!(masked_str, expected);
@@ -125,7 +125,7 @@ mod tests {
     #[test]
     fn test_mask_password_no_passwd() {
         let conn_str = "mongodb://cluster0.example.mongodb.net/";
-        let masked_str = ConnectionList::mask_password(conn_str);
+        let masked_str = Connections::mask_password(conn_str);
         let expected = "mongodb://cluster0.example.mongodb.net/";
 
         assert_eq!(masked_str, expected);

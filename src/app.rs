@@ -2,7 +2,7 @@ use crate::{
     client::Client,
     command::{Command, CommandGroup},
     components::{
-        list::connection_list::ConnectionList, status_bar::StatusBar, Component, ComponentCommand,
+        list::connections::Connections, status_bar::StatusBar, Component, ComponentCommand,
         UniqueType,
     },
     connection::Connection,
@@ -62,7 +62,7 @@ impl<'a> App<'a> {
         let mut state = State::new();
 
         let cursor_pos = Rc::new(RefCell::new((0, 0)));
-        let connection_list = ConnectionList {
+        let connection_list = Connections {
             items: all_connections,
             ..Default::default()
         };

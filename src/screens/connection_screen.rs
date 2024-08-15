@@ -1,7 +1,7 @@
 use crate::app::AppFocus;
 use crate::command::{Command, CommandGroup};
 use crate::components::input::Input;
-use crate::components::list::connection_list::ConnectionList;
+use crate::components::list::connections::Connections;
 use crate::components::{Component, ComponentCommand, UniqueType};
 use crate::connection::Connection;
 use crate::event::Event;
@@ -19,14 +19,14 @@ pub enum ConnScreenFocus {
 #[derive(Debug, Default)]
 pub struct ConnectionScreen {
     app_focus: Rc<RefCell<AppFocus>>,
-    conn_list: ConnectionList,
+    conn_list: Connections,
     conn_name_input: Input,
     conn_str_input: Input,
 }
 
 impl ConnectionScreen {
     pub fn new(
-        connection_list: ConnectionList,
+        connection_list: Connections,
         app_focus: Rc<RefCell<AppFocus>>,
         cursor_pos: Rc<RefCell<(u16, u16)>>,
     ) -> Self {

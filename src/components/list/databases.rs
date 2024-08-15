@@ -8,12 +8,12 @@ use mongodb::results::DatabaseSpecification;
 use ratatui::{prelude::*, widgets::ListState};
 
 #[derive(Debug, Default)]
-pub struct DbList {
+pub struct Databases {
     pub items: Vec<DatabaseSpecification>,
     pub state: ListState,
 }
 
-impl ListComponent for DbList {
+impl ListComponent for Databases {
     type Item = DatabaseSpecification;
 
     fn title() -> &'static str {
@@ -63,7 +63,7 @@ impl ListComponent for DbList {
     }
 }
 
-impl DbList {
+impl Databases {
     fn get_selected(&self) -> Option<&DatabaseSpecification> {
         self.state
             .selected()

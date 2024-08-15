@@ -4,9 +4,7 @@ use crate::{
     components::status_bar::StatusBarState,
     json_labeler::JsonLabeler,
     tree::top_level_document,
-    widgets::{
-        coll_list::CollectionListState, filter_input::FilterEditorState, main_view::MainViewState,
-    },
+    widgets::{filter_input::FilterEditorState, main_view::MainViewState},
 };
 use futures::TryStreamExt;
 use mongodb::{
@@ -26,6 +24,12 @@ const SEND_ERR_MSG: &str = "Error occurred while processing server response.";
 #[derive(Default)]
 struct DatabaseListState {
     pub items: Vec<DatabaseSpecification>,
+    pub state: ListState,
+}
+
+#[derive(Default)]
+struct CollectionListState {
+    pub items: Vec<CollectionSpecification>,
     pub state: ListState,
 }
 
