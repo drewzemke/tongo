@@ -29,9 +29,12 @@ pub struct PrimaryScreenV2 {
 
 impl PrimaryScreenV2 {
     pub fn new(app_focus: Rc<RefCell<AppFocus>>) -> Self {
+        let db_list = Databases::new(app_focus.clone());
+        let coll_list = Collections::new(app_focus.clone());
         Self {
             app_focus,
-            ..Default::default()
+            db_list,
+            coll_list,
         }
     }
 
@@ -63,6 +66,19 @@ impl Component<UniqueType> for PrimaryScreenV2 {
 
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
         let mut out = vec![];
+        match event {
+            Event::FocusedForward => {
+                if self.internal_focus() == Some(PrimaryScreenFocus::DbList) {
+                    self.coll_list.focus();
+                }
+            }
+            Event::FocusedBackward => {
+                if self.internal_focus() == Some(PrimaryScreenFocus::CollList) {
+                    self.db_list.focus();
+                }
+            }
+            _ => {}
+        };
         out.append(&mut self.db_list.handle_event(event));
         out.append(&mut self.coll_list.handle_event(event));
         out

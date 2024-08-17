@@ -61,12 +61,6 @@ impl<'a> App<'a> {
     pub fn new(connection: Option<Connection>, all_connections: Vec<Connection>) -> Self {
         let mut state = State::new();
 
-        let cursor_pos = Rc::new(RefCell::new((0, 0)));
-        let connection_list = Connections {
-            items: all_connections,
-            ..Default::default()
-        };
-
         let focus = if let Some(connection) = connection {
             state.set_conn_str(connection.connection_str);
             // state.conn_str_editor.input = state
@@ -81,6 +75,9 @@ impl<'a> App<'a> {
             AppFocus::ConnScreen(ConnScreenFocus::ConnList)
         };
         let focus = Rc::new(RefCell::new(focus));
+
+        let cursor_pos = Rc::new(RefCell::new((0, 0)));
+        let connection_list = Connections::new(focus.clone(), all_connections);
 
         let primary_screen = PrimaryScreenV2::new(focus.clone());
         let connection_screen =

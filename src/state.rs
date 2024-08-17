@@ -89,8 +89,8 @@ pub struct State<'a> {
 
     // widget states
     pub main_view: MainViewState<'a>,
-    pub db_list: DatabaseListState,
-    pub coll_list: CollectionListState,
+    db_list: DatabaseListState,
+    coll_list: CollectionListState,
     // pub connection_list: ConnectionListState,
     // pub conn_str_editor: ConnStrEditorState,
     pub filter_editor: FilterEditorState,
