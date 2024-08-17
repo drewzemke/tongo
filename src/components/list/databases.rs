@@ -53,10 +53,13 @@ impl ListComponent for Databases {
         let ComponentCommand::Command(command) = command else {
             return vec![];
         };
-        match command {
-            Command::Confirm => vec![Event::FocusedForward],
-            _ => vec![],
+        let mut out = vec![];
+        if matches!(command, Command::Confirm) {
+            if let Some(db) = self.get_selected() {
+                out.push(Event::DatabaseSelected(db.clone()));
+            }
         }
+        out
     }
 
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
@@ -65,7 +68,7 @@ impl ListComponent for Databases {
             Event::ListSelectionChanged => {
                 if self.is_focused() {
                     if let Some(db) = self.get_selected() {
-                        out.push(Event::DatabaseSelected(db.clone()));
+                        out.push(Event::DatabaseHighlighted(db.clone()));
                     }
                 }
             }

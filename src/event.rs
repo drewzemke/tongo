@@ -1,4 +1,5 @@
 use mongodb::{
+    bson::Bson,
     results::{CollectionSpecification, DatabaseSpecification},
     Client as MongoClient,
 };
@@ -8,19 +9,34 @@ use crate::connection::Connection;
 #[derive(Debug, Clone)]
 pub enum Event {
     Tick,
+
     ListSelectionChanged,
+
     ConnectionSelected(Connection),
-    ConnectionCreated(Connection),
-    DatabaseSelected(DatabaseSpecification),
-    DatabasesUpdated(Vec<DatabaseSpecification>),
-    CollectionSelected(CollectionSpecification),
-    CollectionsUpdated(Vec<CollectionSpecification>),
-    ClientCreated(MongoClient),
-    ConnectionDeleted,
-    ErrorOccurred(String),
     NewConnectionStarted,
+    ConnectionCreated(Connection),
+    ConnectionDeleted,
+
+    ClientCreated(MongoClient),
+
+    DatabasesUpdated(Vec<DatabaseSpecification>),
+    DatabaseHighlighted(DatabaseSpecification),
+    DatabaseSelected(DatabaseSpecification),
+
+    CollectionsUpdated(Vec<CollectionSpecification>),
+    CollectionHighlighted(CollectionSpecification),
+    CollectionSelected(CollectionSpecification),
+
+    DocumentsUpdated(Vec<Bson>),
+    CountUpdated(u64),
+    DocumentPageChanged(usize),
+    ErrorOccurred(String),
+
+    // TODO: sort these out better
     FocusedForward,
     FocusedBackward,
+    FocusedChanged,
+
     RawModeEntered,
     RawModeExited,
     InputKeyPressed,
