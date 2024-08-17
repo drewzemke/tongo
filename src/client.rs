@@ -10,6 +10,7 @@ const SEND_ERR_MSG: &str = "Error occurred while processing server response.";
 
 #[derive(Debug)]
 pub struct Client {
+    #[allow(clippy::struct_field_names)]
     client: Option<MongoClient>,
 
     response_send: Sender<Event>,

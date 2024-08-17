@@ -1,14 +1,19 @@
+use std::{cell::RefCell, rc::Rc};
+
 use super::ListComponent;
 use crate::{
+    app::AppFocus,
     command::{Command, CommandGroup},
     components::ComponentCommand,
     connection::Connection,
     event::Event,
+    screens::connection_screen::ConnScreenFocus,
 };
 use ratatui::{prelude::*, widgets::ListState};
 
 #[derive(Debug, Default)]
 pub struct Connections {
+    app_focus: Rc<RefCell<AppFocus>>,
     pub items: Vec<Connection>,
     pub state: ListState,
 }
@@ -34,10 +39,12 @@ impl ListComponent for Connections {
     }
 
     fn is_focused(&self) -> bool {
-        true
+        *self.app_focus.borrow() == AppFocus::ConnScreen(ConnScreenFocus::ConnList)
     }
 
-    fn focus(&self) {}
+    fn focus(&self) {
+        *self.app_focus.borrow_mut() = AppFocus::ConnScreen(ConnScreenFocus::ConnList);
+    }
 
     fn list_state(&mut self) -> &mut ListState {
         &mut self.state
@@ -80,6 +87,14 @@ impl ListComponent for Connections {
 }
 
 impl Connections {
+    pub fn new(app_focus: Rc<RefCell<AppFocus>>, items: Vec<Connection>) -> Self {
+        Self {
+            app_focus,
+            items,
+            ..Default::default()
+        }
+    }
+
     fn get_selected_conn_str(&self) -> Option<&Connection> {
         self.state
             .selected()
