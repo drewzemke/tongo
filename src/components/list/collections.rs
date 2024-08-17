@@ -52,18 +52,21 @@ impl ListComponent for Collections {
         let ComponentCommand::Command(command) = command else {
             return vec![];
         };
-        match command {
-            Command::Confirm => vec![Event::FocusedForward],
-            _ => vec![],
+        let mut out = vec![];
+        if matches!(command, Command::Confirm) {
+            if let Some(coll) = self.get_selected() {
+                out.push(Event::CollectionSelected(coll.clone()));
+            }
         }
+        out
     }
 
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
         let mut out = vec![];
         match event {
             Event::ListSelectionChanged => {
-                if let Some(db) = self.get_selected() {
-                    out.push(Event::CollectionSelected(db.clone()));
+                if let Some(coll) = self.get_selected() {
+                    out.push(Event::CollectionHighlighted(coll.clone()));
                 }
             }
             Event::CollectionsUpdated(colls) => {

@@ -1,7 +1,8 @@
 use crate::{
     app::AppFocus,
-    command::CommandGroup,
+    command::{Command, CommandGroup},
     components::{
+        documents::Documents,
         list::{collections::Collections, databases::Databases},
         Component, ComponentCommand, UniqueType,
     },
@@ -18,23 +19,27 @@ pub enum PrimaryScreenFocus {
     #[default]
     DbList,
     CollList,
+    DocTree,
 }
 
 #[derive(Debug, Default)]
-pub struct PrimaryScreenV2 {
+pub struct PrimaryScreenV2<'a> {
     app_focus: Rc<RefCell<AppFocus>>,
     db_list: Databases,
     coll_list: Collections,
+    doc_tree: Documents<'a>,
 }
 
-impl PrimaryScreenV2 {
+impl<'a> PrimaryScreenV2<'a> {
     pub fn new(app_focus: Rc<RefCell<AppFocus>>) -> Self {
         let db_list = Databases::new(app_focus.clone());
         let coll_list = Collections::new(app_focus.clone());
+        let doc_tree = Documents::new(app_focus.clone());
         Self {
             app_focus,
             db_list,
             coll_list,
+            doc_tree,
         }
     }
 
@@ -47,19 +52,66 @@ impl PrimaryScreenV2 {
     }
 }
 
-impl Component<UniqueType> for PrimaryScreenV2 {
+impl<'a> Component<UniqueType> for PrimaryScreenV2<'a> {
     fn commands(&self) -> Vec<CommandGroup> {
+        let mut out = vec![CommandGroup::new(
+            vec![
+                Command::FocusLeft,
+                Command::FocusUp,
+                Command::FocusDown,
+                Command::FocusRight,
+            ],
+            "HJKL",
+            "change focus",
+        )];
+
         match self.internal_focus() {
-            Some(PrimaryScreenFocus::DbList) => self.db_list.commands(),
-            Some(PrimaryScreenFocus::CollList) => self.coll_list.commands(),
-            None => vec![],
+            Some(PrimaryScreenFocus::DbList) => out.append(&mut self.db_list.commands()),
+            Some(PrimaryScreenFocus::CollList) => out.append(&mut self.coll_list.commands()),
+            Some(PrimaryScreenFocus::DocTree) => out.append(&mut self.doc_tree.commands()),
+            None => {}
         }
+        out
     }
 
     fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+        if let ComponentCommand::Command(command) = command {
+            match command {
+                Command::FocusLeft => match self.internal_focus() {
+                    Some(PrimaryScreenFocus::DocTree) => {
+                        self.coll_list.focus();
+                        return vec![Event::FocusedChanged];
+                    }
+                    _ => return vec![],
+                },
+                Command::FocusUp => match self.internal_focus() {
+                    Some(PrimaryScreenFocus::CollList) => {
+                        self.db_list.focus();
+                        return vec![Event::FocusedChanged];
+                    }
+                    _ => return vec![],
+                },
+                Command::FocusDown => match self.internal_focus() {
+                    Some(PrimaryScreenFocus::DbList) => {
+                        self.coll_list.focus();
+                        return vec![Event::FocusedChanged];
+                    }
+                    _ => return vec![],
+                },
+                Command::FocusRight => match self.internal_focus() {
+                    Some(PrimaryScreenFocus::CollList) => {
+                        self.doc_tree.focus();
+                        return vec![Event::FocusedChanged];
+                    }
+                    _ => return vec![],
+                },
+                _ => {}
+            }
+        };
         match self.internal_focus() {
             Some(PrimaryScreenFocus::DbList) => self.db_list.handle_command(command),
             Some(PrimaryScreenFocus::CollList) => self.coll_list.handle_command(command),
+            Some(PrimaryScreenFocus::DocTree) => self.doc_tree.handle_command(command),
             None => vec![],
         }
     }
@@ -67,20 +119,13 @@ impl Component<UniqueType> for PrimaryScreenV2 {
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
         let mut out = vec![];
         match event {
-            Event::FocusedForward => {
-                if self.internal_focus() == Some(PrimaryScreenFocus::DbList) {
-                    self.coll_list.focus();
-                }
-            }
-            Event::FocusedBackward => {
-                if self.internal_focus() == Some(PrimaryScreenFocus::CollList) {
-                    self.db_list.focus();
-                }
-            }
+            Event::DatabaseSelected(..) => self.coll_list.focus(),
+            Event::CollectionSelected(..) => self.doc_tree.focus(),
             _ => {}
         };
         out.append(&mut self.db_list.handle_event(event));
         out.append(&mut self.coll_list.handle_event(event));
+        out.append(&mut self.doc_tree.handle_event(event));
         out
     }
 
@@ -108,8 +153,8 @@ impl Component<UniqueType> for PrimaryScreenV2 {
 
         self.db_list.render(frame, sidebar_top);
         self.coll_list.render(frame, sidebar_btm);
+        self.doc_tree.render(frame, main_view_btm);
         // FilterInput::render(main_view_top, buf, state);
-        // MainView::default().render(main_view_btm, buf, state);
     }
 
     fn focus(&self) {

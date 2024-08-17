@@ -46,7 +46,7 @@ pub struct App<'a> {
 
     // components
     conn_screen: ConnectionScreen,
-    primary_screen: PrimaryScreenV2,
+    primary_screen: PrimaryScreenV2<'a>,
     status_bar: StatusBar,
 
     // shared data
