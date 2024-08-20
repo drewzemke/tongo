@@ -6,7 +6,7 @@ use crate::{
 };
 use futures::TryStreamExt;
 use mongodb::{
-    bson::Bson,
+    bson::{Bson, Document},
     options::{ClientOptions, FindOptions},
     results::{CollectionSpecification, DatabaseSpecification},
     Client as MongoClient,
@@ -26,6 +26,8 @@ pub struct Client {
     db: Option<DatabaseSpecification>,
     coll: Option<CollectionSpecification>,
 
+    filter: Document,
+
     response_send: Sender<Event>,
     response_recv: Receiver<Event>,
 }
@@ -37,6 +39,8 @@ impl Default for Client {
             client: None,
             db: None,
             coll: None,
+
+            filter: Document::default(),
 
             response_send,
             response_recv,
@@ -110,7 +114,7 @@ impl Client {
 
         let sender = self.response_send.clone();
 
-        let filter = None; // self.filter_editor.filter.clone();
+        let filter = Some(self.filter.clone()); // self.filter_editor.filter.clone();
         let skip = page * PAGE_SIZE;
         let options = FindOptions::builder()
             .skip(skip as u64)
@@ -141,7 +145,7 @@ impl Client {
 
         let sender = self.response_send.clone();
 
-        let filter = None; // self.filter_editor.filter.clone();
+        let filter = Some(self.filter.clone()); // self.filter_editor.filter.clone();
 
         tokio::spawn(async move {
             let response = coll.count_documents(filter, None).await.map_or_else(
@@ -178,9 +182,16 @@ impl Component<UniqueType> for Client {
             Event::CollectionSelected(..) => {
                 self.exec_query(0);
                 self.exec_count();
+                out.push(Event::DocumentPageChanged(0));
             }
             Event::DocumentPageChanged(page) => {
                 self.exec_query(*page);
+            }
+            Event::DocFilterUpdated(doc) => {
+                self.filter.clone_from(doc);
+                self.exec_query(0);
+                self.exec_count();
+                out.push(Event::DocumentPageChanged(0));
             }
             _ => (),
         }

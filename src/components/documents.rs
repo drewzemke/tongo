@@ -27,6 +27,7 @@ pub struct Documents<'a> {
 
     #[allow(clippy::struct_field_names)]
     pub documents: Vec<Bson>,
+
     pub page: usize,
     pub count: u64,
 }
@@ -132,6 +133,9 @@ impl<'a> Component<UniqueType> for Documents<'a> {
             }
             Event::CountUpdated(count) => {
                 self.count = *count;
+            }
+            Event::DocumentPageChanged(page) => {
+                self.page = *page;
             }
             _ => (),
         }

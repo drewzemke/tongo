@@ -79,7 +79,7 @@ impl<'a> App<'a> {
         let cursor_pos = Rc::new(RefCell::new((0, 0)));
         let connection_list = Connections::new(focus.clone(), all_connections);
 
-        let primary_screen = PrimaryScreenV2::new(focus.clone());
+        let primary_screen = PrimaryScreenV2::new(focus.clone(), cursor_pos.clone());
         let connection_screen =
             ConnectionScreen::new(connection_list, focus.clone(), cursor_pos.clone());
 
