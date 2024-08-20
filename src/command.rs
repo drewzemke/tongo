@@ -20,6 +20,7 @@ pub enum Command {
 
     CreateNew,
     Confirm,
+    Reset,
     ExpandCollapse,
     NextPage,
     PreviousPage,
@@ -49,6 +50,7 @@ impl Command {
 
             Self::CreateNew => KeyCode::Char('n'),
             Self::Confirm => KeyCode::Enter,
+            Self::Reset => KeyCode::Char('R'),
             Self::ExpandCollapse => KeyCode::Char(' '),
             Self::NextPage => KeyCode::Char('n'),
             Self::PreviousPage => KeyCode::Char('p'),

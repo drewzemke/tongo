@@ -1,5 +1,5 @@
 use mongodb::{
-    bson::Bson,
+    bson::{Bson, Document},
     results::{CollectionSpecification, DatabaseSpecification},
     Client as MongoClient,
 };
@@ -30,6 +30,7 @@ pub enum Event {
     DocumentsUpdated(Vec<Bson>),
     CountUpdated(u64),
     DocumentPageChanged(usize),
+    DocFilterUpdated(Document),
     ErrorOccurred(String),
 
     // TODO: sort these out better

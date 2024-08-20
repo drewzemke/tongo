@@ -3,14 +3,12 @@ use crate::{
     command::{Command, CommandGroup},
     components::{
         documents::Documents,
+        input::filter::FilterInput,
         list::{collections::Collections, databases::Databases},
         Component, ComponentCommand, UniqueType,
     },
     event::Event,
-    state::{Mode, Screen, State, WidgetFocus},
-    widgets::{filter_input::FilterInput, input_widget::InputWidget, main_view::MainView},
 };
-use crossterm::event::{Event as CrosstermEvent, KeyCode};
 use ratatui::prelude::*;
 use std::{cell::RefCell, rc::Rc};
 
@@ -20,6 +18,7 @@ pub enum PrimaryScreenFocus {
     DbList,
     CollList,
     DocTree,
+    FilterInput,
 }
 
 #[derive(Debug, Default)]
@@ -28,18 +27,26 @@ pub struct PrimaryScreenV2<'a> {
     db_list: Databases,
     coll_list: Collections,
     doc_tree: Documents<'a>,
+    filter_input: FilterInput,
 }
 
 impl<'a> PrimaryScreenV2<'a> {
-    pub fn new(app_focus: Rc<RefCell<AppFocus>>) -> Self {
+    pub fn new(app_focus: Rc<RefCell<AppFocus>>, cursor_pos: Rc<RefCell<(u16, u16)>>) -> Self {
         let db_list = Databases::new(app_focus.clone());
         let coll_list = Collections::new(app_focus.clone());
         let doc_tree = Documents::new(app_focus.clone());
+        let filter_input = FilterInput::new(
+            "Filter",
+            cursor_pos,
+            app_focus.clone(),
+            AppFocus::PrimaryScreen(PrimaryScreenFocus::FilterInput),
+        );
         Self {
             app_focus,
             db_list,
             coll_list,
             doc_tree,
+            filter_input,
         }
     }
 
@@ -54,21 +61,26 @@ impl<'a> PrimaryScreenV2<'a> {
 
 impl<'a> Component<UniqueType> for PrimaryScreenV2<'a> {
     fn commands(&self) -> Vec<CommandGroup> {
-        let mut out = vec![CommandGroup::new(
-            vec![
-                Command::FocusLeft,
-                Command::FocusUp,
-                Command::FocusDown,
-                Command::FocusRight,
-            ],
-            "HJKL",
-            "change focus",
-        )];
+        let mut out = vec![];
+
+        if !self.filter_input.is_editing() {
+            out.push(CommandGroup::new(
+                vec![
+                    Command::FocusLeft,
+                    Command::FocusUp,
+                    Command::FocusDown,
+                    Command::FocusRight,
+                ],
+                "HJKL",
+                "change focus",
+            ));
+        }
 
         match self.internal_focus() {
             Some(PrimaryScreenFocus::DbList) => out.append(&mut self.db_list.commands()),
             Some(PrimaryScreenFocus::CollList) => out.append(&mut self.coll_list.commands()),
             Some(PrimaryScreenFocus::DocTree) => out.append(&mut self.doc_tree.commands()),
+            Some(PrimaryScreenFocus::FilterInput) => out.append(&mut self.filter_input.commands()),
             None => {}
         }
         out
@@ -82,11 +94,19 @@ impl<'a> Component<UniqueType> for PrimaryScreenV2<'a> {
                         self.coll_list.focus();
                         return vec![Event::FocusedChanged];
                     }
+                    Some(PrimaryScreenFocus::FilterInput) => {
+                        self.db_list.focus();
+                        return vec![Event::FocusedChanged];
+                    }
                     _ => return vec![],
                 },
                 Command::FocusUp => match self.internal_focus() {
                     Some(PrimaryScreenFocus::CollList) => {
                         self.db_list.focus();
+                        return vec![Event::FocusedChanged];
+                    }
+                    Some(PrimaryScreenFocus::DocTree) => {
+                        self.filter_input.focus();
                         return vec![Event::FocusedChanged];
                     }
                     _ => return vec![],
@@ -96,9 +116,17 @@ impl<'a> Component<UniqueType> for PrimaryScreenV2<'a> {
                         self.coll_list.focus();
                         return vec![Event::FocusedChanged];
                     }
+                    Some(PrimaryScreenFocus::FilterInput) => {
+                        self.doc_tree.focus();
+                        return vec![Event::FocusedChanged];
+                    }
                     _ => return vec![],
                 },
                 Command::FocusRight => match self.internal_focus() {
+                    Some(PrimaryScreenFocus::DbList) => {
+                        self.filter_input.focus();
+                        return vec![Event::FocusedChanged];
+                    }
                     Some(PrimaryScreenFocus::CollList) => {
                         self.doc_tree.focus();
                         return vec![Event::FocusedChanged];
@@ -112,6 +140,7 @@ impl<'a> Component<UniqueType> for PrimaryScreenV2<'a> {
             Some(PrimaryScreenFocus::DbList) => self.db_list.handle_command(command),
             Some(PrimaryScreenFocus::CollList) => self.coll_list.handle_command(command),
             Some(PrimaryScreenFocus::DocTree) => self.doc_tree.handle_command(command),
+            Some(PrimaryScreenFocus::FilterInput) => self.filter_input.handle_command(command),
             None => vec![],
         }
     }
@@ -120,7 +149,7 @@ impl<'a> Component<UniqueType> for PrimaryScreenV2<'a> {
         let mut out = vec![];
         match event {
             Event::DatabaseSelected(..) => self.coll_list.focus(),
-            Event::CollectionSelected(..) => self.doc_tree.focus(),
+            Event::CollectionSelected(..) | Event::DocFilterUpdated(..) => self.doc_tree.focus(),
             _ => {}
         };
         out.append(&mut self.db_list.handle_event(event));
@@ -154,7 +183,7 @@ impl<'a> Component<UniqueType> for PrimaryScreenV2<'a> {
         self.db_list.render(frame, sidebar_top);
         self.coll_list.render(frame, sidebar_btm);
         self.doc_tree.render(frame, main_view_btm);
-        // FilterInput::render(main_view_top, buf, state);
+        self.filter_input.render(frame, main_view_top);
     }
 
     fn focus(&self) {
@@ -163,74 +192,5 @@ impl<'a> Component<UniqueType> for PrimaryScreenV2<'a> {
 
     fn is_focused(&self) -> bool {
         matches!(*self.app_focus.borrow(), AppFocus::PrimaryScreen(..))
-    }
-}
-
-#[derive(Debug, Default)]
-pub struct PrimaryScreen<'a> {
-    marker: std::marker::PhantomData<State<'a>>,
-}
-
-impl<'a> PrimaryScreen<'a> {
-    pub fn handle_event(event: &CrosstermEvent, state: &mut State) -> bool {
-        match state.mode {
-            Mode::EditingFilter => FilterInput::handle_event(event, state),
-            Mode::Navigating => match event {
-                CrosstermEvent::Key(key) => match key.code {
-                    KeyCode::Char('q') => {
-                        state.mode = Mode::Exiting;
-                        true
-                    }
-                    KeyCode::Char('J') => {
-                        state.focus = match state.focus {
-                            WidgetFocus::DatabaseList => WidgetFocus::CollectionList,
-                            WidgetFocus::FilterEditor => WidgetFocus::MainView,
-                            m => m,
-                        };
-                        true
-                    }
-                    KeyCode::Char('K') => {
-                        state.focus = match state.focus {
-                            WidgetFocus::CollectionList => WidgetFocus::DatabaseList,
-                            WidgetFocus::MainView => WidgetFocus::FilterEditor,
-                            m => m,
-                        };
-                        true
-                    }
-                    KeyCode::Char('H') => {
-                        state.focus = match state.focus {
-                            WidgetFocus::MainView => WidgetFocus::CollectionList,
-                            WidgetFocus::FilterEditor => WidgetFocus::DatabaseList,
-                            m => m,
-                        };
-                        true
-                    }
-                    KeyCode::Char('L') => {
-                        state.focus = match state.focus {
-                            WidgetFocus::CollectionList => WidgetFocus::MainView,
-                            WidgetFocus::DatabaseList => WidgetFocus::FilterEditor,
-                            m => m,
-                        };
-                        true
-                    }
-                    KeyCode::Esc => {
-                        state.screen = Screen::Connection;
-                        state.mode = Mode::Navigating;
-                        state.focus = WidgetFocus::ConnectionList;
-                        true
-                    }
-                    _ => match state.focus {
-                        // WidgetFocus::DatabaseList => DbList::handle_event(event, state),
-                        // WidgetFocus::CollectionList => CollList::handle_event(event, state),
-                        WidgetFocus::MainView => MainView::handle_event(event, state),
-                        WidgetFocus::FilterEditor => FilterInput::handle_event(event, state),
-                        _ => false,
-                    },
-                },
-                CrosstermEvent::Resize(_, _) => true,
-                _ => false,
-            },
-            _ => false,
-        }
     }
 }

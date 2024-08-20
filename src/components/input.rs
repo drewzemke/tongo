@@ -13,8 +13,10 @@ use ratatui::{
 use std::{cell::RefCell, rc::Rc};
 use tui_input::{backend::crossterm::EventHandler, Input as TuiInput};
 
+pub mod filter;
+
 #[derive(Debug, Default)]
-pub struct Input {
+pub struct Input<T: Default + std::fmt::Debug> {
     #[allow(clippy::struct_field_names)]
     pub inner_input: TuiInput,
     cursor_pos: Rc<RefCell<(u16, u16)>>,
@@ -27,9 +29,14 @@ pub struct Input {
     commands: Vec<CommandGroup>,
     confirm_events: Vec<Event>,
     back_events: Vec<Event>,
+
+    formatter: T,
 }
 
-impl Input {
+impl<T> Input<T>
+where
+    T: Default + std::fmt::Debug,
+{
     // TODO: builder pattern macro?? this is a bit big and difficult to read, especially at the call site
     pub fn new(
         title: &'static str,
@@ -39,6 +46,7 @@ impl Input {
         focused_when: AppFocus,
         confirm_events: Vec<Event>,
         back_events: Vec<Event>,
+        formatter: T,
     ) -> Self {
         Self {
             cursor_pos,
@@ -48,6 +56,7 @@ impl Input {
             commands,
             confirm_events,
             back_events,
+            formatter,
             ..Default::default()
         }
     }
@@ -65,7 +74,10 @@ impl Input {
     }
 }
 
-impl Component<InputType> for Input {
+impl<T> Component<InputType> for Input<T>
+where
+    T: Default + InputFormatter + std::fmt::Debug,
+{
     fn commands(&self) -> Vec<CommandGroup> {
         self.commands.clone()
     }
@@ -75,6 +87,7 @@ impl Component<InputType> for Input {
             match command {
                 ComponentCommand::RawEvent(event) => {
                     self.inner_input.handle_event(event);
+                    self.formatter.on_change(self.inner_input.value());
                     vec![Event::InputKeyPressed]
                 }
                 ComponentCommand::Command(command) => match command {
@@ -107,8 +120,7 @@ impl Component<InputType> for Input {
         let input_scroll = self.inner_input.visual_scroll(area.width as usize - 5);
 
         // create the text
-        let input_str = self.inner_input.value().to_string();
-        let text = Text::from(input_str);
+        let text = self.formatter.get_formatted();
 
         let input_widget = Paragraph::new(text).scroll((0, input_scroll as u16)).block(
             Block::default()
@@ -138,5 +150,26 @@ impl Component<InputType> for Input {
 
     fn is_focused(&self) -> bool {
         *self.app_focus.borrow() == self.focused_when
+    }
+}
+
+trait InputFormatter {
+    fn on_change(&mut self, _text: &str) {}
+
+    fn get_formatted(&self) -> Text;
+}
+
+#[derive(Default, Debug)]
+pub struct DefaultFormatter {
+    text: Text<'static>,
+}
+
+impl InputFormatter for DefaultFormatter {
+    fn get_formatted(&self) -> Text {
+        self.text.clone()
+    }
+
+    fn on_change(&mut self, text: &str) {
+        self.text = text.to_string().into();
     }
 }

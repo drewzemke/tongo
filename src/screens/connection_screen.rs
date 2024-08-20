@@ -1,6 +1,6 @@
 use crate::app::AppFocus;
 use crate::command::{Command, CommandGroup};
-use crate::components::input::Input;
+use crate::components::input::{DefaultFormatter, Input};
 use crate::components::list::connections::Connections;
 use crate::components::{Component, ComponentCommand, UniqueType};
 use crate::connection::Connection;
@@ -20,8 +20,8 @@ pub enum ConnScreenFocus {
 pub struct ConnectionScreen {
     app_focus: Rc<RefCell<AppFocus>>,
     conn_list: Connections,
-    conn_name_input: Input,
-    conn_str_input: Input,
+    conn_name_input: Input<DefaultFormatter>,
+    conn_str_input: Input<DefaultFormatter>,
 }
 
 impl ConnectionScreen {
@@ -41,6 +41,7 @@ impl ConnectionScreen {
             AppFocus::ConnScreen(ConnScreenFocus::NameInput),
             vec![Event::FocusedForward],
             vec![Event::FocusedBackward, Event::RawModeExited],
+            DefaultFormatter::default(),
         );
 
         let connection_string_input = Input::new(
@@ -54,6 +55,7 @@ impl ConnectionScreen {
             AppFocus::ConnScreen(ConnScreenFocus::StringInput),
             vec![Event::FocusedForward, Event::RawModeExited],
             vec![Event::FocusedBackward],
+            DefaultFormatter::default(),
         );
 
         Self {
