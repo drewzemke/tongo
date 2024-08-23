@@ -1,3 +1,4 @@
+use super::connection_screen::ConnScreenFocus;
 use crate::{
     app::AppFocus,
     command::{Command, CommandGroup},
@@ -74,6 +75,7 @@ impl<'a> Component<UniqueType> for PrimaryScreenV2<'a> {
                 "HJKL",
                 "change focus",
             ));
+            out.push(CommandGroup::new(vec![Command::Back], "escape", "back"));
         }
 
         match self.internal_focus() {
@@ -132,6 +134,26 @@ impl<'a> Component<UniqueType> for PrimaryScreenV2<'a> {
                         return vec![Event::FocusedChanged];
                     }
                     _ => return vec![],
+                },
+                Command::Back => match self.internal_focus() {
+                    Some(PrimaryScreenFocus::DbList) => {
+                        *self.app_focus.borrow_mut() =
+                            AppFocus::ConnScreen(ConnScreenFocus::ConnList);
+                        return vec![Event::FocusedChanged];
+                    }
+                    Some(PrimaryScreenFocus::CollList) => {
+                        self.db_list.focus();
+                        return vec![Event::FocusedChanged];
+                    }
+                    Some(PrimaryScreenFocus::DocTree) => {
+                        self.coll_list.focus();
+                        return vec![Event::FocusedChanged];
+                    }
+                    Some(PrimaryScreenFocus::FilterInput) => {
+                        self.doc_tree.focus();
+                        return vec![Event::FocusedChanged];
+                    }
+                    None => {}
                 },
                 _ => {}
             }
