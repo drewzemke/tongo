@@ -211,10 +211,12 @@ impl<'a> Component<UniqueType> for App<'a> {
         let mut out = vec![];
         match event {
             Event::ConnectionCreated(conn) | Event::ConnectionSelected(conn) => {
+                // TODO: consume from within component
                 self.client.set_conn_str(conn.connection_str.clone());
                 self.primary_screen.focus();
             }
             Event::ErrorOccurred(error) => {
+                // TODO: consume from within component
                 self.status_bar.message = Some(error.clone());
             }
             Event::RawModeEntered => {
