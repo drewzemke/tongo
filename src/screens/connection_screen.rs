@@ -131,6 +131,11 @@ impl Component<UniqueType> for ConnectionScreen {
             },
             Event::ConnectionCreated(conn) => {
                 self.conn_list.items.push(conn.clone());
+                Connection::write_to_storage(&self.conn_list.items).unwrap_or_else(|_| {
+                    out.push(Event::ErrorOccurred(
+                        "Could not save updated connections.".to_string(),
+                    ));
+                });
             }
             _ => {}
         };
