@@ -55,9 +55,7 @@ impl ListComponent for Databases {
         };
         let mut out = vec![];
         if matches!(command, Command::Confirm) {
-            if let Some(db) = self.get_selected() {
-                out.push(Event::DatabaseSelected(db.clone()));
-            }
+            out.push(Event::DatabaseSelected);
         }
         out
     }

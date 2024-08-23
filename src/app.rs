@@ -53,6 +53,7 @@ pub struct App<'a> {
     focus: Rc<RefCell<AppFocus>>,
     cursor_pos: Rc<RefCell<(u16, u16)>>,
     // commands: Vec<CommandGroup>,
+    force_clear: bool,
 }
 
 const DEBOUNCE: Duration = Duration::from_millis(20); // 50 FPS
@@ -143,9 +144,9 @@ impl<'a> App<'a> {
                 self.state.new_data = false;
             }
 
-            if self.state.clear_screen {
+            if self.force_clear {
                 terminal.clear()?;
-                self.state.clear_screen = false;
+                self.force_clear = false;
             }
 
             if update {
@@ -242,6 +243,9 @@ impl<'a> Component<UniqueType> for App<'a> {
             Event::RawModeExited => {
                 self.raw_mode = false;
             }
+            Event::ReturnedFromAltScreen => {
+                self.force_clear = true;
+            }
             _ => {}
         };
         out.append(&mut self.client.handle_event(event));
@@ -265,6 +269,7 @@ impl<'a> Component<UniqueType> for App<'a> {
 
         // status bar
         // HACK suboptimal stuff while refactoring around commands
+        // TODO: handle some of this stuff in the status bar comp
         self.status_bar
             .message
             .clone_from(&self.state.status_bar.message);

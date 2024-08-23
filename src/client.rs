@@ -6,7 +6,7 @@ use crate::{
 };
 use futures::TryStreamExt;
 use mongodb::{
-    bson::{Bson, Document},
+    bson::{doc, Bson, Document},
     options::{ClientOptions, FindOptions},
     results::{CollectionSpecification, DatabaseSpecification},
     Client as MongoClient,
@@ -27,6 +27,7 @@ pub struct Client {
     coll: Option<CollectionSpecification>,
 
     filter: Document,
+    page: usize,
 
     response_send: Sender<Event>,
     response_recv: Receiver<Event>,
@@ -41,6 +42,7 @@ impl Default for Client {
             coll: None,
 
             filter: Document::default(),
+            page: 0,
 
             response_send,
             response_recv,
@@ -104,7 +106,7 @@ impl Client {
     }
 
     // TODO: handle 'reset_selection', which is a thing the old `State` client did
-    pub fn exec_query(&self, page: usize) {
+    fn exec_query(&self, reset_state: bool) {
         let coll = match (&self.client, &self.db, &self.coll) {
             (Some(client), Some(db), Some(coll)) => {
                 client.database(&db.name).collection::<Bson>(&coll.name)
@@ -115,7 +117,7 @@ impl Client {
         let sender = self.response_send.clone();
 
         let filter = Some(self.filter.clone()); // self.filter_editor.filter.clone();
-        let skip = page * PAGE_SIZE;
+        let skip = self.page * PAGE_SIZE;
         let options = FindOptions::builder()
             .skip(skip as u64)
             .limit(PAGE_SIZE as i64)
@@ -126,7 +128,7 @@ impl Client {
             let response = match cursor {
                 Ok(cursor) => cursor.try_collect::<Vec<_>>().await.map_or_else(
                     |err| Event::ErrorOccurred(err.to_string()),
-                    Event::DocumentsUpdated,
+                    |docs| Event::DocumentsUpdated { docs, reset_state },
                 ),
                 Err(err) => Event::ErrorOccurred(err.to_string()),
             };
@@ -135,7 +137,7 @@ impl Client {
         });
     }
 
-    pub fn exec_count(&self) {
+    fn exec_count(&self) {
         let coll = match (&self.client, &self.db, &self.coll) {
             (Some(client), Some(db), Some(coll)) => {
                 client.database(&db.name).collection::<Bson>(&coll.name)
@@ -151,6 +153,47 @@ impl Client {
             let response = coll.count_documents(filter, None).await.map_or_else(
                 |err| Event::ErrorOccurred(err.to_string()),
                 Event::CountUpdated,
+            );
+
+            sender.send(response).expect(SEND_ERR_MSG);
+        });
+    }
+
+    fn exec_update_one(&self, filter: Document, update: Document) {
+        let coll = match (&self.client, &self.db, &self.coll) {
+            (Some(client), Some(db), Some(coll)) => {
+                client.database(&db.name).collection::<Bson>(&coll.name)
+            }
+            _ => return,
+        };
+
+        let sender = self.response_send.clone();
+        let update = doc! { "$set": update };
+
+        tokio::spawn(async move {
+            let response = coll.update_one(filter, update, None).await.map_or_else(
+                |err| Event::ErrorOccurred(err.to_string()),
+                |_| Event::UpdateConfirmed,
+            );
+
+            sender.send(response).expect(SEND_ERR_MSG);
+        });
+    }
+
+    fn exec_insert_one(&self, doc: Document) {
+        let coll = match (&self.client, &self.db, &self.coll) {
+            (Some(client), Some(db), Some(coll)) => {
+                client.database(&db.name).collection::<Document>(&coll.name)
+            }
+            _ => return,
+        };
+
+        let sender = self.response_send.clone();
+
+        tokio::spawn(async move {
+            let response = coll.insert_one(doc, None).await.map_or_else(
+                |err| Event::ErrorOccurred(err.to_string()),
+                |_| Event::InsertConfirmed,
             );
 
             sender.send(response).expect(SEND_ERR_MSG);
@@ -179,19 +222,38 @@ impl Component<UniqueType> for Client {
             Event::CollectionHighlighted(coll) => {
                 self.coll = Some(coll.clone());
             }
-            Event::CollectionSelected(..) => {
-                self.exec_query(0);
+            Event::CollectionSelected => {
+                self.page = 0;
+                self.exec_query(true);
                 self.exec_count();
-                out.push(Event::DocumentPageChanged(0));
+                // FIXME: this causes a second query which isn't necessary
+                out.push(Event::DocumentPageChanged(self.page));
             }
             Event::DocumentPageChanged(page) => {
-                self.exec_query(*page);
+                self.page = *page;
+                self.exec_query(true);
             }
             Event::DocFilterUpdated(doc) => {
                 self.filter.clone_from(doc);
-                self.exec_query(0);
+                self.page = 0;
+                self.exec_query(true);
                 self.exec_count();
+                // FIXME: this causes a second query which isn't necessary
                 out.push(Event::DocumentPageChanged(0));
+            }
+            Event::DocumentEdited(doc) => {
+                let id = doc.get("_id").unwrap();
+                self.exec_update_one(doc! { "_id": id }, doc.clone());
+            }
+            Event::UpdateConfirmed => {
+                self.exec_query(false);
+            }
+            Event::DocumentCreated(doc) => {
+                self.exec_insert_one(doc.clone());
+            }
+            Event::InsertConfirmed => {
+                self.exec_count();
+                self.exec_query(false);
             }
             _ => (),
         }
