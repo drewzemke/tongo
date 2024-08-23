@@ -11,7 +11,6 @@ use crate::{
         connection_screen::{ConnScreenFocus, ConnectionScreen},
         primary_screen::{PrimaryScreenFocus, PrimaryScreenV2},
     },
-    state::{Mode, Screen, State, WidgetFocus},
 };
 use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
 use ratatui::{
@@ -40,7 +39,6 @@ impl Default for AppFocus {
 
 #[derive(Default)]
 pub struct App<'a> {
-    state: State<'a>,
     raw_mode: bool,
     client: Client,
 
@@ -54,38 +52,33 @@ pub struct App<'a> {
     cursor_pos: Rc<RefCell<(u16, u16)>>,
     // commands: Vec<CommandGroup>,
     force_clear: bool,
+    exiting: bool,
 }
 
 const DEBOUNCE: Duration = Duration::from_millis(20); // 50 FPS
 
 impl<'a> App<'a> {
     pub fn new(connection: Option<Connection>, all_connections: Vec<Connection>) -> Self {
-        let mut state = State::new();
+        let client = Client::default();
 
-        let focus = if let Some(connection) = connection {
-            state.set_conn_str(connection.connection_str);
-            // state.conn_str_editor.input = state
-            //     .conn_str_editor
-            //     .input
-            //     .with_value(connection.connection_str);
+        let initial_focus = if let Some(conn) = connection {
+            client.set_conn_str(conn.connection_str);
             AppFocus::PrimaryScreen(PrimaryScreenFocus::DbList)
         } else {
-            state.screen = Screen::Connection;
-            state.mode = Mode::Navigating;
-            state.focus = WidgetFocus::ConnectionList;
             AppFocus::ConnScreen(ConnScreenFocus::ConnList)
         };
-        let focus = Rc::new(RefCell::new(focus));
 
+        let focus = Rc::new(RefCell::new(initial_focus));
         let cursor_pos = Rc::new(RefCell::new((0, 0)));
-        let connection_list = Connections::new(focus.clone(), all_connections);
 
         let primary_screen = PrimaryScreenV2::new(focus.clone(), cursor_pos.clone());
+
+        let connection_list = Connections::new(focus.clone(), all_connections);
         let connection_screen =
             ConnectionScreen::new(connection_list, focus.clone(), cursor_pos.clone());
 
         Self {
-            state,
+            client,
 
             raw_mode: false,
             primary_screen,
@@ -106,11 +99,6 @@ impl<'a> App<'a> {
         let debounce: Option<Instant> = None;
 
         loop {
-            // check for respones
-            if let Ok(content) = self.state.response_recv.try_recv() {
-                self.state.update_content(content);
-            }
-
             let timeout =
                 debounce.map_or(DEBOUNCE, |start| DEBOUNCE.saturating_sub(start.elapsed()));
 
@@ -123,8 +111,6 @@ impl<'a> App<'a> {
                 vec![Event::Tick]
             };
 
-            let mut update = true;
-
             // process events
             let mut events_deque = VecDeque::from(events);
             while let Some(event) = events_deque.pop_front() {
@@ -135,13 +121,8 @@ impl<'a> App<'a> {
             }
 
             // exit if the app is in an exiting state
-            if self.state.mode == Mode::Exiting {
+            if self.exiting {
                 return Ok(());
-            }
-
-            if self.state.new_data {
-                update = true;
-                self.state.new_data = false;
             }
 
             if self.force_clear {
@@ -149,11 +130,10 @@ impl<'a> App<'a> {
                 self.force_clear = false;
             }
 
-            if update {
-                terminal.draw(|frame| {
-                    self.render(frame, frame.size());
-                })?;
-            }
+            // TODO: find a way to only update when screen changes
+            terminal.draw(|frame| {
+                self.render(frame, frame.size());
+            })?;
         }
     }
 
@@ -162,7 +142,7 @@ impl<'a> App<'a> {
         if let CrosstermEvent::Key(key) = event {
             // always quit on Control-C
             if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
-                self.state.mode = Mode::Exiting;
+                self.exiting = true;
                 return vec![];
             }
 
@@ -217,7 +197,7 @@ impl<'a> Component<UniqueType> for App<'a> {
     #[must_use]
     fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
         if matches!(command, ComponentCommand::Command(Command::Quit)) {
-            self.state.mode = Mode::Exiting;
+            self.exiting = true;
             return vec![];
         }
         let mut out = vec![];
@@ -270,9 +250,6 @@ impl<'a> Component<UniqueType> for App<'a> {
         // status bar
         // HACK suboptimal stuff while refactoring around commands
         // TODO: handle some of this stuff in the status bar comp
-        self.status_bar
-            .message
-            .clone_from(&self.state.status_bar.message);
         self.status_bar.commands = self.commands();
         self.status_bar.render(frame, btm_line);
 

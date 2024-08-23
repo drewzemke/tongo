@@ -14,11 +14,8 @@ mod edit_doc;
 mod event;
 mod files;
 mod json_labeler;
-mod key_hint;
 mod screens;
-mod state;
 mod tree;
-mod widgets;
 
 /// A TUI for viewing mongo databases.
 #[derive(Parser)]
