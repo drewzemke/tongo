@@ -3,10 +3,11 @@ use std::{cell::RefCell, rc::Rc};
 use super::ListComponent;
 use crate::{
     app::AppFocus,
-    command::{Command, CommandGroup},
-    components::ComponentCommand,
-    event::Event,
-    screens::primary_screen::PrimaryScreenFocus,
+    components::{primary_screen::PrimaryScreenFocus, ComponentCommand},
+    system::{
+        command::{Command, CommandGroup},
+        event::Event,
+    },
 };
 use mongodb::results::DatabaseSpecification;
 use ratatui::{prelude::*, widgets::ListState};

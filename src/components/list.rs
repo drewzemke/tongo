@@ -1,7 +1,9 @@
 use crate::{
-    command::{Command, CommandGroup},
     components::{Component, ComponentCommand, ListType},
-    event::Event,
+    system::{
+        command::{Command, CommandGroup},
+        event::Event,
+    },
 };
 use ratatui::{
     prelude::*,
@@ -29,7 +31,7 @@ pub trait ListComponent {
 
     fn list_state(&mut self) -> &mut ListState;
 
-    fn commands(&self) -> Vec<crate::command::CommandGroup> {
+    fn commands(&self) -> Vec<CommandGroup> {
         vec![]
     }
 
@@ -43,7 +45,7 @@ pub trait ListComponent {
 }
 
 impl<T: ListComponent> Component<ListType> for T {
-    fn commands(&self) -> Vec<crate::command::CommandGroup> {
+    fn commands(&self) -> Vec<CommandGroup> {
         let mut out = vec![CommandGroup::new(
             vec![Command::NavUp, Command::NavDown],
             "↑↓/jk",

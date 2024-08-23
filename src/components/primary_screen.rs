@@ -1,14 +1,16 @@
 use super::connection_screen::ConnScreenFocus;
 use crate::{
     app::AppFocus,
-    command::{Command, CommandGroup},
     components::{
         documents::Documents,
         input::filter::FilterInput,
         list::{collections::Collections, databases::Databases},
         Component, ComponentCommand, UniqueType,
     },
-    event::Event,
+    system::{
+        command::{Command, CommandGroup},
+        event::Event,
+    },
 };
 use ratatui::prelude::*;
 use std::{cell::RefCell, rc::Rc};

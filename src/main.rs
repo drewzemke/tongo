@@ -7,15 +7,10 @@ use std::io::Stdout;
 
 mod app;
 mod client;
-mod command;
 mod components;
 mod connection;
-mod edit_doc;
-mod event;
-mod files;
-mod json_labeler;
-mod screens;
-mod tree;
+mod system;
+mod utils;
 
 /// A TUI for viewing mongo databases.
 #[derive(Parser)]

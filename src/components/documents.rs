@@ -1,14 +1,18 @@
 #![allow(clippy::cast_possible_truncation)]
 
+use super::{primary_screen::PrimaryScreenFocus, Component, UniqueType};
 use crate::{
     app::AppFocus,
     client::PAGE_SIZE,
-    command::{Command, CommandGroup},
     components::ComponentCommand,
-    edit_doc::edit_doc,
-    event::Event,
-    screens::primary_screen::PrimaryScreenFocus,
-    tree::{top_level_document, MongoKey},
+    system::{
+        command::{Command, CommandGroup},
+        event::Event,
+    },
+    utils::{
+        edit_doc::edit_doc,
+        mongo_tree::{top_level_document, MongoKey},
+    },
 };
 use mongodb::bson::{doc, oid::ObjectId, Bson, Document};
 use ratatui::{
@@ -17,8 +21,6 @@ use ratatui::{
 };
 use std::{cell::RefCell, rc::Rc};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
-
-use super::{Component, UniqueType};
 
 #[derive(Debug, Default)]
 pub struct Documents<'a> {

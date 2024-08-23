@@ -1,6 +1,6 @@
 use crate::{
-    command::CommandGroup,
     components::{Component, UniqueType},
+    system::command::CommandGroup,
 };
 use ratatui::{
     prelude::*,

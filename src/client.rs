@@ -2,7 +2,7 @@
 
 use crate::{
     components::{Component, ComponentCommand, UniqueType},
-    event::Event,
+    system::{command::CommandGroup, event::Event},
 };
 use futures::TryStreamExt;
 use mongodb::{
@@ -11,6 +11,7 @@ use mongodb::{
     results::{CollectionSpecification, DatabaseSpecification},
     Client as MongoClient,
 };
+use ratatui::prelude::{Frame, Rect};
 use std::sync::mpsc::{self, Receiver, Sender};
 
 const SEND_ERR_MSG: &str = "Error occurred while processing server response.";
@@ -308,10 +309,10 @@ impl Component<UniqueType> for Client {
     }
 
     /// Not used
-    fn commands(&self) -> Vec<crate::command::CommandGroup> {
+    fn commands(&self) -> Vec<CommandGroup> {
         vec![]
     }
 
     /// Not used
-    fn render(&mut self, _frame: &mut ratatui::prelude::Frame, _area: ratatui::prelude::Rect) {}
+    fn render(&mut self, _frame: &mut Frame, _area: Rect) {}
 }

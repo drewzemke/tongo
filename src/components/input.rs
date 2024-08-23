@@ -2,9 +2,11 @@
 
 use crate::{
     app::AppFocus,
-    command::{Command, CommandGroup},
     components::{Component, ComponentCommand, InputType},
-    event::Event,
+    system::{
+        command::{Command, CommandGroup},
+        event::Event,
+    },
 };
 use ratatui::{
     prelude::*,
