@@ -108,12 +108,12 @@ impl<'a> Component<UniqueType> for Documents<'a> {
             }
             Command::EditDoc => {
                 let Some(doc) = self.selected_doc() else {
-                    return vec![];
+                    return out;
                 };
 
                 out.push(Event::ReturnedFromAltScreen);
                 let Ok(new_doc) = edit_doc(doc.clone()) else {
-                    return vec![];
+                    return out;
                 };
 
                 out.push(Event::DocumentEdited(new_doc));
@@ -123,10 +123,33 @@ impl<'a> Component<UniqueType> for Documents<'a> {
 
                 out.push(Event::ReturnedFromAltScreen);
                 let Ok(new_doc) = edit_doc(doc) else {
-                    return vec![];
+                    return out;
                 };
 
                 out.push(Event::DocumentCreated(new_doc));
+            }
+            Command::DuplicateDoc => {
+                let Some(doc) = self.selected_doc() else {
+                    return out;
+                };
+
+                let mut duplicated_doc = doc.clone();
+                let _ = duplicated_doc.insert("_id", ObjectId::new());
+
+                out.push(Event::ReturnedFromAltScreen);
+                let Ok(new_doc) = edit_doc(duplicated_doc) else {
+                    return out;
+                };
+
+                out.push(Event::DocumentCreated(new_doc));
+            }
+            // TODO: this needs some sort of confirmation
+            Command::DeleteDoc => {
+                let Some(doc) = self.selected_doc() else {
+                    return out;
+                };
+
+                out.push(Event::DocumentDeleted(doc.clone()));
             }
             _ => {}
         }

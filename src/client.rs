@@ -159,6 +159,26 @@ impl Client {
         });
     }
 
+    fn exec_insert_one(&self, doc: Document) {
+        let coll = match (&self.client, &self.db, &self.coll) {
+            (Some(client), Some(db), Some(coll)) => {
+                client.database(&db.name).collection::<Document>(&coll.name)
+            }
+            _ => return,
+        };
+
+        let sender = self.response_send.clone();
+
+        tokio::spawn(async move {
+            let response = coll.insert_one(doc, None).await.map_or_else(
+                |err| Event::ErrorOccurred(err.to_string()),
+                |_| Event::InsertConfirmed,
+            );
+
+            sender.send(response).expect(SEND_ERR_MSG);
+        });
+    }
+
     fn exec_update_one(&self, filter: Document, update: Document) {
         let coll = match (&self.client, &self.db, &self.coll) {
             (Some(client), Some(db), Some(coll)) => {
@@ -180,7 +200,7 @@ impl Client {
         });
     }
 
-    fn exec_insert_one(&self, doc: Document) {
+    fn exec_delete_one(&self, filter: Document) {
         let coll = match (&self.client, &self.db, &self.coll) {
             (Some(client), Some(db), Some(coll)) => {
                 client.database(&db.name).collection::<Document>(&coll.name)
@@ -191,9 +211,9 @@ impl Client {
         let sender = self.response_send.clone();
 
         tokio::spawn(async move {
-            let response = coll.insert_one(doc, None).await.map_or_else(
+            let response = coll.delete_one(filter, None).await.map_or_else(
                 |err| Event::ErrorOccurred(err.to_string()),
-                |_| Event::InsertConfirmed,
+                |_| Event::DeleteConfirmed,
             );
 
             sender.send(response).expect(SEND_ERR_MSG);
@@ -242,8 +262,13 @@ impl Component<UniqueType> for Client {
                 out.push(Event::DocumentPageChanged(0));
             }
             Event::DocumentEdited(doc) => {
-                let id = doc.get("_id").unwrap();
-                self.exec_update_one(doc! { "_id": id }, doc.clone());
+                if let Some(id) = doc.get("_id") {
+                    self.exec_update_one(doc! { "_id": id }, doc.clone());
+                } else {
+                    out.push(Event::ErrorOccurred(
+                        "Document does not have an `_id` field.".to_string(),
+                    ));
+                }
             }
             Event::UpdateConfirmed => {
                 self.exec_query(false);
@@ -251,7 +276,16 @@ impl Component<UniqueType> for Client {
             Event::DocumentCreated(doc) => {
                 self.exec_insert_one(doc.clone());
             }
-            Event::InsertConfirmed => {
+            Event::DocumentDeleted(doc) => {
+                if let Some(id) = doc.get("_id") {
+                    self.exec_delete_one(doc! { "_id": id });
+                } else {
+                    out.push(Event::ErrorOccurred(
+                        "Document does not have an `_id` field.".to_string(),
+                    ));
+                }
+            }
+            Event::InsertConfirmed | Event::DeleteConfirmed => {
                 self.exec_count();
                 self.exec_query(false);
             }
