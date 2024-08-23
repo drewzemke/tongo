@@ -5,11 +5,12 @@ use crate::{
     client::PAGE_SIZE,
     command::{Command, CommandGroup},
     components::ComponentCommand,
+    edit_doc::edit_doc,
     event::Event,
     screens::primary_screen::PrimaryScreenFocus,
     tree::{top_level_document, MongoKey},
 };
-use mongodb::bson::{Bson, Document};
+use mongodb::bson::{doc, oid::ObjectId, Bson, Document};
 use ratatui::{
     prelude::*,
     widgets::{Block, Scrollbar, ScrollbarOrientation},
@@ -58,8 +59,8 @@ impl<'a> Component<UniqueType> for Documents<'a> {
                 "n/p",
                 "next/prev page",
             ),
-            CommandGroup::new(vec![Command::InsertDoc], "I", "insert doc"),
             CommandGroup::new(vec![Command::EditDoc], "E", "edit doc"),
+            CommandGroup::new(vec![Command::InsertDoc], "I", "insert doc"),
             CommandGroup::new(vec![Command::DuplicateDoc], "C", "duplicate doc"),
             CommandGroup::new(vec![Command::DeleteDoc], "D", "delete doc"),
         ]
@@ -105,6 +106,28 @@ impl<'a> Component<UniqueType> for Documents<'a> {
                     out.push(Event::DocumentPageChanged(self.page));
                 }
             }
+            Command::EditDoc => {
+                let Some(doc) = self.selected_doc() else {
+                    return vec![];
+                };
+
+                out.push(Event::ReturnedFromAltScreen);
+                let Ok(new_doc) = edit_doc(doc.clone()) else {
+                    return vec![];
+                };
+
+                out.push(Event::DocumentEdited(new_doc));
+            }
+            Command::InsertDoc => {
+                let doc = doc! { "_id" : ObjectId::new() };
+
+                out.push(Event::ReturnedFromAltScreen);
+                let Ok(new_doc) = edit_doc(doc) else {
+                    return vec![];
+                };
+
+                out.push(Event::DocumentCreated(new_doc));
+            }
             _ => {}
         }
         out
@@ -112,7 +135,7 @@ impl<'a> Component<UniqueType> for Documents<'a> {
 
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
         match event {
-            Event::DocumentsUpdated(docs) => {
+            Event::DocumentsUpdated { docs, reset_state } => {
                 self.documents.clone_from(docs);
 
                 let items: Vec<_> = docs
@@ -120,14 +143,14 @@ impl<'a> Component<UniqueType> for Documents<'a> {
                     .filter_map(|bson| bson.as_document().map(top_level_document))
                     .collect();
 
-                // if reset_selection {
-                // reset state to have all top-level documents expanded
-                let mut state = TreeState::default();
-                for item in &items {
-                    state.open(vec![item.identifier().clone()]);
+                if *reset_state {
+                    // reset state to have all top-level documents expanded
+                    let mut state = TreeState::default();
+                    for item in &items {
+                        state.open(vec![item.identifier().clone()]);
+                    }
+                    self.state = state;
                 }
-                self.state = state;
-                // }
 
                 self.items = items;
             }

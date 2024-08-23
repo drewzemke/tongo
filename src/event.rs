@@ -21,17 +21,22 @@ pub enum Event {
 
     DatabasesUpdated(Vec<DatabaseSpecification>),
     DatabaseHighlighted(DatabaseSpecification),
-    DatabaseSelected(DatabaseSpecification),
+    DatabaseSelected,
 
     CollectionsUpdated(Vec<CollectionSpecification>),
     CollectionHighlighted(CollectionSpecification),
-    CollectionSelected(CollectionSpecification),
+    CollectionSelected,
 
-    DocumentsUpdated(Vec<Bson>),
+    DocumentsUpdated { docs: Vec<Bson>, reset_state: bool },
     CountUpdated(u64),
     DocumentPageChanged(usize),
     DocFilterUpdated(Document),
     ErrorOccurred(String),
+
+    DocumentEdited(Document),
+    UpdateConfirmed,
+    DocumentCreated(Document),
+    InsertConfirmed,
 
     // TODO: sort these out better
     FocusedForward,
@@ -41,4 +46,6 @@ pub enum Event {
     RawModeEntered,
     RawModeExited,
     InputKeyPressed,
+
+    ReturnedFromAltScreen,
 }

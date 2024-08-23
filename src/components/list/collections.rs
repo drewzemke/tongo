@@ -54,9 +54,7 @@ impl ListComponent for Collections {
         };
         let mut out = vec![];
         if matches!(command, Command::Confirm) {
-            if let Some(coll) = self.get_selected() {
-                out.push(Event::CollectionSelected(coll.clone()));
-            }
+            out.push(Event::CollectionSelected);
         }
         out
     }
