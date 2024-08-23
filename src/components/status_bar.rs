@@ -8,11 +8,6 @@ use ratatui::{
 };
 
 #[derive(Debug, Default)]
-pub struct StatusBarState {
-    pub message: Option<String>,
-}
-
-#[derive(Debug, Default)]
 pub struct StatusBar {
     pub commands: Vec<CommandGroup>,
     pub message: Option<String>,
