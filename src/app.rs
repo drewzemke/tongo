@@ -1,15 +1,16 @@
 use crate::{
     client::Client,
-    command::{Command, CommandGroup},
     components::{
-        list::connections::Connections, status_bar::StatusBar, Component, ComponentCommand,
-        UniqueType,
+        connection_screen::{ConnScreenFocus, ConnectionScreen},
+        list::connections::Connections,
+        primary_screen::{PrimaryScreenFocus, PrimaryScreenV2},
+        status_bar::StatusBar,
+        Component, ComponentCommand, UniqueType,
     },
     connection::Connection,
-    event::Event,
-    screens::{
-        connection_screen::{ConnScreenFocus, ConnectionScreen},
-        primary_screen::{PrimaryScreenFocus, PrimaryScreenV2},
+    system::{
+        command::{Command, CommandGroup},
+        event::Event,
     },
 };
 use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};

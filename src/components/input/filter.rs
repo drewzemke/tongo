@@ -1,10 +1,12 @@
 use super::{Input, InputFormatter};
 use crate::{
     app::AppFocus,
-    command::{Command, CommandGroup},
     components::{Component, ComponentCommand, InputType},
-    event::Event,
-    json_labeler::{JsonLabel, JsonLabeler},
+    system::{
+        command::{Command, CommandGroup},
+        event::Event,
+    },
+    utils::json_labeler::{JsonLabel, JsonLabeler},
 };
 use mongodb::bson::Document;
 use ratatui::{
@@ -60,7 +62,7 @@ impl Component<InputType> for FilterInput {
         self.input.is_focused()
     }
 
-    fn commands(&self) -> Vec<crate::command::CommandGroup> {
+    fn commands(&self) -> Vec<CommandGroup> {
         if self.input.is_editing() {
             vec![
                 CommandGroup::new(vec![Command::Confirm], "enter", "execute query"),

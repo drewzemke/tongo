@@ -1,10 +1,11 @@
 use super::ListComponent;
 use crate::{
     app::AppFocus,
-    command::{Command, CommandGroup},
-    components::ComponentCommand,
-    event::Event,
-    screens::primary_screen::PrimaryScreenFocus,
+    components::{primary_screen::PrimaryScreenFocus, ComponentCommand},
+    system::{
+        command::{Command, CommandGroup},
+        event::Event,
+    },
 };
 use mongodb::results::CollectionSpecification;
 use ratatui::{prelude::*, widgets::ListState};

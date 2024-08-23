@@ -1,13 +1,15 @@
-use crate::{
+use crate::system::{
     command::{Command, CommandGroup},
     event::Event,
 };
 use crossterm::event::Event as CrosstermEvent;
 use ratatui::{layout::Rect, Frame};
 
+pub mod connection_screen;
 pub mod documents;
 pub mod input;
 pub mod list;
+pub mod primary_screen;
 pub mod status_bar;
 
 // FIXME: crappy name

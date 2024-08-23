@@ -3,11 +3,12 @@ use std::{cell::RefCell, rc::Rc};
 use super::ListComponent;
 use crate::{
     app::AppFocus,
-    command::{Command, CommandGroup},
-    components::ComponentCommand,
+    components::{connection_screen::ConnScreenFocus, ComponentCommand},
     connection::Connection,
-    event::Event,
-    screens::connection_screen::ConnScreenFocus,
+    system::{
+        command::{Command, CommandGroup},
+        event::Event,
+    },
 };
 use ratatui::{prelude::*, widgets::ListState};
 

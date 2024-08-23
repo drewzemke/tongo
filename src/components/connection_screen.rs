@@ -1,10 +1,16 @@
-use crate::app::AppFocus;
-use crate::command::{Command, CommandGroup};
-use crate::components::input::{DefaultFormatter, Input};
-use crate::components::list::connections::Connections;
-use crate::components::{Component, ComponentCommand, UniqueType};
-use crate::connection::Connection;
-use crate::event::Event;
+use super::{
+    input::{DefaultFormatter, Input},
+    list::connections::Connections,
+    Component, ComponentCommand, UniqueType,
+};
+use crate::{
+    app::AppFocus,
+    connection::Connection,
+    system::{
+        command::{Command, CommandGroup},
+        event::Event,
+    },
+};
 use ratatui::prelude::*;
 use std::{cell::RefCell, rc::Rc};
 
