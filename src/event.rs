@@ -37,6 +37,8 @@ pub enum Event {
     UpdateConfirmed,
     DocumentCreated(Document),
     InsertConfirmed,
+    DocumentDeleted(Document),
+    DeleteConfirmed,
 
     // TODO: sort these out better
     FocusedForward,
