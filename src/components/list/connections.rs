@@ -1,90 +1,22 @@
 use std::{cell::RefCell, rc::Rc};
 
-use super::ListComponent;
+use super::InnerList;
 use crate::{
     app::AppFocus,
-    components::{connection_screen::ConnScreenFocus, ComponentCommand},
+    components::{connection_screen::ConnScreenFocus, Component, ComponentCommand, ListType},
     connection::Connection,
     system::{
         command::{Command, CommandGroup},
         event::Event,
     },
 };
-use ratatui::{prelude::*, widgets::ListState};
+use ratatui::{prelude::*, widgets::ListItem};
 
 #[derive(Debug, Default)]
 pub struct Connections {
     app_focus: Rc<RefCell<AppFocus>>,
     pub items: Vec<Connection>,
-    pub state: ListState,
-}
-
-impl ListComponent for Connections {
-    type Item = Connection;
-
-    fn title() -> &'static str {
-        "Connections"
-    }
-
-    fn items(&self) -> std::slice::Iter<Self::Item> {
-        self.items.iter()
-    }
-
-    fn item_to_str(item: &Self::Item) -> Text<'static> {
-        let masked_conn_str = Self::mask_password(&item.connection_str);
-
-        Text::from(vec![
-            Line::from(item.name.clone()),
-            Line::from(format!(" {masked_conn_str}")).gray(),
-        ])
-    }
-
-    fn is_focused(&self) -> bool {
-        *self.app_focus.borrow() == AppFocus::ConnScreen(ConnScreenFocus::ConnList)
-    }
-
-    fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::ConnScreen(ConnScreenFocus::ConnList);
-    }
-
-    fn list_state(&mut self) -> &mut ListState {
-        &mut self.state
-    }
-
-    fn commands(&self) -> Vec<CommandGroup> {
-        vec![
-            CommandGroup::new(vec![Command::Confirm], "enter", "connect"),
-            CommandGroup::new(vec![Command::CreateNew], "n", "new conn."),
-            CommandGroup::new(vec![Command::Delete], "D", "delete conn."),
-        ]
-    }
-
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
-        let ComponentCommand::Command(command) = command else {
-            return vec![];
-        };
-        match command {
-            Command::Confirm => self.get_selected_conn_str().map_or_else(Vec::new, |conn| {
-                vec![Event::ConnectionSelected(conn.clone())]
-            }),
-            Command::CreateNew => vec![Event::NewConnectionStarted],
-            Command::Delete => {
-                let Some(index_to_delete) = self.state.selected() else {
-                    return vec![];
-                };
-                self.items.remove(index_to_delete);
-                let write_result = Connection::write_to_storage(&self.items);
-                if write_result.is_ok() {
-                    vec![Event::ConnectionDeleted]
-                } else {
-                    vec![Event::ErrorOccurred(
-                        "An error occurred while saving connection preferences".to_string(),
-                    )]
-                }
-            }
-            _ => vec![],
-        }
-    }
+    list: InnerList,
 }
 
 impl Connections {
@@ -92,12 +24,13 @@ impl Connections {
         Self {
             app_focus,
             items,
-            ..Default::default()
+            list: InnerList::new("Connections"),
         }
     }
 
     fn get_selected_conn_str(&self) -> Option<&Connection> {
-        self.state
+        self.list
+            .state
             .selected()
             .and_then(|index| self.items.get(index))
     }
@@ -113,6 +46,77 @@ impl Connections {
             return String::from(conn_str);
         };
         format!("{before_slashes}//{user}:******@{after_at}")
+    }
+}
+
+impl Component<ListType> for Connections {
+    fn is_focused(&self) -> bool {
+        *self.app_focus.borrow() == AppFocus::ConnScreen(ConnScreenFocus::ConnList)
+    }
+
+    fn focus(&self) {
+        *self.app_focus.borrow_mut() = AppFocus::ConnScreen(ConnScreenFocus::ConnList);
+    }
+
+    fn commands(&self) -> Vec<CommandGroup> {
+        let mut out = InnerList::base_commands();
+        out.append(&mut vec![
+            CommandGroup::new(vec![Command::Confirm], "enter", "connect"),
+            CommandGroup::new(vec![Command::CreateNew], "n", "new conn."),
+            CommandGroup::new(vec![Command::Delete], "D", "delete conn."),
+        ]);
+        out
+    }
+
+    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+        let mut out = self.list.handle_base_command(command, self.items.len());
+        let ComponentCommand::Command(command) = command else {
+            return vec![];
+        };
+        match command {
+            Command::Confirm => {
+                if let Some(conn) = self.get_selected_conn_str() {
+                    out.push(Event::ConnectionSelected(conn.clone()));
+                }
+            }
+            Command::CreateNew => {
+                out.push(Event::NewConnectionStarted);
+            }
+            Command::Delete => {
+                let Some(index_to_delete) = self.list.state.selected() else {
+                    return out;
+                };
+                self.items.remove(index_to_delete);
+                let write_result = Connection::write_to_storage(&self.items);
+                if write_result.is_ok() {
+                    out.push(Event::ConnectionDeleted);
+                } else {
+                    out.push(Event::ErrorOccurred(
+                        "An error occurred while saving connection preferences".to_string(),
+                    ));
+                }
+            }
+            _ => {}
+        }
+        out
+    }
+
+    fn render(&mut self, frame: &mut Frame, area: Rect) {
+        let items: Vec<ListItem> = self
+            .items
+            .iter()
+            .map(|item| {
+                let masked_conn_str = Self::mask_password(&item.connection_str);
+
+                let text = Text::from(vec![
+                    Line::from(item.name.clone()),
+                    Line::from(format!(" {masked_conn_str}")).gray(),
+                ]);
+                ListItem::new(text)
+            })
+            .collect();
+
+        self.list.render(frame, area, items, self.is_focused());
     }
 }
 
