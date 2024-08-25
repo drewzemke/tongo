@@ -1,38 +1,41 @@
-use super::ListComponent;
+use super::InnerList;
 use crate::{
     app::AppFocus,
-    components::{primary_screen::PrimaryScreenFocus, ComponentCommand},
+    components::{primary_screen::PrimaryScreenFocus, Component, ComponentCommand, ListType},
     system::{
         command::{Command, CommandGroup},
         event::Event,
     },
 };
 use mongodb::results::CollectionSpecification;
-use ratatui::{prelude::*, widgets::ListState};
+use ratatui::{prelude::*, widgets::ListItem};
 use std::{cell::RefCell, rc::Rc};
 
 #[derive(Debug, Default)]
 pub struct Collections {
     app_focus: Rc<RefCell<AppFocus>>,
     pub items: Vec<CollectionSpecification>,
-    pub state: ListState,
+    list: InnerList,
 }
 
-impl ListComponent for Collections {
-    type Item = CollectionSpecification;
-
-    fn title() -> &'static str {
-        "Collections"
+impl Collections {
+    pub fn new(app_focus: Rc<RefCell<AppFocus>>) -> Self {
+        Self {
+            app_focus,
+            list: InnerList::new("Collections"),
+            ..Default::default()
+        }
     }
 
-    fn items(&self) -> std::slice::Iter<Self::Item> {
-        self.items.iter()
+    fn get_selected(&self) -> Option<&CollectionSpecification> {
+        self.list
+            .state
+            .selected()
+            .and_then(|index| self.items.get(index))
     }
+}
 
-    fn item_to_str(item: &Self::Item) -> Text<'static> {
-        item.name.clone().into()
-    }
-
+impl Component<ListType> for Collections {
     fn is_focused(&self) -> bool {
         *self.app_focus.borrow() == AppFocus::PrimaryScreen(PrimaryScreenFocus::CollList)
     }
@@ -41,19 +44,17 @@ impl ListComponent for Collections {
         *self.app_focus.borrow_mut() = AppFocus::PrimaryScreen(PrimaryScreenFocus::CollList);
     }
 
-    fn list_state(&mut self) -> &mut ListState {
-        &mut self.state
-    }
-
     fn commands(&self) -> Vec<CommandGroup> {
-        vec![CommandGroup::new(vec![Command::Confirm], "enter", "select")]
+        let mut out = InnerList::base_commands();
+        out.push(CommandGroup::new(vec![Command::Confirm], "enter", "select"));
+        out
     }
 
     fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+        let mut out = self.list.handle_base_command(command, self.items.len());
         let ComponentCommand::Command(command) = command else {
             return vec![];
         };
-        let mut out = vec![];
         if matches!(command, Command::Confirm) {
             out.push(Event::CollectionSelected);
         }
@@ -64,8 +65,10 @@ impl ListComponent for Collections {
         let mut out = vec![];
         match event {
             Event::ListSelectionChanged => {
-                if let Some(coll) = self.get_selected() {
-                    out.push(Event::CollectionHighlighted(coll.clone()));
+                if self.is_focused() {
+                    if let Some(coll) = self.get_selected() {
+                        out.push(Event::CollectionHighlighted(coll.clone()));
+                    }
                 }
             }
             Event::CollectionsUpdated(colls) => {
@@ -75,19 +78,14 @@ impl ListComponent for Collections {
         }
         out
     }
-}
 
-impl Collections {
-    pub fn new(app_focus: Rc<RefCell<AppFocus>>) -> Self {
-        Self {
-            app_focus,
-            ..Default::default()
-        }
-    }
+    fn render(&mut self, frame: &mut Frame, area: Rect) {
+        let items: Vec<ListItem> = self
+            .items
+            .iter()
+            .map(|item| ListItem::new(item.name.clone()))
+            .collect();
 
-    fn get_selected(&self) -> Option<&CollectionSpecification> {
-        self.state
-            .selected()
-            .and_then(|index| self.items.get(index))
+        self.list.render(frame, area, items, self.is_focused());
     }
 }

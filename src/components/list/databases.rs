@@ -1,39 +1,45 @@
 use std::{cell::RefCell, rc::Rc};
 
-use super::ListComponent;
+use super::InnerList;
 use crate::{
     app::AppFocus,
-    components::{primary_screen::PrimaryScreenFocus, ComponentCommand},
+    components::{primary_screen::PrimaryScreenFocus, Component, ComponentCommand, ListType},
     system::{
         command::{Command, CommandGroup},
         event::Event,
     },
 };
 use mongodb::results::DatabaseSpecification;
-use ratatui::{prelude::*, widgets::ListState};
+use ratatui::{
+    prelude::{Frame, Rect},
+    widgets::ListItem,
+};
 
 #[derive(Debug, Default)]
 pub struct Databases {
     app_focus: Rc<RefCell<AppFocus>>,
-    pub items: Vec<DatabaseSpecification>,
-    pub state: ListState,
+    items: Vec<DatabaseSpecification>,
+    list: InnerList,
 }
 
-impl ListComponent for Databases {
-    type Item = DatabaseSpecification;
-
-    fn title() -> &'static str {
-        "Databases"
+impl Databases {
+    pub fn new(app_focus: Rc<RefCell<AppFocus>>) -> Self {
+        Self {
+            app_focus,
+            list: InnerList::new("Databases"),
+            ..Default::default()
+        }
     }
 
-    fn items(&self) -> std::slice::Iter<Self::Item> {
-        self.items.iter()
+    fn get_selected(&self) -> Option<&DatabaseSpecification> {
+        self.list
+            .state
+            .selected()
+            .and_then(|index| self.items.get(index))
     }
+}
 
-    fn item_to_str(item: &Self::Item) -> Text<'static> {
-        item.name.clone().into()
-    }
-
+impl Component<ListType> for Databases {
     fn is_focused(&self) -> bool {
         *self.app_focus.borrow() == AppFocus::PrimaryScreen(PrimaryScreenFocus::DbList)
     }
@@ -42,19 +48,17 @@ impl ListComponent for Databases {
         *self.app_focus.borrow_mut() = AppFocus::PrimaryScreen(PrimaryScreenFocus::DbList);
     }
 
-    fn list_state(&mut self) -> &mut ListState {
-        &mut self.state
-    }
-
     fn commands(&self) -> Vec<CommandGroup> {
-        vec![CommandGroup::new(vec![Command::Confirm], "enter", "select")]
+        let mut out = InnerList::base_commands();
+        out.push(CommandGroup::new(vec![Command::Confirm], "enter", "select"));
+        out
     }
 
     fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+        let mut out = self.list.handle_base_command(command, self.items.len());
         let ComponentCommand::Command(command) = command else {
             return vec![];
         };
-        let mut out = vec![];
         if matches!(command, Command::Confirm) {
             out.push(Event::DatabaseSelected);
         }
@@ -78,19 +82,14 @@ impl ListComponent for Databases {
         }
         out
     }
-}
 
-impl Databases {
-    pub fn new(app_focus: Rc<RefCell<AppFocus>>) -> Self {
-        Self {
-            app_focus,
-            ..Default::default()
-        }
-    }
+    fn render(&mut self, frame: &mut Frame, area: Rect) {
+        let items: Vec<ListItem> = self
+            .items
+            .iter()
+            .map(|item| ListItem::new(item.name.clone()))
+            .collect();
 
-    fn get_selected(&self) -> Option<&DatabaseSpecification> {
-        self.state
-            .selected()
-            .and_then(|index| self.items.get(index))
+        self.list.render(frame, area, items, self.is_focused());
     }
 }
