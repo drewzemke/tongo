@@ -1,7 +1,7 @@
 use super::{
     input::{conn_name_input::ConnNameInput, conn_str_input::ConnStrInput},
     list::connections::Connections,
-    Component, ComponentCommand, UniqueType,
+    Component, ComponentCommand,
 };
 use crate::{
     app::AppFocus,
@@ -53,7 +53,7 @@ impl ConnectionScreen {
     }
 }
 
-impl Component<UniqueType> for ConnectionScreen {
+impl Component for ConnectionScreen {
     fn commands(&self) -> Vec<CommandGroup> {
         match self.internal_focus() {
             Some(ConnScreenFocus::ConnList) => self.conn_list.commands(),

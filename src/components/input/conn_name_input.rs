@@ -3,7 +3,7 @@ use ratatui::prelude::{Frame, Rect};
 use super::{DefaultFormatter, InnerInput};
 use crate::{
     app::AppFocus,
-    components::{connection_screen::ConnScreenFocus, Component, ComponentCommand, InputType},
+    components::{connection_screen::ConnScreenFocus, Component, ComponentCommand},
     system::{
         command::{Command, CommandGroup},
         event::Event,
@@ -36,7 +36,7 @@ impl ConnNameInput {
     }
 }
 
-impl Component<InputType> for ConnNameInput {
+impl Component for ConnNameInput {
     fn is_focused(&self) -> bool {
         *self.app_focus.borrow() == AppFocus::ConnScreen(ConnScreenFocus::NameInput)
     }

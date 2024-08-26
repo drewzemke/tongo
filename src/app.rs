@@ -3,9 +3,9 @@ use crate::{
     components::{
         connection_screen::{ConnScreenFocus, ConnectionScreen},
         list::connections::Connections,
-        primary_screen::{PrimaryScreenFocus, PrimaryScreenV2},
+        primary_screen::{PrimaryScreen, PrimaryScreenFocus},
         status_bar::StatusBar,
-        Component, ComponentCommand, UniqueType,
+        Component, ComponentCommand,
     },
     connection::Connection,
     system::{
@@ -45,7 +45,7 @@ pub struct App<'a> {
 
     // components
     conn_screen: ConnectionScreen,
-    primary_screen: PrimaryScreenV2<'a>,
+    primary_screen: PrimaryScreen<'a>,
     status_bar: StatusBar,
 
     // shared data
@@ -72,7 +72,7 @@ impl<'a> App<'a> {
         let focus = Rc::new(RefCell::new(initial_focus));
         let cursor_pos = Rc::new(RefCell::new((0, 0)));
 
-        let primary_screen = PrimaryScreenV2::new(focus.clone(), cursor_pos.clone());
+        let primary_screen = PrimaryScreen::new(focus.clone(), cursor_pos.clone());
 
         let connection_list = Connections::new(focus.clone(), all_connections);
         let connection_screen =
@@ -177,7 +177,7 @@ impl<'a> App<'a> {
     }
 }
 
-impl<'a> Component<UniqueType> for App<'a> {
+impl<'a> Component for App<'a> {
     fn commands(&self) -> Vec<CommandGroup> {
         let mut out = if self.raw_mode {
             vec![]

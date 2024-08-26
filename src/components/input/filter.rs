@@ -1,7 +1,7 @@
 use super::{InnerInput, InputFormatter};
 use crate::{
     app::AppFocus,
-    components::{primary_screen::PrimaryScreenFocus, Component, ComponentCommand, InputType},
+    components::{primary_screen::PrimaryScreenFocus, Component, ComponentCommand},
     system::{
         command::{Command, CommandGroup},
         event::Event,
@@ -50,7 +50,7 @@ impl FilterInput {
     }
 }
 
-impl Component<InputType> for FilterInput {
+impl Component for FilterInput {
     fn is_focused(&self) -> bool {
         *self.app_focus.borrow() == AppFocus::PrimaryScreen(PrimaryScreenFocus::FilterInput)
     }

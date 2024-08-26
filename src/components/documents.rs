@@ -1,6 +1,6 @@
 #![allow(clippy::cast_possible_truncation)]
 
-use super::{primary_screen::PrimaryScreenFocus, Component, UniqueType};
+use super::{primary_screen::PrimaryScreenFocus, Component};
 use crate::{
     app::AppFocus,
     client::PAGE_SIZE,
@@ -35,7 +35,7 @@ pub struct Documents<'a> {
     pub count: u64,
 }
 
-impl<'a> Component<UniqueType> for Documents<'a> {
+impl<'a> Component for Documents<'a> {
     fn is_focused(&self) -> bool {
         *self.app_focus.borrow() == AppFocus::PrimaryScreen(PrimaryScreenFocus::DocTree)
     }
