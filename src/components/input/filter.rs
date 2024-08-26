@@ -62,13 +62,13 @@ impl Component for FilterInput {
     fn commands(&self) -> Vec<CommandGroup> {
         if self.input.is_editing() {
             vec![
-                CommandGroup::new(vec![Command::Confirm], "enter", "execute query"),
-                CommandGroup::new(vec![Command::Back], "esc", "cancel"),
+                CommandGroup::new(vec![Command::Confirm], "execute query"),
+                CommandGroup::new(vec![Command::Back], "cancel"),
             ]
         } else {
             vec![
-                CommandGroup::new(vec![Command::Confirm], "enter", "edit filter"),
-                CommandGroup::new(vec![Command::Reset], "R", "reset filter"),
+                CommandGroup::new(vec![Command::Confirm], "edit filter"),
+                CommandGroup::new(vec![Command::Reset], "reset filter"),
             ]
         }
     }

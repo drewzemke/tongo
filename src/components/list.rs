@@ -32,7 +32,6 @@ impl InnerList {
     fn base_commands() -> Vec<CommandGroup> {
         vec![CommandGroup::new(
             vec![Command::NavUp, Command::NavDown],
-            "↑↓/jk",
             "navigate",
         )]
     }

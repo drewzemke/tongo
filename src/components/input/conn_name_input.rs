@@ -47,8 +47,8 @@ impl Component for ConnNameInput {
 
     fn commands(&self) -> Vec<crate::system::command::CommandGroup> {
         vec![
-            CommandGroup::new(vec![Command::Confirm], "enter", "next field"),
-            CommandGroup::new(vec![Command::Back], "esc", "back"),
+            CommandGroup::new(vec![Command::Confirm], "next field"),
+            CommandGroup::new(vec![Command::Back], "back"),
         ]
     }
 

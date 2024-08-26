@@ -50,7 +50,7 @@ impl Component for Databases {
 
     fn commands(&self) -> Vec<CommandGroup> {
         let mut out = InnerList::base_commands();
-        out.push(CommandGroup::new(vec![Command::Confirm], "enter", "select"));
+        out.push(CommandGroup::new(vec![Command::Confirm], "select"));
         out
     }
 
