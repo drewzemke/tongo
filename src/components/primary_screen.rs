@@ -5,7 +5,7 @@ use crate::{
         documents::Documents,
         input::filter::FilterInput,
         list::{collections::Collections, databases::Databases},
-        Component, ComponentCommand, UniqueType,
+        Component, ComponentCommand,
     },
     system::{
         command::{Command, CommandGroup},
@@ -25,7 +25,7 @@ pub enum PrimaryScreenFocus {
 }
 
 #[derive(Debug, Default)]
-pub struct PrimaryScreenV2<'a> {
+pub struct PrimaryScreen<'a> {
     app_focus: Rc<RefCell<AppFocus>>,
     db_list: Databases,
     coll_list: Collections,
@@ -33,7 +33,7 @@ pub struct PrimaryScreenV2<'a> {
     filter_input: FilterInput,
 }
 
-impl<'a> PrimaryScreenV2<'a> {
+impl<'a> PrimaryScreen<'a> {
     pub fn new(app_focus: Rc<RefCell<AppFocus>>, cursor_pos: Rc<RefCell<(u16, u16)>>) -> Self {
         let db_list = Databases::new(app_focus.clone());
         let coll_list = Collections::new(app_focus.clone());
@@ -57,7 +57,7 @@ impl<'a> PrimaryScreenV2<'a> {
     }
 }
 
-impl<'a> Component<UniqueType> for PrimaryScreenV2<'a> {
+impl<'a> Component for PrimaryScreen<'a> {
     fn commands(&self) -> Vec<CommandGroup> {
         let mut out = vec![];
 

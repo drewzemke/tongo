@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use super::InnerList;
 use crate::{
     app::AppFocus,
-    components::{primary_screen::PrimaryScreenFocus, Component, ComponentCommand, ListType},
+    components::{primary_screen::PrimaryScreenFocus, Component, ComponentCommand},
     system::{
         command::{Command, CommandGroup},
         event::Event,
@@ -39,7 +39,7 @@ impl Databases {
     }
 }
 
-impl Component<ListType> for Databases {
+impl Component for Databases {
     fn is_focused(&self) -> bool {
         *self.app_focus.borrow() == AppFocus::PrimaryScreen(PrimaryScreenFocus::DbList)
     }

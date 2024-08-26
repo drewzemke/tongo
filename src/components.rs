@@ -18,16 +18,7 @@ pub enum ComponentCommand<'a> {
     RawEvent(&'a CrosstermEvent),
 }
 
-/// Enables multiple blanket impls of the `Component` trait
-pub trait ComponentType {}
-pub struct ListType;
-pub struct InputType;
-pub struct UniqueType;
-impl ComponentType for ListType {}
-impl ComponentType for InputType {}
-impl ComponentType for UniqueType {}
-
-pub trait Component<T: ComponentType> {
+pub trait Component {
     fn commands(&self) -> Vec<CommandGroup> {
         vec![]
     }

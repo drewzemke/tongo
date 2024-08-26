@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use super::InnerList;
 use crate::{
     app::AppFocus,
-    components::{connection_screen::ConnScreenFocus, Component, ComponentCommand, ListType},
+    components::{connection_screen::ConnScreenFocus, Component, ComponentCommand},
     connection::Connection,
     system::{
         command::{Command, CommandGroup},
@@ -49,7 +49,7 @@ impl Connections {
     }
 }
 
-impl Component<ListType> for Connections {
+impl Component for Connections {
     fn is_focused(&self) -> bool {
         *self.app_focus.borrow() == AppFocus::ConnScreen(ConnScreenFocus::ConnList)
     }

@@ -1,7 +1,4 @@
-use crate::{
-    components::{Component, UniqueType},
-    system::command::CommandGroup,
-};
+use crate::{components::Component, system::command::CommandGroup};
 use ratatui::{
     prelude::*,
     widgets::{Block, Padding, Paragraph, Wrap},
@@ -13,7 +10,7 @@ pub struct StatusBar {
     pub message: Option<String>,
 }
 
-impl Component<UniqueType> for StatusBar {
+impl Component for StatusBar {
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         let content = self.message.as_ref().map_or_else(
             || {

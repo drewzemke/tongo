@@ -1,7 +1,7 @@
 use super::InnerList;
 use crate::{
     app::AppFocus,
-    components::{primary_screen::PrimaryScreenFocus, Component, ComponentCommand, ListType},
+    components::{primary_screen::PrimaryScreenFocus, Component, ComponentCommand},
     system::{
         command::{Command, CommandGroup},
         event::Event,
@@ -35,7 +35,7 @@ impl Collections {
     }
 }
 
-impl Component<ListType> for Collections {
+impl Component for Collections {
     fn is_focused(&self) -> bool {
         *self.app_focus.borrow() == AppFocus::PrimaryScreen(PrimaryScreenFocus::CollList)
     }

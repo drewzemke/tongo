@@ -1,7 +1,7 @@
 #![allow(clippy::cast_possible_wrap)]
 
 use crate::{
-    components::{Component, ComponentCommand, UniqueType},
+    components::{Component, ComponentCommand},
     system::{command::CommandGroup, event::Event},
 };
 use futures::TryStreamExt;
@@ -222,7 +222,7 @@ impl Client {
     }
 }
 
-impl Component<UniqueType> for Client {
+impl Component for Client {
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
         // check for completed async operations
         let mut out = vec![];
