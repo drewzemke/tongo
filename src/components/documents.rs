@@ -52,19 +52,17 @@ impl<'a> Component for Documents<'a> {
                     Command::NavDown,
                     Command::NavRight,
                 ],
-                "←↑↓→/hjkl",
                 "navigate",
             ),
-            CommandGroup::new(vec![Command::ExpandCollapse], "space", "expand/collapse"),
+            CommandGroup::new(vec![Command::ExpandCollapse], "expand/collapse"),
             CommandGroup::new(
                 vec![Command::NextPage, Command::PreviousPage],
-                "n/p",
                 "next/prev page",
             ),
-            CommandGroup::new(vec![Command::EditDoc], "E", "edit doc"),
-            CommandGroup::new(vec![Command::InsertDoc], "I", "insert doc"),
-            CommandGroup::new(vec![Command::DuplicateDoc], "C", "duplicate doc"),
-            CommandGroup::new(vec![Command::DeleteDoc], "D", "delete doc"),
+            CommandGroup::new(vec![Command::EditDoc], "edit doc"),
+            CommandGroup::new(vec![Command::InsertDoc], "insert doc"),
+            CommandGroup::new(vec![Command::DuplicateDoc], "duplicate doc"),
+            CommandGroup::new(vec![Command::DeleteDoc], "delete doc"),
         ]
     }
 

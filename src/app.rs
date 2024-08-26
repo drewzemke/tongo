@@ -182,7 +182,7 @@ impl<'a> Component for App<'a> {
         let mut out = if self.raw_mode {
             vec![]
         } else {
-            vec![CommandGroup::new(vec![Command::Quit], "q", "quit")]
+            vec![CommandGroup::new(vec![Command::Quit], "quit")]
         };
 
         out.append(&mut self.client.commands());

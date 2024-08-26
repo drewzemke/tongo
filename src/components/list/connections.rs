@@ -61,9 +61,9 @@ impl Component for Connections {
     fn commands(&self) -> Vec<CommandGroup> {
         let mut out = InnerList::base_commands();
         out.append(&mut vec![
-            CommandGroup::new(vec![Command::Confirm], "enter", "connect"),
-            CommandGroup::new(vec![Command::CreateNew], "n", "new conn."),
-            CommandGroup::new(vec![Command::Delete], "D", "delete conn."),
+            CommandGroup::new(vec![Command::Confirm], "connect"),
+            CommandGroup::new(vec![Command::CreateNew], "new conn."),
+            CommandGroup::new(vec![Command::Delete], "delete conn."),
         ]);
         out
     }

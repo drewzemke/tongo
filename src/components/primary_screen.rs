@@ -65,14 +65,13 @@ impl<'a> Component for PrimaryScreen<'a> {
             out.push(CommandGroup::new(
                 vec![
                     Command::FocusLeft,
-                    Command::FocusUp,
                     Command::FocusDown,
+                    Command::FocusUp,
                     Command::FocusRight,
                 ],
-                "HJKL",
                 "change focus",
             ));
-            out.push(CommandGroup::new(vec![Command::Back], "escape", "back"));
+            out.push(CommandGroup::new(vec![Command::Back], "back"));
         }
 
         match self.internal_focus() {

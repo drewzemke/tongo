@@ -47,8 +47,8 @@ impl Component for ConnStrInput {
 
     fn commands(&self) -> Vec<crate::system::command::CommandGroup> {
         vec![
-            CommandGroup::new(vec![Command::Confirm], "enter", "connect"),
-            CommandGroup::new(vec![Command::Back], "esc", "prev field"),
+            CommandGroup::new(vec![Command::Confirm], "connect"),
+            CommandGroup::new(vec![Command::Back], "prev field"),
         ]
     }
 
