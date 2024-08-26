@@ -38,12 +38,7 @@ impl<'a> PrimaryScreenV2<'a> {
         let db_list = Databases::new(app_focus.clone());
         let coll_list = Collections::new(app_focus.clone());
         let doc_tree = Documents::new(app_focus.clone());
-        let filter_input = FilterInput::new(
-            "Filter",
-            cursor_pos,
-            app_focus.clone(),
-            AppFocus::PrimaryScreen(PrimaryScreenFocus::FilterInput),
-        );
+        let filter_input = FilterInput::new(app_focus.clone(), cursor_pos);
         Self {
             app_focus,
             db_list,

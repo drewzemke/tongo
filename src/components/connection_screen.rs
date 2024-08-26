@@ -1,15 +1,12 @@
 use super::{
-    input::{DefaultFormatter, Input},
+    input::{conn_name_input::ConnNameInput, conn_str_input::ConnStrInput},
     list::connections::Connections,
     Component, ComponentCommand, UniqueType,
 };
 use crate::{
     app::AppFocus,
     connection::Connection,
-    system::{
-        command::{Command, CommandGroup},
-        event::Event,
-    },
+    system::{command::CommandGroup, event::Event},
 };
 use ratatui::prelude::*;
 use std::{cell::RefCell, rc::Rc};
@@ -26,8 +23,8 @@ pub enum ConnScreenFocus {
 pub struct ConnectionScreen {
     app_focus: Rc<RefCell<AppFocus>>,
     conn_list: Connections,
-    conn_name_input: Input<DefaultFormatter>,
-    conn_str_input: Input<DefaultFormatter>,
+    conn_name_input: ConnNameInput,
+    conn_str_input: ConnStrInput,
 }
 
 impl ConnectionScreen {
@@ -36,39 +33,14 @@ impl ConnectionScreen {
         app_focus: Rc<RefCell<AppFocus>>,
         cursor_pos: Rc<RefCell<(u16, u16)>>,
     ) -> Self {
-        let connection_name_input = Input::new(
-            "Name",
-            cursor_pos.clone(),
-            vec![
-                CommandGroup::new(vec![Command::Confirm], "enter", "next field"),
-                CommandGroup::new(vec![Command::Back], "esc", "back"),
-            ],
-            app_focus.clone(),
-            AppFocus::ConnScreen(ConnScreenFocus::NameInput),
-            vec![Event::FocusedForward],
-            vec![Event::FocusedBackward, Event::RawModeExited],
-            DefaultFormatter::default(),
-        );
-
-        let connection_string_input = Input::new(
-            "Connection String",
-            cursor_pos,
-            vec![
-                CommandGroup::new(vec![Command::Confirm], "enter", "connect"),
-                CommandGroup::new(vec![Command::Back], "esc", "prev field"),
-            ],
-            app_focus.clone(),
-            AppFocus::ConnScreen(ConnScreenFocus::StringInput),
-            vec![Event::FocusedForward, Event::RawModeExited],
-            vec![Event::FocusedBackward],
-            DefaultFormatter::default(),
-        );
+        let conn_name_input = ConnNameInput::new(app_focus.clone(), cursor_pos.clone());
+        let conn_str_input = ConnStrInput::new(app_focus.clone(), cursor_pos);
 
         Self {
             app_focus,
             conn_list: connection_list,
-            conn_name_input: connection_name_input,
-            conn_str_input: connection_string_input,
+            conn_name_input,
+            conn_str_input,
         }
     }
 
@@ -116,8 +88,8 @@ impl Component<UniqueType> for ConnectionScreen {
                 }
                 Some(ConnScreenFocus::StringInput) => {
                     let conn = Connection::new(
-                        self.conn_name_input.inner_input.value().to_string(),
-                        self.conn_str_input.inner_input.value().to_string(),
+                        self.conn_name_input.value().to_string(),
+                        self.conn_str_input.value().to_string(),
                     );
                     out.push(Event::ConnectionCreated(conn));
                 }

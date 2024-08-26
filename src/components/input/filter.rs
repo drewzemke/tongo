@@ -1,7 +1,7 @@
-use super::{Input, InputFormatter};
+use super::{InnerInput, InputFormatter};
 use crate::{
     app::AppFocus,
-    components::{Component, ComponentCommand, InputType},
+    components::{primary_screen::PrimaryScreenFocus, Component, ComponentCommand, InputType},
     system::{
         command::{Command, CommandGroup},
         event::Event,
@@ -19,47 +19,44 @@ use tui_input::Input as TuiInput;
 
 #[derive(Debug, Default)]
 pub struct FilterInput {
-    input: Input<FilterInputFormatter>,
+    app_focus: Rc<RefCell<AppFocus>>,
+    input: InnerInput<FilterInputFormatter>,
 }
 
 const DEFAULT_FILTER: &str = "{}";
 
 impl FilterInput {
-    pub fn new(
-        title: &'static str,
-        cursor_pos: Rc<RefCell<(u16, u16)>>,
-        app_focus: Rc<RefCell<AppFocus>>,
-        focused_when: AppFocus,
-    ) -> Self {
-        let mut input = Input::new(
-            title,
-            cursor_pos,
-            vec![],
-            app_focus,
-            focused_when,
-            vec![],
-            vec![],
-            FilterInputFormatter::default(),
-        );
-
-        input.inner_input = input.inner_input.with_value(DEFAULT_FILTER.to_string());
+    pub fn new(app_focus: Rc<RefCell<AppFocus>>, cursor_pos: Rc<RefCell<(u16, u16)>>) -> Self {
+        let mut input = InnerInput::new("Filter", cursor_pos, FilterInputFormatter::default());
+        input.state = input.state.with_value(DEFAULT_FILTER.to_string());
         input.formatter.on_change(DEFAULT_FILTER);
-
-        Self { input }
+        Self { app_focus, input }
     }
 
     pub const fn is_editing(&self) -> bool {
         self.input.is_editing()
     }
+
+    pub fn value(&self) -> &str {
+        self.input.state.value()
+    }
+
+    pub fn start_editing(&mut self) {
+        self.input.start_editing();
+    }
+
+    pub fn stop_editing(&mut self) {
+        self.input.stop_editing();
+    }
 }
 
 impl Component<InputType> for FilterInput {
-    fn focus(&self) {
-        self.input.focus();
+    fn is_focused(&self) -> bool {
+        *self.app_focus.borrow() == AppFocus::PrimaryScreen(PrimaryScreenFocus::FilterInput)
     }
 
-    fn is_focused(&self) -> bool {
-        self.input.is_focused()
+    fn focus(&self) {
+        *self.app_focus.borrow_mut() = AppFocus::PrimaryScreen(PrimaryScreenFocus::FilterInput);
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
@@ -79,13 +76,10 @@ impl Component<InputType> for FilterInput {
     fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
         if self.input.is_editing() {
             match command {
-                ComponentCommand::RawEvent(..) => {
-                    self.input.handle_command(command);
-                    vec![Event::InputKeyPressed]
-                }
+                ComponentCommand::RawEvent(event) => self.input.handle_raw_event(event),
                 ComponentCommand::Command(command) => match command {
                     Command::Confirm => {
-                        let filter_str = self.input.inner_input.value();
+                        let filter_str = self.input.state.value();
                         let filter = serde_json::from_str::<serde_json::Value>(filter_str)
                             .ok()
                             .and_then(|value| mongodb::bson::to_document(&value).ok());
@@ -98,7 +92,7 @@ impl Component<InputType> for FilterInput {
                         }
                     }
                     Command::Back => {
-                        self.input.stop_editing();
+                        self.stop_editing();
                         vec![Event::RawModeExited]
                     }
                     _ => vec![],
@@ -107,11 +101,11 @@ impl Component<InputType> for FilterInput {
         } else if let ComponentCommand::Command(command) = command {
             match command {
                 Command::Confirm => {
-                    self.input.start_editing();
+                    self.start_editing();
                     vec![Event::RawModeEntered]
                 }
                 Command::Reset => {
-                    self.input.inner_input = TuiInput::new("{}".to_string());
+                    self.input.state = TuiInput::new("{}".to_string());
                     vec![Event::DocFilterUpdated(Document::default())]
                 }
                 _ => vec![],
@@ -126,7 +120,7 @@ impl Component<InputType> for FilterInput {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        self.input.render(frame, area);
+        self.input.render(frame, area, self.is_focused());
     }
 }
 
