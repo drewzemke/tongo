@@ -40,10 +40,8 @@ impl Default for AppFocus {
 
 #[derive(Default)]
 pub struct App<'a> {
-    raw_mode: bool,
-    client: Client,
-
     // components
+    client: Client,
     conn_screen: ConnectionScreen,
     primary_screen: PrimaryScreen<'a>,
     status_bar: StatusBar,
@@ -51,7 +49,9 @@ pub struct App<'a> {
     // shared data
     focus: Rc<RefCell<AppFocus>>,
     cursor_pos: Rc<RefCell<(u16, u16)>>,
-    // commands: Vec<CommandGroup>,
+
+    // flags
+    raw_mode: bool,
     force_clear: bool,
     exiting: bool,
 }
@@ -205,20 +205,15 @@ impl<'a> Component for App<'a> {
         out.append(&mut self.client.handle_command(command));
         out.append(&mut self.conn_screen.handle_command(command));
         out.append(&mut self.primary_screen.handle_command(command));
+        out.append(&mut self.status_bar.handle_command(command));
         out
     }
 
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
         let mut out = vec![];
         match event {
-            Event::ConnectionCreated(conn) | Event::ConnectionSelected(conn) => {
-                // TODO: consume from within component
-                self.client.set_conn_str(conn.connection_str.clone());
+            Event::ConnectionCreated(..) | Event::ConnectionSelected(..) => {
                 self.primary_screen.focus();
-            }
-            Event::ErrorOccurred(error) => {
-                // TODO: consume from within component
-                self.status_bar.message = Some(error.clone());
             }
             Event::RawModeEntered => {
                 self.raw_mode = true;
@@ -234,6 +229,7 @@ impl<'a> Component for App<'a> {
         out.append(&mut self.client.handle_event(event));
         out.append(&mut self.conn_screen.handle_event(event));
         out.append(&mut self.primary_screen.handle_event(event));
+        out.append(&mut self.status_bar.handle_event(event));
         out
     }
 
@@ -245,14 +241,14 @@ impl<'a> Component for App<'a> {
         let content = frame_layout[0];
         let btm_line = frame_layout[1];
 
+        // render a screen based on current focus
         match &*self.focus.borrow() {
             AppFocus::PrimaryScreen(..) => self.primary_screen.render(frame, content),
             AppFocus::ConnScreen(..) => self.conn_screen.render(frame, content),
         }
 
         // status bar
-        // HACK suboptimal stuff while refactoring around commands
-        // TODO: handle some of this stuff in the status bar comp
+        // TODO: avoid a second call to `commands()` here?
         self.status_bar.commands = self.commands();
         self.status_bar.render(frame, btm_line);
 
@@ -263,8 +259,10 @@ impl<'a> Component for App<'a> {
         }
     }
 
+    /// Not used.
     fn focus(&self) {}
 
+    /// Not used.
     fn is_focused(&self) -> bool {
         true
     }
