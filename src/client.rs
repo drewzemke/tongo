@@ -106,7 +106,6 @@ impl Client {
         });
     }
 
-    // TODO: handle 'reset_selection', which is a thing the old `State` client did
     fn exec_query(&self, reset_state: bool) {
         let coll = match (&self.client, &self.db, &self.coll) {
             (Some(client), Some(db), Some(coll)) => {
@@ -232,6 +231,9 @@ impl Component for Client {
 
         // handle the event as normal
         match event {
+            Event::ConnectionCreated(conn) | Event::ConnectionSelected(conn) => {
+                self.set_conn_str(conn.connection_str.clone());
+            }
             Event::ClientCreated(client) => {
                 self.client = Some(client.clone());
                 self.exec_get_dbs();
