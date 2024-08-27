@@ -103,25 +103,28 @@ impl<'a> App<'a> {
             let timeout =
                 debounce.map_or(DEBOUNCE, |start| DEBOUNCE.saturating_sub(start.elapsed()));
 
+            // if a key is presssed, process it and send it through the system.
+            // if no key is pressed, process a `tick` event and send it
             let events = if crossterm::event::poll(timeout)? {
                 let event = crossterm::event::read()?;
                 self.handle_user_event(&event)
             } else {
-                // FIXME: how do I make it so that we don't _always_ redraw?
-                // this causes a redraw every frame
                 vec![Event::Tick]
             };
 
             // process events
+            let mut should_render = false;
             let mut events_deque = VecDeque::from(events);
             while let Some(event) = events_deque.pop_front() {
+                // set the render flag to true if we get an event that isn't `Event::Tick`
+                should_render = should_render || !matches!(event, Event::Tick);
+
                 let new_events = self.handle_event(&event);
                 for new_event in new_events {
                     events_deque.push_back(new_event);
                 }
             }
 
-            // exit if the app is in an exiting state
             if self.exiting {
                 return Ok(());
             }
@@ -131,10 +134,11 @@ impl<'a> App<'a> {
                 self.force_clear = false;
             }
 
-            // TODO: find a way to only update when screen changes
-            terminal.draw(|frame| {
-                self.render(frame, frame.size());
-            })?;
+            if should_render {
+                terminal.draw(|frame| {
+                    self.render(frame, frame.size());
+                })?;
+            }
         }
     }
 

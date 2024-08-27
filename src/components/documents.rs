@@ -74,24 +74,29 @@ impl<'a> Component for Documents<'a> {
         let mut out = vec![];
         match command {
             Command::NavLeft => {
-                self.state.key_left();
-                out.push(Event::ListSelectionChanged);
+                if self.state.key_left() {
+                    out.push(Event::ListSelectionChanged);
+                }
             }
             Command::NavUp => {
-                self.state.key_up();
-                out.push(Event::ListSelectionChanged);
+                if self.state.key_up() {
+                    out.push(Event::ListSelectionChanged);
+                }
             }
             Command::NavDown => {
-                self.state.key_down();
-                out.push(Event::ListSelectionChanged);
+                if self.state.key_down() {
+                    out.push(Event::ListSelectionChanged);
+                }
             }
             Command::NavRight => {
-                self.state.key_right();
-                out.push(Event::ListSelectionChanged);
+                if self.state.key_right() {
+                    out.push(Event::ListSelectionChanged);
+                }
             }
             Command::ExpandCollapse => {
-                self.state.toggle_selected();
-                out.push(Event::ListSelectionChanged);
+                if self.state.toggle_selected() {
+                    out.push(Event::ListSelectionChanged);
+                }
             }
             Command::NextPage => {
                 let end = (self.page + 1) * PAGE_SIZE;
