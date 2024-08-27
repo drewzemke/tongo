@@ -51,7 +51,7 @@ impl InnerList {
                 }
                 Command::NavDown => {
                     // jump to the top if we're at the bottom
-                    if self.state.selected() == Some(num_items - 1) {
+                    if self.state.selected() == Some(num_items.saturating_sub(1)) {
                         self.state.select_first();
                     } else {
                         self.state.select_next();
