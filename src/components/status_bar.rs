@@ -1,3 +1,4 @@
+use super::ComponentCommand;
 use crate::{
     components::Component,
     system::{command::CommandGroup, event::Event},
@@ -7,12 +8,14 @@ use ratatui::{
     widgets::{Block, Padding, Paragraph, Wrap},
 };
 
-use super::ComponentCommand;
+const DEBUG_RENDER_COUNT: bool = false;
 
 #[derive(Debug, Default)]
 pub struct StatusBar {
     pub commands: Vec<CommandGroup>,
     pub message: Option<String>,
+
+    renders: usize,
 }
 
 impl Component for StatusBar {
@@ -40,10 +43,21 @@ impl Component for StatusBar {
             },
         );
 
-        let paragraph = Paragraph::new(content)
+        let content = Paragraph::new(content)
             .wrap(Wrap::default())
             .block(Block::default().padding(Padding::horizontal(1)));
-        frame.render_widget(paragraph, area);
+
+        if DEBUG_RENDER_COUNT {
+            self.renders += 1;
+            let render_count_content = Paragraph::new(format!("{}", &self.renders));
+
+            let layout =
+                Layout::horizontal([Constraint::Fill(1), Constraint::Length(4)]).split(area);
+            frame.render_widget(content, layout[0]);
+            frame.render_widget(render_count_content, layout[1]);
+        } else {
+            frame.render_widget(content, area);
+        }
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
