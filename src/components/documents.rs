@@ -188,6 +188,14 @@ impl<'a> Component for Documents<'a> {
             Event::DocumentPageChanged(page) => {
                 self.page = *page;
             }
+
+            // // DEBUG:
+            // Event::ListSelectionChanged => {
+            //     let current_thing = self.selected_bson();
+            //     let msg = format!("{current_thing:?}");
+
+            //     return vec![Event::ErrorOccurred(msg)];
+            // }
             _ => (),
         }
         vec![]
@@ -232,19 +240,40 @@ impl<'a> Documents<'a> {
         }
     }
 
-    pub fn selected_doc(&self) -> Option<&Document> {
+    fn selected_doc_as_bson(&self) -> Option<&Bson> {
         let id = self.state.selected().first()?;
 
-        let bson = self
-            .items
+        self.items
             .iter()
             .position(|tree_item| tree_item.identifier() == id)
-            .and_then(|index| self.documents.get(index));
+            .and_then(|index| self.documents.get(index))
+    }
 
-        if let Some(Bson::Document(doc)) = bson {
-            Some(doc)
-        } else {
-            None
+    fn selected_doc(&self) -> Option<&Document> {
+        self.selected_doc_as_bson()
+            .and_then(|bson| bson.as_document())
+    }
+
+    // TODO: this definitely needs tests
+    // TODO: ... and a better name
+    fn selected_bson(&self) -> Option<&Bson> {
+        let mut bson = self.selected_doc_as_bson()?;
+
+        // ignore the first element, which is always the doc id
+        let path = &self.state.selected()[1..];
+
+        for key in path {
+            match (bson, key) {
+                (Bson::Document(doc), MongoKey::String(key)) => {
+                    bson = doc.get(key)?;
+                }
+                (Bson::Array(array), MongoKey::Usize(index)) => {
+                    bson = array.get(*index)?;
+                }
+                _ => break,
+            }
         }
+
+        Some(bson)
     }
 }
