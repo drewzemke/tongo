@@ -59,6 +59,7 @@ impl<'a> Component for Documents<'a> {
                 vec![Command::NextPage, Command::PreviousPage],
                 "next/prev page",
             ),
+            CommandGroup::new(vec![Command::Refresh], "refresh"),
             CommandGroup::new(vec![Command::EditDoc], "edit doc"),
             CommandGroup::new(vec![Command::InsertDoc], "insert doc"),
             CommandGroup::new(vec![Command::DuplicateDoc], "duplicate doc"),
@@ -110,6 +111,9 @@ impl<'a> Component for Documents<'a> {
                     self.page -= 1;
                     out.push(Event::DocumentPageChanged(self.page));
                 }
+            }
+            Command::Refresh => {
+                out.push(Event::RefreshRequested);
             }
             Command::EditDoc => {
                 let Some(doc) = self.selected_doc() else {
