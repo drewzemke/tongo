@@ -288,7 +288,7 @@ impl Component for Client {
                     ));
                 }
             }
-            Event::InsertConfirmed | Event::DeleteConfirmed => {
+            Event::RefreshRequested | Event::InsertConfirmed | Event::DeleteConfirmed => {
                 self.exec_count();
                 self.exec_query(false);
             }
