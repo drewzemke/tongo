@@ -165,7 +165,7 @@ impl<'a> Component for Documents<'a> {
             Command::Yank => {
                 if let Some(bson) = self.selected_bson() {
                     if send_bson_to_clipboard(bson).is_ok() {
-                        // TODO: send an event saying the copy was successful
+                        out.push(Event::DataSentToClipboard);
                     };
                 }
             }

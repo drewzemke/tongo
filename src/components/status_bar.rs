@@ -1,3 +1,5 @@
+use std::time::{Duration, Instant};
+
 use super::ComponentCommand;
 use crate::{
     components::Component,
@@ -10,11 +12,59 @@ use ratatui::{
 
 const DEBUG_RENDER_COUNT: bool = false;
 
+// should this be configurable?
+const ERROR_MESSAGE_DURATION: Duration = Duration::from_secs(5);
+const INFO_MESSAGE_DURATION: Duration = Duration::from_secs(4);
+const SUCCESS_MESSAGE_DURATION: Duration = Duration::from_secs(4);
+
+#[derive(Debug)]
+enum MessageKind {
+    Error,
+    Info,
+    Success,
+}
+
+#[derive(Debug)]
+struct Message {
+    kind: MessageKind,
+    content: String,
+    start: Instant,
+    duration: Duration,
+}
+
+impl Message {
+    fn error(content: &str) -> Self {
+        Self {
+            kind: MessageKind::Error,
+            content: content.to_string(),
+            start: Instant::now(),
+            duration: ERROR_MESSAGE_DURATION,
+        }
+    }
+    fn info(content: &str) -> Self {
+        Self {
+            kind: MessageKind::Info,
+            content: content.to_string(),
+            start: Instant::now(),
+            duration: INFO_MESSAGE_DURATION,
+        }
+    }
+    fn success(content: &str) -> Self {
+        Self {
+            kind: MessageKind::Success,
+            content: content.to_string(),
+            start: Instant::now(),
+            duration: SUCCESS_MESSAGE_DURATION,
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct StatusBar {
     pub commands: Vec<CommandGroup>,
-    pub message: Option<String>,
+    message: Option<Message>,
 
+    // DEBUG:
     renders: usize,
 }
 
@@ -36,9 +86,14 @@ impl Component for StatusBar {
                 )
             },
             |message| {
+                let (prefix, style) = match message.kind {
+                    MessageKind::Error => ("● Error: ", Style::default().red()),
+                    MessageKind::Info => ("● ", Style::default().blue()),
+                    MessageKind::Success => ("● Success: ", Style::default().green()),
+                };
                 Line::from(vec![
-                    Span::styled("Error: ", Style::default().red()),
-                    Span::from(message.clone()),
+                    Span::styled(prefix, style),
+                    Span::from(message.content.clone()),
                 ])
             },
         );
@@ -69,9 +124,36 @@ impl Component for StatusBar {
     }
 
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
-        if let Event::ErrorOccurred(error) = event {
-            self.message = Some(error.clone());
+        // handle the event
+        match event {
+            Event::ErrorOccurred(error) => {
+                self.message = Some(Message::error(error));
+            }
+            Event::UpdateConfirmed => {
+                self.message = Some(Message::success("Document updated."));
+            }
+            Event::InsertConfirmed => {
+                self.message = Some(Message::success("Document created."));
+            }
+            Event::DeleteConfirmed => {
+                self.message = Some(Message::success("Document deleted."));
+            }
+            Event::DataSentToClipboard => {
+                self.message = Some(Message::info("Copied to clipboard."));
+            }
+            _ => (),
         };
+
+        // check to see if it's time to clear the message
+        if self.message.as_ref().is_some_and(
+            |Message {
+                 start, duration, ..
+             }| start.elapsed() >= *duration,
+        ) {
+            self.message = None;
+            return vec![Event::StatusMessageCleared];
+        }
+
         vec![]
     }
 }
