@@ -85,82 +85,86 @@ impl<'a> Component for PrimaryScreen<'a> {
     }
 
     fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+        // we need to pass the command to the currently-focused component first,
+        // the way this component handles the command might change the focus
+        let mut out = match self.internal_focus() {
+            Some(PrimaryScreenFocus::DbList) => self.db_list.handle_command(command),
+            Some(PrimaryScreenFocus::CollList) => self.coll_list.handle_command(command),
+            Some(PrimaryScreenFocus::DocTree) => self.doc_tree.handle_command(command),
+            Some(PrimaryScreenFocus::FilterInput) => self.filter_input.handle_command(command),
+            None => vec![],
+        };
+
         if let ComponentCommand::Command(command) = command {
             match command {
                 Command::FocusLeft => match self.internal_focus() {
                     Some(PrimaryScreenFocus::DocTree) => {
                         self.coll_list.focus();
-                        return vec![Event::FocusedChanged];
+                        out.push(Event::FocusedChanged);
                     }
                     Some(PrimaryScreenFocus::FilterInput) => {
                         self.db_list.focus();
-                        return vec![Event::FocusedChanged];
+                        out.push(Event::FocusedChanged);
                     }
-                    _ => return vec![],
+                    _ => {}
                 },
                 Command::FocusUp => match self.internal_focus() {
                     Some(PrimaryScreenFocus::CollList) => {
                         self.db_list.focus();
-                        return vec![Event::FocusedChanged];
+                        out.push(Event::FocusedChanged);
                     }
                     Some(PrimaryScreenFocus::DocTree) => {
                         self.filter_input.focus();
-                        return vec![Event::FocusedChanged];
+                        out.push(Event::FocusedChanged);
                     }
-                    _ => return vec![],
+                    _ => {}
                 },
                 Command::FocusDown => match self.internal_focus() {
                     Some(PrimaryScreenFocus::DbList) => {
                         self.coll_list.focus();
-                        return vec![Event::FocusedChanged];
+                        out.push(Event::FocusedChanged);
                     }
                     Some(PrimaryScreenFocus::FilterInput) => {
                         self.doc_tree.focus();
-                        return vec![Event::FocusedChanged];
+                        out.push(Event::FocusedChanged);
                     }
-                    _ => return vec![],
+                    _ => {}
                 },
                 Command::FocusRight => match self.internal_focus() {
                     Some(PrimaryScreenFocus::DbList) => {
                         self.filter_input.focus();
-                        return vec![Event::FocusedChanged];
+                        out.push(Event::FocusedChanged);
                     }
                     Some(PrimaryScreenFocus::CollList) => {
                         self.doc_tree.focus();
-                        return vec![Event::FocusedChanged];
+                        out.push(Event::FocusedChanged);
                     }
-                    _ => return vec![],
+                    _ => {}
                 },
                 Command::Back => match self.internal_focus() {
                     Some(PrimaryScreenFocus::DbList) => {
                         *self.app_focus.borrow_mut() =
                             AppFocus::ConnScreen(ConnScreenFocus::ConnList);
-                        return vec![Event::FocusedChanged];
+                        out.push(Event::FocusedChanged);
                     }
                     Some(PrimaryScreenFocus::CollList) => {
                         self.db_list.focus();
-                        return vec![Event::FocusedChanged];
+                        out.push(Event::FocusedChanged);
                     }
                     Some(PrimaryScreenFocus::DocTree) => {
                         self.coll_list.focus();
-                        return vec![Event::FocusedChanged];
+                        out.push(Event::FocusedChanged);
                     }
                     Some(PrimaryScreenFocus::FilterInput) => {
                         self.doc_tree.focus();
-                        return vec![Event::FocusedChanged];
+                        out.push(Event::FocusedChanged);
                     }
                     None => {}
                 },
                 _ => {}
             }
         };
-        match self.internal_focus() {
-            Some(PrimaryScreenFocus::DbList) => self.db_list.handle_command(command),
-            Some(PrimaryScreenFocus::CollList) => self.coll_list.handle_command(command),
-            Some(PrimaryScreenFocus::DocTree) => self.doc_tree.handle_command(command),
-            Some(PrimaryScreenFocus::FilterInput) => self.filter_input.handle_command(command),
-            None => vec![],
-        }
+        out
     }
 
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {

@@ -105,7 +105,8 @@ impl Component for FilterInput {
                     vec![Event::RawModeEntered]
                 }
                 Command::Reset => {
-                    self.input.state = TuiInput::new("{}".to_string());
+                    self.input.state = TuiInput::new(DEFAULT_FILTER.to_string());
+                    self.input.formatter.on_change(DEFAULT_FILTER);
                     vec![Event::DocFilterUpdated(Document::default())]
                 }
                 _ => vec![],

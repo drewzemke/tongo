@@ -202,13 +202,6 @@ impl<'a> Component for Documents<'a> {
                 self.page = *page;
             }
 
-            // // DEBUG:
-            // Event::ListSelectionChanged => {
-            //     let current_thing = self.selected_bson();
-            //     let msg = format!("{current_thing:?}");
-
-            //     return vec![Event::ErrorOccurred(msg)];
-            // }
             _ => (),
         }
         vec![]
