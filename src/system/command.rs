@@ -33,6 +33,7 @@ pub enum Command {
     EditDoc,
     DuplicateDoc,
     DeleteDoc,
+    Yank,
 }
 
 impl Command {
@@ -64,6 +65,7 @@ impl Command {
             Self::EditDoc => KeyCode::Char('E'),
             Self::DuplicateDoc => KeyCode::Char('C'),
             Self::DeleteDoc => KeyCode::Char('D'),
+            Self::Yank => KeyCode::Char('y'),
         }
     }
 
