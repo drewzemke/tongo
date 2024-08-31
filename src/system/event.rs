@@ -12,6 +12,8 @@ pub enum Event {
 
     ListSelectionChanged,
 
+    StatusMessageCleared,
+
     ConnectionSelected(Connection),
     NewConnectionStarted,
     ConnectionCreated(Connection),
@@ -31,6 +33,7 @@ pub enum Event {
     CountUpdated(u64),
     DocumentPageChanged(usize),
     DocFilterUpdated(Document),
+    DataSentToClipboard,
     ErrorOccurred(String),
 
     DocumentEdited(Document),
