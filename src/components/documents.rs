@@ -10,6 +10,7 @@ use crate::{
         event::Event,
     },
     utils::{
+        clipboard::send_bson_to_clipboard,
         edit_doc::edit_doc,
         mongo_tree::{top_level_document, MongoKey},
     },
@@ -60,6 +61,7 @@ impl<'a> Component for Documents<'a> {
                 "next/prev page",
             ),
             CommandGroup::new(vec![Command::Refresh], "refresh"),
+            CommandGroup::new(vec![Command::Yank], "yank selected"),
             CommandGroup::new(vec![Command::EditDoc], "edit doc"),
             CommandGroup::new(vec![Command::InsertDoc], "insert doc"),
             CommandGroup::new(vec![Command::DuplicateDoc], "duplicate doc"),
@@ -159,6 +161,13 @@ impl<'a> Component for Documents<'a> {
                 };
 
                 out.push(Event::DocumentDeleted(doc.clone()));
+            }
+            Command::Yank => {
+                if let Some(bson) = self.selected_bson() {
+                    if send_bson_to_clipboard(bson).is_ok() {
+                        // TODO: send an event saying the copy was successful
+                    };
+                }
             }
             _ => {}
         }

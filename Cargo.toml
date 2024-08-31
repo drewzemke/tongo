@@ -16,6 +16,7 @@ module_name_repetitions = { level = "allow", priority = 2 }
 
 [dependencies]
 anyhow = "1.0.86"
+arboard = "3.4.0"
 clap = { version = "4.5.6", features = ["derive"] }
 crossterm = "0.27.0"
 dirs = "5.0.1"
