@@ -123,21 +123,21 @@ impl<'a> Component for Documents<'a> {
                 };
 
                 out.push(Event::ReturnedFromAltScreen);
-                let Ok(new_doc) = edit_doc(doc.clone()) else {
-                    return out;
+                match edit_doc(doc.clone()) {
+                    Ok(new_doc) => out.push(Event::DocumentEdited(new_doc)),
+                    Err(err) => out.push(Event::ErrorOccurred(err.to_string())),
                 };
-
-                out.push(Event::DocumentEdited(new_doc));
             }
             Command::InsertDoc => {
                 let doc = doc! { "_id" : ObjectId::new() };
 
                 out.push(Event::ReturnedFromAltScreen);
-                let Ok(new_doc) = edit_doc(doc) else {
-                    return out;
-                };
+                out.push(Event::ReturnedFromAltScreen);
 
-                out.push(Event::DocumentCreated(new_doc));
+                match edit_doc(doc) {
+                    Ok(new_doc) => out.push(Event::DocumentCreated(new_doc)),
+                    Err(err) => out.push(Event::ErrorOccurred(err.to_string())),
+                };
             }
             Command::DuplicateDoc => {
                 let Some(doc) = self.selected_doc() else {
@@ -148,11 +148,10 @@ impl<'a> Component for Documents<'a> {
                 let _ = duplicated_doc.insert("_id", ObjectId::new());
 
                 out.push(Event::ReturnedFromAltScreen);
-                let Ok(new_doc) = edit_doc(duplicated_doc) else {
-                    return out;
+                match edit_doc(duplicated_doc) {
+                    Ok(new_doc) => out.push(Event::DocumentCreated(new_doc)),
+                    Err(err) => out.push(Event::ErrorOccurred(err.to_string())),
                 };
-
-                out.push(Event::DocumentCreated(new_doc));
             }
             // TODO: this needs some sort of confirmation
             Command::DeleteDoc => {
