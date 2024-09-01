@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.2](https://github.com/drewzemke/tongo/compare/v0.10.1...v0.10.2) - 2024-09-01
+
+### Fixed
+- *(ci)* allow release-plz workflow to trigger other workflows
+- *(ci)* correct command for tests
+
+### Other
+- *(ci/cd)* add initial CI workflow to check stuff on push
+
 ## [0.10.1](https://github.com/drewzemke/tongo/compare/v0.10.0...v0.10.1) - 2024-09-01
 
 ### Added
