@@ -23,8 +23,12 @@ pub enum Command {
     Reset,
     Refresh,
     ExpandCollapse,
+
     NextPage,
     PreviousPage,
+    FirstPage,
+    LastPage,
+
     Delete,
     Back,
     Quit,
@@ -55,8 +59,12 @@ impl Command {
             Self::Reset => KeyCode::Char('R'),
             Self::Refresh => KeyCode::Char('r'),
             Self::ExpandCollapse => KeyCode::Char(' '),
+
             Self::NextPage => KeyCode::Char('n'),
             Self::PreviousPage => KeyCode::Char('p'),
+            Self::FirstPage => KeyCode::Char('P'),
+            Self::LastPage => KeyCode::Char('N'),
+
             Self::Delete => KeyCode::Char('D'),
             Self::Back => KeyCode::Esc,
             Self::Quit => KeyCode::Char('q'),
