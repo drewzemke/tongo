@@ -27,7 +27,7 @@ pub enum Event {
 
     CollectionsUpdated(Vec<CollectionSpecification>),
     CollectionHighlighted(CollectionSpecification),
-    CollectionSelected,
+    CollectionSelected(CollectionSpecification),
 
     DocumentsUpdated { docs: Vec<Bson>, reset_state: bool },
     CountUpdated(u64),

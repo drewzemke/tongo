@@ -256,7 +256,8 @@ impl Component for Client {
             Event::CollectionHighlighted(coll) => {
                 self.coll = Some(coll.clone());
             }
-            Event::CollectionSelected => {
+            Event::CollectionSelected(coll) => {
+                self.coll = Some(coll.clone());
                 *self.page.borrow_mut() = 0;
                 self.exec_query(true);
                 self.exec_count();
