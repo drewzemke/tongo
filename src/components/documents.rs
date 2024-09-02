@@ -111,6 +111,10 @@ impl<'a> Component for Documents<'a> {
                 vec![Command::NextPage, Command::PreviousPage],
                 "next/prev page",
             ),
+            CommandGroup::new(
+                vec![Command::FirstPage, Command::LastPage],
+                "first/last page",
+            ),
             CommandGroup::new(vec![Command::Refresh], "refresh"),
             CommandGroup::new(vec![Command::Yank], "yank selected"),
             CommandGroup::new(vec![Command::EditDoc], "edit doc"),
@@ -120,6 +124,7 @@ impl<'a> Component for Documents<'a> {
         ]
     }
 
+    #[allow(clippy::too_many_lines)]
     fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
         let ComponentCommand::Command(command) = command else {
             return vec![];
@@ -165,6 +170,15 @@ impl<'a> Component for Documents<'a> {
                     out.push(Event::DocumentPageChanged);
                 }
             }
+            Command::FirstPage => {
+                *self.page.borrow_mut() = 0;
+                out.push(Event::DocumentPageChanged);
+            }
+            Command::LastPage => {
+                let last_page = (self.count as usize).div_ceil(PAGE_SIZE) - 1;
+                *self.page.borrow_mut() = last_page;
+                out.push(Event::DocumentPageChanged);
+            }
             Command::Refresh => {
                 out.push(Event::RefreshRequested);
             }
@@ -182,7 +196,6 @@ impl<'a> Component for Documents<'a> {
             Command::InsertDoc => {
                 let doc = doc! { "_id" : ObjectId::new() };
 
-                out.push(Event::ReturnedFromAltScreen);
                 out.push(Event::ReturnedFromAltScreen);
 
                 match edit_doc(doc) {
