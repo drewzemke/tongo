@@ -95,6 +95,7 @@ impl<'a> Component for Documents<'a> {
     fn focus(&self) {
         *self.app_focus.borrow_mut() = AppFocus::PrimaryScreen(PrimaryScreenFocus::DocTree);
     }
+
     fn commands(&self) -> Vec<CommandGroup> {
         vec![
             CommandGroup::new(

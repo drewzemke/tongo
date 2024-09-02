@@ -83,20 +83,29 @@ impl Component for Connections {
                 out.push(Event::NewConnectionStarted);
             }
             Command::Delete => {
-                let Some(index_to_delete) = self.list.state.selected() else {
-                    return out;
-                };
-                self.items.remove(index_to_delete);
-                let write_result = Connection::write_to_storage(&self.items);
-                if write_result.is_ok() {
-                    out.push(Event::ConnectionDeleted);
-                } else {
-                    out.push(Event::ErrorOccurred(
-                        "An error occurred while saving connection preferences".to_string(),
-                    ));
-                }
+                out.push(Event::ConfirmationRequested(*command));
             }
             _ => {}
+        }
+        out
+    }
+
+    fn handle_event(&mut self, event: &Event) -> Vec<Event> {
+        let mut out = vec![];
+        // only process the confirmation if this component is focused
+        if self.is_focused() && matches!(event, Event::ConfirmationYes(Command::Delete)) {
+            let Some(index_to_delete) = self.list.state.selected() else {
+                return out;
+            };
+            self.items.remove(index_to_delete);
+            let write_result = Connection::write_to_storage(&self.items);
+            if write_result.is_ok() {
+                out.push(Event::ConnectionDeleted);
+            } else {
+                out.push(Event::ErrorOccurred(
+                    "An error occurred while saving connection preferences".to_string(),
+                ));
+            }
         }
         out
     }

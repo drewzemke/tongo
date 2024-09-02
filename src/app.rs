@@ -1,6 +1,7 @@
 use crate::{
     client::Client,
     components::{
+        confirm_modal::ConfirmModal,
         connection_screen::{ConnScreenFocus, ConnectionScreen},
         list::connections::Connections,
         primary_screen::{PrimaryScreen, PrimaryScreenFocus},
@@ -30,6 +31,7 @@ use std::{
 pub enum AppFocus {
     ConnScreen(ConnScreenFocus),
     PrimaryScreen(PrimaryScreenFocus),
+    ConfirmModal,
 }
 
 impl Default for AppFocus {
@@ -45,6 +47,10 @@ pub struct App<'a> {
     conn_screen: ConnectionScreen,
     primary_screen: PrimaryScreen<'a>,
     status_bar: StatusBar,
+    confirm_modal: ConfirmModal,
+
+    // used when displaying the confirm modal
+    background_focus: Option<AppFocus>,
 
     // shared data
     focus: Rc<RefCell<AppFocus>>,
@@ -59,6 +65,7 @@ pub struct App<'a> {
 const DEBOUNCE: Duration = Duration::from_millis(20); // 50 FPS
 
 impl<'a> App<'a> {
+    // TODO: organize this function a bit better
     pub fn new(connection: Option<Connection>, all_connections: Vec<Connection>) -> Self {
         let doc_page = Rc::new(RefCell::new(0));
         let client = Client::new(doc_page.clone());
@@ -74,6 +81,8 @@ impl<'a> App<'a> {
         let focus = Rc::new(RefCell::new(initial_focus));
         let cursor_pos = Rc::new(RefCell::new((0, 0)));
 
+        let confirm_modal = ConfirmModal::new(focus.clone());
+
         let primary_screen = PrimaryScreen::new(focus.clone(), cursor_pos.clone(), doc_page);
 
         let connection_list = Connections::new(focus.clone(), all_connections);
@@ -86,6 +95,7 @@ impl<'a> App<'a> {
             raw_mode: false,
             primary_screen,
             conn_screen: connection_screen,
+            confirm_modal,
 
             // commands: vec![],
             focus,
@@ -197,6 +207,7 @@ impl<'a> Component for App<'a> {
         match *self.focus.borrow() {
             AppFocus::ConnScreen(_) => out.append(&mut self.conn_screen.commands()),
             AppFocus::PrimaryScreen(_) => out.append(&mut self.primary_screen.commands()),
+            AppFocus::ConfirmModal => out.append(&mut self.confirm_modal.commands()),
         }
         out
     }
@@ -207,12 +218,11 @@ impl<'a> Component for App<'a> {
             self.exiting = true;
             return vec![];
         }
-        let mut out = vec![];
-        out.append(&mut self.client.handle_command(command));
-        out.append(&mut self.conn_screen.handle_command(command));
-        out.append(&mut self.primary_screen.handle_command(command));
-        out.append(&mut self.status_bar.handle_command(command));
-        out
+        match *self.focus.borrow() {
+            AppFocus::ConnScreen(_) => self.conn_screen.handle_command(command),
+            AppFocus::PrimaryScreen(_) => self.primary_screen.handle_command(command),
+            AppFocus::ConfirmModal => self.confirm_modal.handle_command(command),
+        }
     }
 
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
@@ -229,6 +239,13 @@ impl<'a> Component for App<'a> {
             }
             Event::ReturnedFromAltScreen => {
                 self.force_clear = true;
+            }
+            Event::ConfirmationRequested(command) => {
+                self.background_focus = Some(self.focus.borrow().clone());
+                self.confirm_modal.show_with(*command);
+            }
+            Event::ConfirmationYes(..) | Event::ConfirmationNo => {
+                *self.focus.borrow_mut() = self.background_focus.take().unwrap_or_default();
             }
             _ => {}
         };
@@ -251,6 +268,14 @@ impl<'a> Component for App<'a> {
         match &*self.focus.borrow() {
             AppFocus::PrimaryScreen(..) => self.primary_screen.render(frame, content),
             AppFocus::ConnScreen(..) => self.conn_screen.render(frame, content),
+            AppFocus::ConfirmModal => {
+                match self.background_focus {
+                    Some(AppFocus::PrimaryScreen(..)) => self.primary_screen.render(frame, content),
+                    Some(AppFocus::ConnScreen(..)) => self.conn_screen.render(frame, content),
+                    _ => {}
+                }
+                self.confirm_modal.render(frame, content);
+            }
         }
 
         // status bar

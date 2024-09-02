@@ -6,6 +6,8 @@ use mongodb::{
 
 use crate::connection::Connection;
 
+use super::command::Command;
+
 #[derive(Debug, Clone)]
 pub enum Event {
     Tick,
@@ -54,4 +56,9 @@ pub enum Event {
     InputKeyPressed,
 
     ReturnedFromAltScreen,
+
+    ConfirmationRequested(Command),
+    // TODO: Better names
+    ConfirmationYes(Command),
+    ConfirmationNo,
 }
