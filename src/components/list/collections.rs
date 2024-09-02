@@ -56,7 +56,9 @@ impl Component for Collections {
             return vec![];
         };
         if matches!(command, Command::Confirm) {
-            out.push(Event::CollectionSelected);
+            if let Some(coll) = self.get_selected() {
+                out.push(Event::CollectionSelected(coll.clone()));
+            }
         }
         out
     }
