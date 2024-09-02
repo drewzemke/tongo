@@ -5,6 +5,7 @@ use crate::system::{
 use crossterm::event::Event as CrosstermEvent;
 use ratatui::{layout::Rect, Frame};
 
+pub mod confirm_modal;
 pub mod connection_screen;
 pub mod documents;
 pub mod input;

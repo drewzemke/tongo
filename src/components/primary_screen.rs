@@ -55,8 +55,8 @@ impl<'a> PrimaryScreen<'a> {
     /// Narrows the shared `AppFocus` variable into the focus enum for this componenent
     fn internal_focus(&self) -> Option<PrimaryScreenFocus> {
         match &*self.app_focus.borrow() {
-            AppFocus::ConnScreen(..) => None,
             AppFocus::PrimaryScreen(focus) => Some(focus.clone()),
+            _ => None,
         }
     }
 }
