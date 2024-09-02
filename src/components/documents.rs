@@ -26,14 +26,65 @@ use tui_tree_widget::{Tree, TreeItem, TreeState};
 #[derive(Debug, Default)]
 pub struct Documents<'a> {
     app_focus: Rc<RefCell<AppFocus>>,
-    pub state: TreeState<MongoKey>,
-    pub items: Vec<TreeItem<'a, MongoKey>>,
+    state: TreeState<MongoKey>,
+    items: Vec<TreeItem<'a, MongoKey>>,
 
     #[allow(clippy::struct_field_names)]
-    pub documents: Vec<Bson>,
+    documents: Vec<Bson>,
 
-    pub page: usize,
-    pub count: u64,
+    page: Rc<RefCell<usize>>,
+    count: u64,
+}
+
+impl<'a> Documents<'a> {
+    pub fn new(app_focus: Rc<RefCell<AppFocus>>, doc_page: Rc<RefCell<usize>>) -> Self {
+        Self {
+            app_focus,
+            page: doc_page,
+            ..Default::default()
+        }
+    }
+
+    fn selected_doc_as_bson(&self) -> Option<&Bson> {
+        let id = self.state.selected().first()?;
+
+        self.items
+            .iter()
+            .position(|tree_item| tree_item.identifier() == id)
+            .and_then(|index| self.documents.get(index))
+    }
+
+    fn selected_doc(&self) -> Option<&Document> {
+        self.selected_doc_as_bson()
+            .and_then(|bson| bson.as_document())
+    }
+
+    // TODO: this definitely needs tests
+    // TODO: ... and a better name
+    fn selected_bson(&self) -> Option<&Bson> {
+        let mut bson = self.selected_doc_as_bson()?;
+
+        // ignore the first element, which is always the doc id
+        let path = &self.state.selected()[1..];
+
+        for key in path {
+            match (bson, key) {
+                (Bson::Document(doc), MongoKey::String(key)) => {
+                    bson = doc.get(key)?;
+                }
+                (Bson::Array(array), MongoKey::Usize(index)) => {
+                    bson = array.get(*index)?;
+                }
+                _ => break,
+            }
+        }
+
+        Some(bson)
+    }
+
+    fn page(&self) -> usize {
+        *self.page.borrow()
+    }
 }
 
 impl<'a> Component for Documents<'a> {
@@ -102,16 +153,16 @@ impl<'a> Component for Documents<'a> {
                 }
             }
             Command::NextPage => {
-                let end = (self.page + 1) * PAGE_SIZE;
+                let end = (self.page() + 1) * PAGE_SIZE;
                 if end < self.count as usize {
-                    self.page += 1;
-                    out.push(Event::DocumentPageChanged(self.page));
+                    *self.page.borrow_mut() += 1;
+                    out.push(Event::DocumentPageChanged);
                 }
             }
             Command::PreviousPage => {
-                if self.page > 0 {
-                    self.page -= 1;
-                    out.push(Event::DocumentPageChanged(self.page));
+                if self.page() > 0 {
+                    *self.page.borrow_mut() -= 1;
+                    out.push(Event::DocumentPageChanged);
                 }
             }
             Command::Refresh => {
@@ -197,9 +248,6 @@ impl<'a> Component for Documents<'a> {
             Event::CountUpdated(count) => {
                 self.count = *count;
             }
-            Event::DocumentPageChanged(page) => {
-                self.page = *page;
-            }
 
             _ => (),
         }
@@ -213,7 +261,7 @@ impl<'a> Component for Documents<'a> {
             Color::White
         };
 
-        let start = self.page * PAGE_SIZE + 1;
+        let start = *self.page.borrow() * PAGE_SIZE + 1;
         let end = (start + PAGE_SIZE - 1).min(self.count as usize);
 
         let title = format!("Documents ({start}-{end} of {})", self.count);
@@ -234,51 +282,5 @@ impl<'a> Component for Documents<'a> {
             .highlight_style(Style::new().black().on_white().bold());
 
         frame.render_stateful_widget(widget, area, &mut self.state);
-    }
-}
-
-impl<'a> Documents<'a> {
-    pub fn new(app_focus: Rc<RefCell<AppFocus>>) -> Self {
-        Self {
-            app_focus,
-            ..Default::default()
-        }
-    }
-
-    fn selected_doc_as_bson(&self) -> Option<&Bson> {
-        let id = self.state.selected().first()?;
-
-        self.items
-            .iter()
-            .position(|tree_item| tree_item.identifier() == id)
-            .and_then(|index| self.documents.get(index))
-    }
-
-    fn selected_doc(&self) -> Option<&Document> {
-        self.selected_doc_as_bson()
-            .and_then(|bson| bson.as_document())
-    }
-
-    // TODO: this definitely needs tests
-    // TODO: ... and a better name
-    fn selected_bson(&self) -> Option<&Bson> {
-        let mut bson = self.selected_doc_as_bson()?;
-
-        // ignore the first element, which is always the doc id
-        let path = &self.state.selected()[1..];
-
-        for key in path {
-            match (bson, key) {
-                (Bson::Document(doc), MongoKey::String(key)) => {
-                    bson = doc.get(key)?;
-                }
-                (Bson::Array(array), MongoKey::Usize(index)) => {
-                    bson = array.get(*index)?;
-                }
-                _ => break,
-            }
-        }
-
-        Some(bson)
     }
 }
