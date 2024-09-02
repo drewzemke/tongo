@@ -60,7 +60,8 @@ const DEBOUNCE: Duration = Duration::from_millis(20); // 50 FPS
 
 impl<'a> App<'a> {
     pub fn new(connection: Option<Connection>, all_connections: Vec<Connection>) -> Self {
-        let client = Client::default();
+        let doc_page = Rc::new(RefCell::new(0));
+        let client = Client::new(doc_page.clone());
 
         let initial_focus = if let Some(conn) = connection {
             client.set_conn_str(conn.connection_str);
@@ -69,10 +70,11 @@ impl<'a> App<'a> {
             AppFocus::ConnScreen(ConnScreenFocus::ConnList)
         };
 
+        // initialize shared data
         let focus = Rc::new(RefCell::new(initial_focus));
         let cursor_pos = Rc::new(RefCell::new((0, 0)));
 
-        let primary_screen = PrimaryScreen::new(focus.clone(), cursor_pos.clone());
+        let primary_screen = PrimaryScreen::new(focus.clone(), cursor_pos.clone(), doc_page);
 
         let connection_list = Connections::new(focus.clone(), all_connections);
         let connection_screen =

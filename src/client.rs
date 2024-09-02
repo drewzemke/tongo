@@ -12,7 +12,11 @@ use mongodb::{
     Client as MongoClient,
 };
 use ratatui::prelude::{Frame, Rect};
-use std::sync::mpsc::{self, Receiver, Sender};
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    sync::mpsc::{self, Receiver, Sender},
+};
 
 const SEND_ERR_MSG: &str = "Error occurred while processing server response.";
 
@@ -28,7 +32,7 @@ pub struct Client {
     coll: Option<CollectionSpecification>,
 
     filter: Document,
-    page: usize,
+    page: Rc<RefCell<usize>>,
 
     response_send: Sender<Event>,
     response_recv: Receiver<Event>,
@@ -43,7 +47,7 @@ impl Default for Client {
             coll: None,
 
             filter: Document::default(),
-            page: 0,
+            page: Rc::new(RefCell::new(0)),
 
             response_send,
             response_recv,
@@ -52,6 +56,13 @@ impl Default for Client {
 }
 
 impl Client {
+    pub fn new(doc_page: Rc<RefCell<usize>>) -> Self {
+        Self {
+            page: doc_page,
+            ..Default::default()
+        }
+    }
+
     pub fn set_conn_str(&self, url: String) {
         let sender = self.response_send.clone();
 
@@ -117,7 +128,7 @@ impl Client {
         let sender = self.response_send.clone();
 
         let filter = Some(self.filter.clone()); // self.filter_editor.filter.clone();
-        let skip = self.page * PAGE_SIZE;
+        let skip = *self.page.borrow() * PAGE_SIZE;
         let options = FindOptions::builder()
             .skip(skip as u64)
             .limit(PAGE_SIZE as i64)
@@ -246,23 +257,18 @@ impl Component for Client {
                 self.coll = Some(coll.clone());
             }
             Event::CollectionSelected => {
-                self.page = 0;
+                *self.page.borrow_mut() = 0;
                 self.exec_query(true);
                 self.exec_count();
-                // FIXME: this causes a second query which isn't necessary
-                out.push(Event::DocumentPageChanged(self.page));
             }
-            Event::DocumentPageChanged(page) => {
-                self.page = *page;
+            Event::DocumentPageChanged => {
                 self.exec_query(true);
             }
             Event::DocFilterUpdated(doc) => {
                 self.filter.clone_from(doc);
-                self.page = 0;
+                *self.page.borrow_mut() = 0;
                 self.exec_query(true);
                 self.exec_count();
-                // FIXME: this causes a second query which isn't necessary
-                out.push(Event::DocumentPageChanged(0));
             }
             Event::DocumentEdited(doc) => {
                 if let Some(id) = doc.get("_id") {

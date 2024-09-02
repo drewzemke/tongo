@@ -31,7 +31,7 @@ pub enum Event {
 
     DocumentsUpdated { docs: Vec<Bson>, reset_state: bool },
     CountUpdated(u64),
-    DocumentPageChanged(usize),
+    DocumentPageChanged,
     DocFilterUpdated(Document),
     DataSentToClipboard,
     ErrorOccurred(String),
