@@ -9,7 +9,7 @@ use crate::{
 };
 use ratatui::{
     prelude::*,
-    widgets::{Block, Clear, Paragraph},
+    widgets::{Block, Clear, Paragraph, Wrap},
 };
 use std::{cell::RefCell, rc::Rc};
 
@@ -30,6 +30,20 @@ impl ConfirmModal {
         self.command = Some(command);
         self.focus();
     }
+
+    const fn text_content(&self) -> Option<(&'static str, &'static str)> {
+        match self.command {
+            Some(Command::Delete) => Some((
+                "Confirm Delete",
+                "Are you sure you want to delete this connection?",
+            )),
+            Some(Command::DeleteDoc) => Some((
+                "Confirm Delete",
+                "Are you sure you want to delete this document? This cannot be undone.",
+            )),
+            _ => None,
+        }
+    }
 }
 
 impl Component for ConfirmModal {
@@ -42,22 +56,22 @@ impl Component for ConfirmModal {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        let Some(command) = self.command else {
+        let Some((title, message)) = self.text_content() else {
             return;
         };
 
         let layout = Layout::default()
             .constraints(vec![
                 Constraint::Fill(1),
-                Constraint::Length(3),
+                Constraint::Length(5),
                 Constraint::Fill(1),
             ])
             .horizontal_margin(5)
             .split(area);
 
-        let content = Paragraph::new(format!("{command:?}")).block(
+        let content = Paragraph::new(message).wrap(Wrap { trim: true }).block(
             Block::bordered()
-                .title("Are you sure?")
+                .title(title)
                 .border_style(Style::default().fg(Color::Magenta)),
         );
 
@@ -67,8 +81,8 @@ impl Component for ConfirmModal {
 
     fn commands(&self) -> Vec<CommandGroup> {
         vec![
-            CommandGroup::new(vec![Command::Confirm], "yes"),
-            CommandGroup::new(vec![Command::Back], "no"),
+            CommandGroup::new(vec![Command::Confirm], "confirm"),
+            CommandGroup::new(vec![Command::Back], "cancel"),
         ]
     }
 
