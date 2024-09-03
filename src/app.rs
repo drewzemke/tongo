@@ -218,7 +218,10 @@ impl<'a> Component for App<'a> {
             self.exiting = true;
             return vec![];
         }
-        match *self.focus.borrow() {
+
+        // HACK: need to clone here to avoid borrow error with the focus `RefCell`
+        let app_focus = self.focus.borrow().clone();
+        match app_focus {
             AppFocus::ConnScreen(_) => self.conn_screen.handle_command(command),
             AppFocus::PrimaryScreen(_) => self.primary_screen.handle_command(command),
             AppFocus::ConfirmModal => self.confirm_modal.handle_command(command),
