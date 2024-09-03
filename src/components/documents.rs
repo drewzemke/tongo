@@ -218,13 +218,8 @@ impl<'a> Component for Documents<'a> {
                     Err(err) => out.push(Event::ErrorOccurred(err.to_string())),
                 };
             }
-            // TODO: this needs some sort of confirmation
             Command::DeleteDoc => {
-                let Some(doc) = self.selected_doc() else {
-                    return out;
-                };
-
-                out.push(Event::DocumentDeleted(doc.clone()));
+                out.push(Event::ConfirmationRequested(Command::DeleteDoc));
             }
             Command::Yank => {
                 if let Some(bson) = self.selected_bson() {
@@ -261,6 +256,13 @@ impl<'a> Component for Documents<'a> {
             }
             Event::CountUpdated(count) => {
                 self.count = *count;
+            }
+            Event::ConfirmationYes(Command::DeleteDoc) => {
+                if self.is_focused() {
+                    if let Some(doc) = self.selected_doc() {
+                        return vec![Event::DocumentDeleted(doc.clone())];
+                    };
+                }
             }
 
             _ => (),
