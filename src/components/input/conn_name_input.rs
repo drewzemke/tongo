@@ -9,7 +9,10 @@ use crate::{
         event::Event,
     },
 };
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 
 #[derive(Debug, Default)]
 pub struct ConnNameInput {
@@ -18,7 +21,7 @@ pub struct ConnNameInput {
 }
 
 impl ConnNameInput {
-    pub fn new(app_focus: Rc<RefCell<AppFocus>>, cursor_pos: Rc<RefCell<(u16, u16)>>) -> Self {
+    pub fn new(app_focus: Rc<RefCell<AppFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
         let input = InnerInput::new("Connection Name", cursor_pos, DefaultFormatter::default());
         Self { app_focus, input }
     }

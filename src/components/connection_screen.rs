@@ -9,7 +9,10 @@ use crate::{
     system::{command::CommandGroup, event::Event},
 };
 use ratatui::prelude::*;
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub enum ConnScreenFocus {
@@ -31,7 +34,7 @@ impl ConnectionScreen {
     pub fn new(
         connection_list: Connections,
         app_focus: Rc<RefCell<AppFocus>>,
-        cursor_pos: Rc<RefCell<(u16, u16)>>,
+        cursor_pos: Rc<Cell<(u16, u16)>>,
     ) -> Self {
         let conn_name_input = ConnNameInput::new(app_focus.clone(), cursor_pos.clone());
         let conn_str_input = ConnStrInput::new(app_focus.clone(), cursor_pos);

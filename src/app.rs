@@ -21,7 +21,7 @@ use ratatui::{
     Frame, Terminal,
 };
 use std::{
-    cell::RefCell,
+    cell::{Cell, RefCell},
     collections::VecDeque,
     rc::Rc,
     time::{Duration, Instant},
@@ -54,7 +54,7 @@ pub struct App<'a> {
 
     // shared data
     focus: Rc<RefCell<AppFocus>>,
-    cursor_pos: Rc<RefCell<(u16, u16)>>,
+    cursor_pos: Rc<Cell<(u16, u16)>>,
 
     // flags
     raw_mode: bool,
@@ -79,7 +79,7 @@ impl<'a> App<'a> {
 
         // initialize shared data
         let focus = Rc::new(RefCell::new(initial_focus));
-        let cursor_pos = Rc::new(RefCell::new((0, 0)));
+        let cursor_pos = Rc::new(Cell::new((0, 0)));
 
         let confirm_modal = ConfirmModal::new(focus.clone());
 
@@ -288,7 +288,7 @@ impl<'a> Component for App<'a> {
 
         // show the cursor if we're editing something
         if self.raw_mode {
-            let (x, y) = *self.cursor_pos.borrow();
+            let (x, y) = self.cursor_pos.get();
             frame.set_cursor(x, y);
         }
     }

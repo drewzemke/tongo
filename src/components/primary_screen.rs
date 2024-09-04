@@ -13,7 +13,10 @@ use crate::{
     },
 };
 use ratatui::prelude::*;
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub enum PrimaryScreenFocus {
@@ -36,7 +39,7 @@ pub struct PrimaryScreen<'a> {
 impl<'a> PrimaryScreen<'a> {
     pub fn new(
         app_focus: Rc<RefCell<AppFocus>>,
-        cursor_pos: Rc<RefCell<(u16, u16)>>,
+        cursor_pos: Rc<Cell<(u16, u16)>>,
         doc_page: Rc<RefCell<usize>>,
     ) -> Self {
         let db_list = Databases::new(app_focus.clone());
