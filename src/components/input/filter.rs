@@ -14,7 +14,10 @@ use ratatui::{
     style::{Style, Stylize},
     text::{Line, Span, Text},
 };
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Cell, RefCell},
+    rc::Rc,
+};
 use tui_input::Input as TuiInput;
 
 #[derive(Debug, Default)]
@@ -26,7 +29,7 @@ pub struct FilterInput {
 const DEFAULT_FILTER: &str = "{}";
 
 impl FilterInput {
-    pub fn new(app_focus: Rc<RefCell<AppFocus>>, cursor_pos: Rc<RefCell<(u16, u16)>>) -> Self {
+    pub fn new(app_focus: Rc<RefCell<AppFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
         let mut input = InnerInput::new("Filter", cursor_pos, FilterInputFormatter::default());
         input.state = input.state.with_value(DEFAULT_FILTER.to_string());
         input.formatter.on_change(DEFAULT_FILTER);

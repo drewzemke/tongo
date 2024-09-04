@@ -6,7 +6,7 @@ use ratatui::{
     prelude::*,
     widgets::{Block, Borders, Clear, Padding, Paragraph},
 };
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::Cell, rc::Rc};
 use tui_input::{backend::crossterm::EventHandler, Input as TuiInput};
 
 pub mod conn_name_input;
@@ -19,7 +19,7 @@ pub struct InnerInput<T: Default + std::fmt::Debug> {
     pub formatter: T,
 
     title: &'static str,
-    cursor_pos: Rc<RefCell<(u16, u16)>>,
+    cursor_pos: Rc<Cell<(u16, u16)>>,
     editing: bool,
 }
 
@@ -27,7 +27,7 @@ impl<T> InnerInput<T>
 where
     T: Default + InputFormatter + std::fmt::Debug,
 {
-    pub fn new(title: &'static str, cursor_pos: Rc<RefCell<(u16, u16)>>, formatter: T) -> Self {
+    pub fn new(title: &'static str, cursor_pos: Rc<Cell<(u16, u16)>>, formatter: T) -> Self {
         Self {
             formatter,
             title,
@@ -91,7 +91,7 @@ where
                 area.x + (self.state.visual_cursor().max(input_scroll) - input_scroll) as u16 + 2,
                 area.y + 1,
             );
-            *self.cursor_pos.borrow_mut() = cursor_pos;
+            self.cursor_pos.set(cursor_pos);
         }
     }
 }
