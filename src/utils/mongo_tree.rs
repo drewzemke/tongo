@@ -1,9 +1,3 @@
-#![allow(
-    clippy::cast_possible_truncation,
-    clippy::cast_sign_loss,
-    clippy::cast_possible_wrap
-)]
-
 use std::fmt::Display;
 
 use mongodb::bson::{oid::ObjectId, Bson, Document};
@@ -22,6 +16,7 @@ impl From<MongoKey> for Bson {
         match value {
             MongoKey::String(s) => Self::String(s),
             MongoKey::ObjectId(oid) => Self::ObjectId(oid),
+            #[expect(clippy::cast_possible_wrap)]
             MongoKey::Usize(n) => Self::Int64(n as i64),
         }
     }
@@ -32,7 +27,9 @@ impl From<Bson> for MongoKey {
         match value {
             Bson::String(id) => Self::String(id),
             Bson::ObjectId(id) => Self::ObjectId(id),
+            #[expect(clippy::cast_sign_loss)]
             Bson::Int32(n) => Self::Usize(n as usize),
+            #[expect(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
             Bson::Int64(n) => Self::Usize(n as usize),
             _ => Self::String(format!("{value:?}")),
         }

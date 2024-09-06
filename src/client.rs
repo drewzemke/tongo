@@ -1,5 +1,3 @@
-#![allow(clippy::cast_possible_wrap)]
-
 use crate::{
     components::{Component, ComponentCommand},
     system::{command::CommandGroup, event::Event},
@@ -25,7 +23,7 @@ pub const PAGE_SIZE: usize = 5;
 
 #[derive(Debug)]
 pub struct Client {
-    #[allow(clippy::struct_field_names)]
+    #[expect(clippy::struct_field_names)]
     client: Option<MongoClient>,
 
     db: Option<DatabaseSpecification>,
@@ -129,6 +127,8 @@ impl Client {
 
         let filter = Some(self.filter.clone()); // self.filter_editor.filter.clone();
         let skip = *self.page.borrow() * PAGE_SIZE;
+
+        #[expect(clippy::cast_possible_wrap)]
         let options = FindOptions::builder()
             .skip(skip as u64)
             .limit(PAGE_SIZE as i64)

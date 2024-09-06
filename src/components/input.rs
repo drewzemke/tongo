@@ -1,5 +1,3 @@
-#![allow(clippy::cast_possible_truncation)]
-
 use crate::system::event::Event;
 use crossterm::event::Event as CrosstermEvent;
 use ratatui::{
@@ -75,6 +73,7 @@ where
         // create the text
         let text = self.formatter.get_formatted();
 
+        #[expect(clippy::cast_possible_truncation)]
         let input_widget = Paragraph::new(text).scroll((0, input_scroll as u16)).block(
             Block::default()
                 .title(self.title)
@@ -86,6 +85,7 @@ where
         frame.render_widget(input_widget, area);
 
         // update cursor position
+        #[expect(clippy::cast_possible_truncation)]
         if self.is_editing() {
             let cursor_pos = (
                 area.x + (self.state.visual_cursor().max(input_scroll) - input_scroll) as u16 + 2,

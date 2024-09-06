@@ -40,10 +40,6 @@ impl FilterInput {
         self.input.is_editing()
     }
 
-    pub fn value(&self) -> &str {
-        self.input.state.value()
-    }
-
     pub fn start_editing(&mut self) {
         self.input.start_editing();
     }
