@@ -1,5 +1,3 @@
-#![allow(clippy::cast_possible_truncation)]
-
 use super::{primary_screen::PrimaryScreenFocus, Component};
 use crate::{
     app::AppFocus,
@@ -29,7 +27,7 @@ pub struct Documents<'a> {
     state: TreeState<MongoKey>,
     items: Vec<TreeItem<'a, MongoKey>>,
 
-    #[allow(clippy::struct_field_names)]
+    #[expect(clippy::struct_field_names)]
     documents: Vec<Bson>,
 
     page: Rc<RefCell<usize>>,
@@ -125,7 +123,6 @@ impl<'a> Component for Documents<'a> {
         ]
     }
 
-    #[allow(clippy::too_many_lines)]
     fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
         let ComponentCommand::Command(command) = command else {
             return vec![];
@@ -160,6 +157,8 @@ impl<'a> Component for Documents<'a> {
             }
             Command::NextPage => {
                 let end = (self.page() + 1) * PAGE_SIZE;
+
+                #[expect(clippy::cast_possible_truncation)]
                 if end < self.count as usize {
                     *self.page.borrow_mut() += 1;
                     out.push(Event::DocumentPageChanged);
@@ -176,6 +175,7 @@ impl<'a> Component for Documents<'a> {
                 out.push(Event::DocumentPageChanged);
             }
             Command::LastPage => {
+                #[expect(clippy::cast_possible_truncation)]
                 let last_page = (self.count as usize).div_ceil(PAGE_SIZE) - 1;
                 *self.page.borrow_mut() = last_page;
                 out.push(Event::DocumentPageChanged);
@@ -278,6 +278,7 @@ impl<'a> Component for Documents<'a> {
         };
 
         let start = *self.page.borrow() * PAGE_SIZE + 1;
+        #[expect(clippy::cast_possible_truncation)]
         let end = (start + PAGE_SIZE - 1).min(self.count as usize);
 
         let title = format!("Documents ({start}-{end} of {})", self.count);

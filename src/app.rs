@@ -220,6 +220,7 @@ impl<'a> Component for App<'a> {
         }
 
         // HACK: need to clone here to avoid borrow error with the focus `RefCell`
+        // TODO: refactor to use `Cell` instead of `RefCell`, since AppFocus is Copy
         let app_focus = self.focus.borrow().clone();
         match app_focus {
             AppFocus::ConnScreen(_) => self.conn_screen.handle_command(command),

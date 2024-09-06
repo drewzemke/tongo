@@ -1,5 +1,3 @@
-#![allow(clippy::match_same_arms)]
-
 use crossterm::event::KeyCode;
 use ratatui::{
     style::{Color, Modifier, Style},
@@ -43,6 +41,7 @@ pub enum Command {
 impl Command {
     // TODO: make configurable
     pub const fn key(self) -> KeyCode {
+        #[expect(clippy::match_same_arms)]
         match self {
             Self::NavUp => KeyCode::Up,
             Self::NavDown => KeyCode::Down,
