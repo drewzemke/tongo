@@ -2,12 +2,13 @@ use crate::{
     components::{Component, ComponentCommand},
     system::{command::CommandGroup, event::Event},
 };
-use futures::TryStreamExt;
+use anyhow::Result;
+use futures::{Future, TryStreamExt};
 use mongodb::{
     bson::{doc, Bson, Document},
     options::{ClientOptions, FindOptions},
     results::{CollectionSpecification, DatabaseSpecification},
-    Client as MongoClient,
+    Client as MongoClient, Collection, Database,
 };
 use ratatui::prelude::{Frame, Rect};
 use std::{
@@ -16,15 +17,13 @@ use std::{
     sync::mpsc::{self, Receiver, Sender},
 };
 
-const SEND_ERR_MSG: &str = "Error occurred while processing server response.";
-
 // TODO: make configurable
 pub const PAGE_SIZE: usize = 5;
 
 #[derive(Debug)]
 pub struct Client {
     #[expect(clippy::struct_field_names)]
-    client: Option<MongoClient>,
+    mongo_client: Option<MongoClient>,
 
     db: Option<DatabaseSpecification>,
     coll: Option<CollectionSpecification>,
@@ -40,7 +39,7 @@ impl Default for Client {
     fn default() -> Self {
         let (response_send, response_recv) = mpsc::channel::<Event>();
         Self {
-            client: None,
+            mongo_client: None,
             db: None,
             coll: None,
 
@@ -61,70 +60,74 @@ impl Client {
         }
     }
 
-    pub fn set_conn_str(&self, url: String) {
+    /// Executes an asynchronous operation and sends the result through a channel.
+    ///
+    /// # Arguments
+    ///
+    /// * `op` - A Future that resolves to a `Result<Event>`. It represents the operation to be executed.
+    fn exec<F>(&self, op: F)
+    where
+        F: Future<Output = Result<Event>> + Send + 'static,
+    {
         let sender = self.response_send.clone();
 
         tokio::spawn(async move {
-            let response = ClientOptions::parse(url)
-                .await
-                .and_then(MongoClient::with_options)
-                .map_or_else(
-                    |err| Event::ErrorOccurred(err.to_string()),
-                    Event::ClientCreated,
-                );
-
-            sender.send(response).expect(SEND_ERR_MSG);
-        });
-    }
-
-    pub fn exec_get_dbs(&self) {
-        let client = match self.client {
-            Some(ref client) => client.clone(),
-            None => return,
-        };
-        let sender = self.response_send.clone();
-
-        tokio::spawn(async move {
-            let response = client.list_databases(None, None).await.map_or_else(
-                |err| Event::ErrorOccurred(err.to_string()),
-                Event::DatabasesUpdated,
-            );
-
-            sender.send(response).expect(SEND_ERR_MSG);
-        });
-    }
-
-    fn exec_get_collections(&self) {
-        let db = match (&self.client, &self.db) {
-            (Some(client), Some(db)) => client.database(&db.name),
-            _ => return,
-        };
-
-        let sender = self.response_send.clone();
-
-        tokio::spawn(async move {
-            let resonse = match db.list_collections(None, None).await {
-                Ok(cursor) => cursor.try_collect::<Vec<_>>().await.map_or_else(
-                    |err| Event::ErrorOccurred(err.to_string()),
-                    Event::CollectionsUpdated,
-                ),
+            let result = match op.await {
+                Ok(event) => event,
                 Err(err) => Event::ErrorOccurred(err.to_string()),
             };
 
-            sender.send(resonse).expect(SEND_ERR_MSG);
+            sender
+                .send(result)
+                .expect("Error occurred while processing server response.");
         });
     }
 
-    fn exec_query(&self, reset_state: bool) {
-        let coll = match (&self.client, &self.db, &self.coll) {
-            (Some(client), Some(db), Some(coll)) => {
-                client.database(&db.name).collection::<Bson>(&coll.name)
-            }
-            _ => return,
-        };
+    pub fn set_conn_str(&self, url: String) {
+        self.exec(async move {
+            let options = ClientOptions::parse(url).await?;
+            let client = MongoClient::with_options(options)?;
+            Ok(Event::ClientCreated(client))
+        });
+    }
 
-        let sender = self.response_send.clone();
+    fn get_database(&self) -> Option<Database> {
+        let client = self.mongo_client.as_ref()?;
+        let db_spec = self.db.as_ref()?;
+        Some(client.database(&db_spec.name))
+    }
 
+    fn get_collection<T>(&self) -> Option<Collection<T>> {
+        let db = self.get_database()?;
+        let coll = self.coll.as_ref()?;
+        Some(db.collection::<T>(&coll.name))
+    }
+
+    fn query_dbs(&self) -> Option<()> {
+        let client = self.mongo_client.clone()?;
+
+        self.exec(async move {
+            let dbs = client.list_databases(None, None).await?;
+            Ok(Event::DatabasesUpdated(dbs))
+        });
+
+        Some(())
+    }
+
+    fn query_collections(&self) -> Option<()> {
+        let db = self.get_database()?;
+
+        self.exec(async move {
+            let cursor = db.list_collections(None, None).await?;
+            let colls = cursor.try_collect::<Vec<_>>().await?;
+            Ok(Event::CollectionsUpdated(colls))
+        });
+
+        Some(())
+    }
+
+    fn query(&self, reset_state: bool) -> Option<()> {
+        let coll = self.get_collection::<Bson>()?;
         let filter = Some(self.filter.clone()); // self.filter_editor.filter.clone();
         let skip = *self.page.borrow() * PAGE_SIZE;
 
@@ -134,101 +137,59 @@ impl Client {
             .limit(PAGE_SIZE as i64)
             .build();
 
-        tokio::spawn(async move {
-            let cursor = coll.find(filter, options).await;
-            let response = match cursor {
-                Ok(cursor) => cursor.try_collect::<Vec<_>>().await.map_or_else(
-                    |err| Event::ErrorOccurred(err.to_string()),
-                    |docs| Event::DocumentsUpdated { docs, reset_state },
-                ),
-                Err(err) => Event::ErrorOccurred(err.to_string()),
-            };
-
-            sender.send(response).expect(SEND_ERR_MSG);
+        self.exec(async move {
+            let cursor = coll.find(filter, options).await?;
+            let docs = cursor.try_collect::<Vec<_>>().await?;
+            Ok(Event::DocumentsUpdated { docs, reset_state })
         });
+
+        Some(())
     }
 
-    fn exec_count(&self) {
-        let coll = match (&self.client, &self.db, &self.coll) {
-            (Some(client), Some(db), Some(coll)) => {
-                client.database(&db.name).collection::<Bson>(&coll.name)
-            }
-            _ => return,
-        };
+    fn count(&self) -> Option<()> {
+        let coll = self.get_collection::<Bson>()?;
+        let filter = Some(self.filter.clone());
 
-        let sender = self.response_send.clone();
-
-        let filter = Some(self.filter.clone()); // self.filter_editor.filter.clone();
-
-        tokio::spawn(async move {
-            let response = coll.count_documents(filter, None).await.map_or_else(
-                |err| Event::ErrorOccurred(err.to_string()),
-                Event::CountUpdated,
-            );
-
-            sender.send(response).expect(SEND_ERR_MSG);
+        self.exec(async move {
+            let count = coll.count_documents(filter, None).await?;
+            Ok(Event::CountUpdated(count))
         });
+
+        Some(())
     }
 
-    fn exec_insert_one(&self, doc: Document) {
-        let coll = match (&self.client, &self.db, &self.coll) {
-            (Some(client), Some(db), Some(coll)) => {
-                client.database(&db.name).collection::<Document>(&coll.name)
-            }
-            _ => return,
-        };
+    fn insert_doc(&self, doc: Document) -> Option<()> {
+        let coll = self.get_collection::<Document>()?;
 
-        let sender = self.response_send.clone();
-
-        tokio::spawn(async move {
-            let response = coll.insert_one(doc, None).await.map_or_else(
-                |err| Event::ErrorOccurred(err.to_string()),
-                |_| Event::InsertConfirmed,
-            );
-
-            sender.send(response).expect(SEND_ERR_MSG);
+        self.exec(async move {
+            coll.insert_one(doc, None).await?;
+            Ok(Event::InsertConfirmed)
         });
+
+        Some(())
     }
 
-    fn exec_update_one(&self, filter: Document, update: Document) {
-        let coll = match (&self.client, &self.db, &self.coll) {
-            (Some(client), Some(db), Some(coll)) => {
-                client.database(&db.name).collection::<Bson>(&coll.name)
-            }
-            _ => return,
-        };
-
-        let sender = self.response_send.clone();
+    fn update_doc(&self, filter: Document, update: Document) -> Option<()> {
+        let coll = self.get_collection::<Bson>()?;
         let update = doc! { "$set": update };
 
-        tokio::spawn(async move {
-            let response = coll.update_one(filter, update, None).await.map_or_else(
-                |err| Event::ErrorOccurred(err.to_string()),
-                |_| Event::UpdateConfirmed,
-            );
-
-            sender.send(response).expect(SEND_ERR_MSG);
+        self.exec(async move {
+            coll.update_one(filter, update, None).await?;
+            Ok(Event::UpdateConfirmed)
         });
+
+        Some(())
     }
 
-    fn exec_delete_one(&self, filter: Document) {
-        let coll = match (&self.client, &self.db, &self.coll) {
-            (Some(client), Some(db), Some(coll)) => {
-                client.database(&db.name).collection::<Document>(&coll.name)
-            }
-            _ => return,
-        };
+    fn delete_doc(&self, filter: Document) -> Option<()> {
+        let coll = self.get_collection::<Document>()?;
 
-        let sender = self.response_send.clone();
-
-        tokio::spawn(async move {
-            let response = coll.delete_one(filter, None).await.map_or_else(
-                |err| Event::ErrorOccurred(err.to_string()),
-                |_| Event::DeleteConfirmed,
-            );
-
-            sender.send(response).expect(SEND_ERR_MSG);
+        self.exec(async move {
+            coll.delete_one(filter, None).await?;
+            Ok(Event::DeleteConfirmed)
         });
+
+        Some(())
     }
 }
 
@@ -246,12 +207,12 @@ impl Component for Client {
                 self.set_conn_str(conn.connection_str.clone());
             }
             Event::ClientCreated(client) => {
-                self.client = Some(client.clone());
-                self.exec_get_dbs();
+                self.mongo_client = Some(client.clone());
+                self.query_dbs();
             }
             Event::DatabaseHighlighted(db) => {
                 self.db = Some(db.clone());
-                self.exec_get_collections();
+                self.query_collections();
             }
             Event::CollectionHighlighted(coll) => {
                 self.coll = Some(coll.clone());
@@ -259,21 +220,21 @@ impl Component for Client {
             Event::CollectionSelected(coll) => {
                 self.coll = Some(coll.clone());
                 *self.page.borrow_mut() = 0;
-                self.exec_query(true);
-                self.exec_count();
+                self.query(true);
+                self.count();
             }
             Event::DocumentPageChanged => {
-                self.exec_query(true);
+                self.query(true);
             }
             Event::DocFilterUpdated(doc) => {
                 self.filter.clone_from(doc);
                 *self.page.borrow_mut() = 0;
-                self.exec_query(true);
-                self.exec_count();
+                self.query(true);
+                self.count();
             }
             Event::DocumentEdited(doc) => {
                 if let Some(id) = doc.get("_id") {
-                    self.exec_update_one(doc! { "_id": id }, doc.clone());
+                    self.update_doc(doc! { "_id": id }, doc.clone());
                 } else {
                     out.push(Event::ErrorOccurred(
                         "Document does not have an `_id` field.".to_string(),
@@ -281,14 +242,14 @@ impl Component for Client {
                 }
             }
             Event::UpdateConfirmed => {
-                self.exec_query(false);
+                self.query(false);
             }
             Event::DocumentCreated(doc) => {
-                self.exec_insert_one(doc.clone());
+                self.insert_doc(doc.clone());
             }
             Event::DocumentDeleted(doc) => {
                 if let Some(id) = doc.get("_id") {
-                    self.exec_delete_one(doc! { "_id": id });
+                    self.delete_doc(doc! { "_id": id });
                 } else {
                     out.push(Event::ErrorOccurred(
                         "Document does not have an `_id` field.".to_string(),
@@ -296,8 +257,8 @@ impl Component for Client {
                 }
             }
             Event::RefreshRequested | Event::InsertConfirmed | Event::DeleteConfirmed => {
-                self.exec_count();
-                self.exec_query(false);
+                self.count();
+                self.query(false);
             }
             _ => (),
         }
