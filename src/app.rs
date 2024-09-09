@@ -9,17 +9,21 @@ use crate::{
         Component, ComponentCommand,
     },
     connection::Connection,
+    sessions::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
         event::Event,
     },
+    utils::files::FileManager,
 };
+use anyhow::Result;
 use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
 use ratatui::{
     backend::Backend,
     layout::{Constraint, Direction, Layout, Rect},
     Frame, Terminal,
 };
+use serde::{Deserialize, Serialize};
 use std::{
     cell::{Cell, RefCell},
     collections::VecDeque,
@@ -27,7 +31,7 @@ use std::{
     time::{Duration, Instant},
 };
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AppFocus {
     ConnScreen(ConnScreenFocus),
     PrimaryScreen(PrimaryScreenFocus),
@@ -66,6 +70,8 @@ const DEBOUNCE: Duration = Duration::from_millis(20); // 50 FPS
 
 impl<'a> App<'a> {
     // TODO: organize this function a bit better
+    // TODO: all_connections can be stored in the persisted connection list rather than
+    // read in from a separate file
     pub fn new(connection: Option<Connection>, all_connections: Vec<Connection>) -> Self {
         let doc_page = Rc::new(RefCell::new(0));
         let client = Client::new(doc_page.clone());
@@ -105,7 +111,7 @@ impl<'a> App<'a> {
         }
     }
 
-    pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> std::io::Result<()> {
+    pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
         // initial draw call
         terminal.draw(|frame| self.render(frame, frame.size()))?;
 
@@ -138,6 +144,7 @@ impl<'a> App<'a> {
             }
 
             if self.exiting {
+                self.persist_self()?;
                 return Ok(());
             }
 
@@ -190,6 +197,14 @@ impl<'a> App<'a> {
         }
 
         vec![]
+    }
+
+    fn persist_self(&self) -> Result<()> {
+        let stored_app = self.persist();
+        let json = serde_json::to_string_pretty(&stored_app)?;
+        FileManager::init()?.write_data("last-session.json".into(), &json)?;
+
+        Ok(())
     }
 }
 
@@ -300,5 +315,24 @@ impl<'a> Component for App<'a> {
     /// Not used.
     fn is_focused(&self) -> bool {
         true
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PersistedApp {
+    focus: AppFocus,
+}
+
+impl<'a> PersistedComponent for App<'a> {
+    type StorageType = PersistedApp;
+
+    fn persist(&self) -> Self::StorageType {
+        PersistedApp {
+            focus: self.focus.borrow().clone(),
+        }
+    }
+
+    fn hydrate(&mut self, storage: Self::StorageType) {
+        *self.focus.borrow_mut() = storage.focus;
     }
 }

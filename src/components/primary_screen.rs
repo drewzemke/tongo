@@ -13,12 +13,13 @@ use crate::{
     },
 };
 use ratatui::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::{
     cell::{Cell, RefCell},
     rc::Rc,
 };
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PrimaryScreenFocus {
     #[default]
     DbList,
