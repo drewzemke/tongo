@@ -1,14 +1,17 @@
 use anyhow::Result;
-use app::App;
+use app::{App, PersistedApp};
 use clap::Parser;
 use connection::Connection;
 use ratatui::{backend::CrosstermBackend, Terminal};
+use sessions::PersistedComponent;
 use std::io::Stdout;
+use utils::files::FileManager;
 
 mod app;
 mod client;
 mod components;
 mod connection;
+mod sessions;
 mod system;
 mod utils;
 
@@ -18,6 +21,10 @@ mod utils;
 pub struct Args {
     #[clap(flatten)]
     auto_connect: Option<AutoConnectArgs>,
+
+    /// Restore the most-recently-closed session
+    #[arg(long, short)]
+    last: bool,
 }
 
 #[derive(Debug, clap::Args)]
@@ -53,6 +60,17 @@ async fn main() -> Result<()> {
 
     let mut terminal = setup_terminal()?;
     let mut app = App::new(connection, store_connections);
+
+    // load stored app state
+    // TODO: don't bail on errors here
+    if args.last {
+        let stored_app = {
+            let file = FileManager::init()?.read_data("last-session.json".into())?;
+            serde_json::from_str::<PersistedApp>(&file)?
+        };
+        app.hydrate(stored_app);
+    }
+
     let res = app.run(&mut terminal);
 
     restore_terminal(terminal)?;
