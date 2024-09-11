@@ -169,7 +169,7 @@ impl Component for ConnectionScreen {
 
 #[derive(Serialize, Deserialize)]
 pub struct PersistedConnectionScreen {
-    conn_list: PersistedConnections,
+    pub conn_list: PersistedConnections,
 }
 
 impl PersistedComponent for ConnectionScreen {
