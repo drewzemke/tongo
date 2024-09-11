@@ -327,9 +327,20 @@ impl<'a> PersistedComponent for App<'a> {
     type StorageType = PersistedApp;
 
     fn persist(&self) -> Self::StorageType {
-        PersistedApp {
-            focus: self.focus.borrow().clone(),
-        }
+        // don't save focus as any of the input components, it gets weird
+        let focus = match *self.focus.borrow() {
+            AppFocus::ConnScreen(..) => AppFocus::ConnScreen(ConnScreenFocus::ConnList),
+            AppFocus::PrimaryScreen(ref focus) => {
+                let ps_focus = match focus {
+                    PrimaryScreenFocus::FilterInput => PrimaryScreenFocus::DocTree,
+                    f => f.clone(),
+                };
+                AppFocus::PrimaryScreen(ps_focus)
+            }
+            AppFocus::ConfirmModal => self.background_focus.clone().unwrap_or_default(),
+        };
+
+        PersistedApp { focus }
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) {
