@@ -1,4 +1,4 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
 use app::{App, PersistedApp};
 use clap::Parser;
 use connection::Connection;
@@ -62,13 +62,16 @@ async fn main() -> Result<()> {
     let mut app = App::new(connection, store_connections);
 
     // load stored app state
-    // TODO: don't bail on errors here
     if args.last {
-        let stored_app = {
-            let file = FileManager::init()?.read_data("last-session.json".into())?;
-            serde_json::from_str::<PersistedApp>(&file)?
-        };
-        app.hydrate(stored_app);
+        let session = FileManager::init()
+            .and_then(|fm| fm.read_data("last-session.json".into()))
+            .context("TODO: better error handling")
+            .and_then(|file| {
+                serde_json::from_str::<PersistedApp>(&file).context("TODO: better error handling")
+            });
+        if let Ok(session) = session {
+            app.hydrate(session);
+        }
     }
 
     let res = app.run(&mut terminal);
