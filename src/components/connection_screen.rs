@@ -1,11 +1,12 @@
 use super::{
     input::{conn_name_input::ConnNameInput, conn_str_input::ConnStrInput},
-    list::connections::Connections,
+    list::connections::{Connections, PersistedConnections},
     Component, ComponentCommand,
 };
 use crate::{
     app::AppFocus,
     connection::Connection,
+    sessions::PersistedComponent,
     system::{command::CommandGroup, event::Event},
 };
 use ratatui::prelude::*;
@@ -163,5 +164,24 @@ impl Component for ConnectionScreen {
 
     fn is_focused(&self) -> bool {
         matches!(*self.app_focus.borrow(), AppFocus::ConnScreen(..))
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PersistedConnectionScreen {
+    conn_list: PersistedConnections,
+}
+
+impl PersistedComponent for ConnectionScreen {
+    type StorageType = PersistedConnectionScreen;
+
+    fn persist(&self) -> Self::StorageType {
+        PersistedConnectionScreen {
+            conn_list: self.conn_list.persist(),
+        }
+    }
+
+    fn hydrate(&mut self, storage: Self::StorageType) {
+        self.conn_list.hydrate(storage.conn_list);
     }
 }

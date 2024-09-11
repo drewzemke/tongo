@@ -2,7 +2,7 @@ use crate::{
     client::Client,
     components::{
         confirm_modal::ConfirmModal,
-        connection_screen::{ConnScreenFocus, ConnectionScreen},
+        connection_screen::{ConnScreenFocus, ConnectionScreen, PersistedConnectionScreen},
         list::connections::Connections,
         primary_screen::{PrimaryScreen, PrimaryScreenFocus},
         status_bar::StatusBar,
@@ -321,6 +321,7 @@ impl<'a> Component for App<'a> {
 #[derive(Serialize, Deserialize)]
 pub struct PersistedApp {
     focus: AppFocus,
+    conn_screen: PersistedConnectionScreen,
 }
 
 impl<'a> PersistedComponent for App<'a> {
@@ -340,10 +341,14 @@ impl<'a> PersistedComponent for App<'a> {
             AppFocus::ConfirmModal => self.background_focus.clone().unwrap_or_default(),
         };
 
-        PersistedApp { focus }
+        PersistedApp {
+            focus,
+            conn_screen: self.conn_screen.persist(),
+        }
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) {
         *self.focus.borrow_mut() = storage.focus;
+        self.conn_screen.hydrate(storage.conn_screen);
     }
 }
