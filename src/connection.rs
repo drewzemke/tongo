@@ -2,7 +2,7 @@ use crate::utils::files::FileManager;
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, Default, Deserialize, Serialize)]
+#[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
 pub struct Connection {
     pub name: String,
     pub connection_str: String,

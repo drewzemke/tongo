@@ -5,12 +5,14 @@ use crate::{
     app::AppFocus,
     components::{connection_screen::ConnScreenFocus, Component, ComponentCommand},
     connection::Connection,
+    sessions::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
         event::Event,
     },
 };
 use ratatui::{prelude::*, widgets::ListItem};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default)]
 pub struct Connections {
@@ -28,7 +30,7 @@ impl Connections {
         }
     }
 
-    fn get_selected_conn_str(&self) -> Option<&Connection> {
+    fn get_selected_conn(&self) -> Option<&Connection> {
         self.list
             .state
             .selected()
@@ -75,7 +77,7 @@ impl Component for Connections {
         };
         match command {
             Command::Confirm => {
-                if let Some(conn) = self.get_selected_conn_str() {
+                if let Some(conn) = self.get_selected_conn() {
                     out.push(Event::ConnectionSelected(conn.clone()));
                 }
             }
@@ -126,6 +128,28 @@ impl Component for Connections {
             .collect();
 
         self.list.render(frame, area, items, self.is_focused());
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PersistedConnections {
+    selected_conn: Option<Connection>,
+}
+
+impl PersistedComponent for Connections {
+    type StorageType = PersistedConnections;
+
+    fn persist(&self) -> Self::StorageType {
+        PersistedConnections {
+            selected_conn: self.get_selected_conn().cloned(),
+        }
+    }
+
+    fn hydrate(&mut self, storage: Self::StorageType) {
+        if let Some(conn) = storage.selected_conn {
+            let index = self.items.iter().position(|c| *c == conn);
+            self.list.state.select(index);
+        }
     }
 }
 
