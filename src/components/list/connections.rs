@@ -133,7 +133,7 @@ impl Component for Connections {
 
 #[derive(Serialize, Deserialize)]
 pub struct PersistedConnections {
-    selected_conn: Option<Connection>,
+    pub selected_conn: Option<Connection>,
 }
 
 impl PersistedComponent for Connections {

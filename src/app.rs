@@ -1,5 +1,5 @@
 use crate::{
-    client::Client,
+    client::{Client, PersistedClient},
     components::{
         confirm_modal::ConfirmModal,
         connection_screen::{ConnScreenFocus, ConnectionScreen, PersistedConnectionScreen},
@@ -321,6 +321,7 @@ impl<'a> Component for App<'a> {
 #[derive(Serialize, Deserialize)]
 pub struct PersistedApp {
     focus: AppFocus,
+    client: PersistedClient,
     conn_screen: PersistedConnectionScreen,
 }
 
@@ -343,12 +344,22 @@ impl<'a> PersistedComponent for App<'a> {
 
         PersistedApp {
             focus,
+            client: self.client.persist(),
             conn_screen: self.conn_screen.persist(),
         }
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) {
+        // HACK : record whether we have stored a selected connection string.
+        // this should probably happen elsewhere
+        let selected_conn = storage.conn_screen.conn_list.selected_conn.clone();
+
         *self.focus.borrow_mut() = storage.focus;
+        self.client.hydrate(storage.client);
         self.conn_screen.hydrate(storage.conn_screen);
+
+        if let Some(Connection { connection_str, .. }) = selected_conn {
+            self.client.set_conn_str(connection_str);
+        }
     }
 }

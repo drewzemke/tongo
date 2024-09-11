@@ -1,5 +1,6 @@
 use crate::{
     components::{Component, ComponentCommand},
+    sessions::PersistedComponent,
     system::{command::CommandGroup, event::Event},
 };
 use anyhow::Result;
@@ -11,6 +12,7 @@ use mongodb::{
     Client as MongoClient, Collection, Database,
 };
 use ratatui::prelude::{Frame, Rect};
+use serde::{Deserialize, Serialize};
 use std::{
     cell::RefCell,
     rc::Rc,
@@ -209,6 +211,10 @@ impl Component for Client {
             Event::ClientCreated(client) => {
                 self.mongo_client = Some(client.clone());
                 self.query_dbs();
+                // TODO: should we query everything? if we're missing data then it just won't run
+                // and if we just hydrated data we want to query as much as is relevant
+                self.query_collections();
+                self.query(true);
             }
             Event::DatabaseHighlighted(db) => {
                 self.db = Some(db.clone());
@@ -285,4 +291,26 @@ impl Component for Client {
 
     /// Not used
     fn render(&mut self, _frame: &mut Frame, _area: Rect) {}
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PersistedClient {
+    db: Option<DatabaseSpecification>,
+    coll: Option<CollectionSpecification>,
+}
+
+impl PersistedComponent for Client {
+    type StorageType = PersistedClient;
+
+    fn persist(&self) -> Self::StorageType {
+        PersistedClient {
+            db: self.db.clone(),
+            coll: self.coll.clone(),
+        }
+    }
+
+    fn hydrate(&mut self, storage: Self::StorageType) {
+        self.db = storage.db;
+        self.coll = storage.coll;
+    }
 }
