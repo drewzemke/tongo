@@ -1,4 +1,7 @@
-use super::connection_screen::ConnScreenFocus;
+use super::{
+    connection_screen::ConnScreenFocus,
+    list::{collections::PersistedCollections, databases::PersistedDatabases},
+};
 use crate::{
     app::AppFocus,
     components::{
@@ -7,6 +10,7 @@ use crate::{
         list::{collections::Collections, databases::Databases},
         Component, ComponentCommand,
     },
+    sessions::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
         event::Event,
@@ -222,5 +226,28 @@ impl<'a> Component for PrimaryScreen<'a> {
 
     fn is_focused(&self) -> bool {
         matches!(*self.app_focus.borrow(), AppFocus::PrimaryScreen(..))
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PersistedPrimaryScreen {
+    db_list: PersistedDatabases,
+    coll_list: PersistedCollections,
+    // doc_tree: PersistedDocuments<'a>,
+}
+
+impl<'a> PersistedComponent for PrimaryScreen<'a> {
+    type StorageType = PersistedPrimaryScreen;
+
+    fn persist(&self) -> Self::StorageType {
+        PersistedPrimaryScreen {
+            db_list: self.db_list.persist(),
+            coll_list: self.coll_list.persist(),
+        }
+    }
+
+    fn hydrate(&mut self, storage: Self::StorageType) {
+        self.db_list.hydrate(storage.db_list);
+        self.coll_list.hydrate(storage.coll_list);
     }
 }
