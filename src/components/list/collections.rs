@@ -2,6 +2,7 @@ use super::InnerList;
 use crate::{
     app::AppFocus,
     components::{primary_screen::PrimaryScreenFocus, Component, ComponentCommand},
+    sessions::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
         event::Event,
@@ -9,6 +10,7 @@ use crate::{
 };
 use mongodb::results::CollectionSpecification;
 use ratatui::{prelude::*, widgets::ListItem};
+use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, rc::Rc};
 
 #[derive(Debug, Default)]
@@ -16,6 +18,10 @@ pub struct Collections {
     app_focus: Rc<RefCell<AppFocus>>,
     pub items: Vec<CollectionSpecification>,
     list: InnerList,
+
+    // HACK: (?) used to store the coll that should be selected
+    // the next time the colls are updated
+    pending_selection: Option<CollectionSpecification>,
 }
 
 impl Collections {
@@ -32,6 +38,14 @@ impl Collections {
             .state
             .selected()
             .and_then(|index| self.items.get(index))
+    }
+    fn select(&mut self, collection: Option<CollectionSpecification>) {
+        let index = collection.and_then(|collection| {
+            self.items
+                .iter()
+                .position(|coll| *coll.name == collection.name)
+        });
+        self.list.state.select(index);
     }
 }
 
@@ -75,6 +89,11 @@ impl Component for Collections {
             }
             Event::CollectionsUpdated(colls) => {
                 self.items.clone_from(colls);
+
+                if self.pending_selection.is_some() {
+                    let coll = self.pending_selection.take();
+                    self.select(coll);
+                }
             }
             _ => (),
         }
@@ -89,5 +108,24 @@ impl Component for Collections {
             .collect();
 
         self.list.render(frame, area, items, self.is_focused());
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PersistedCollections {
+    selected_coll: Option<CollectionSpecification>,
+}
+
+impl PersistedComponent for Collections {
+    type StorageType = PersistedCollections;
+
+    fn persist(&self) -> Self::StorageType {
+        PersistedCollections {
+            selected_coll: self.get_selected().cloned(),
+        }
+    }
+
+    fn hydrate(&mut self, storage: Self::StorageType) {
+        self.pending_selection = storage.selected_coll;
     }
 }
