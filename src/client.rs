@@ -210,11 +210,14 @@ impl Component for Client {
             }
             Event::ClientCreated(client) => {
                 self.mongo_client = Some(client.clone());
+
+                // TODO: should we query everything? if we're missing conn/db/coll
+                // then it just won't run, and if we just hydrated data we want to
+                // query as much as is relevant
                 self.query_dbs();
-                // TODO: should we query everything? if we're missing data then it just won't run
-                // and if we just hydrated data we want to query as much as is relevant
                 self.query_collections();
                 self.query(true);
+                self.count();
             }
             Event::DatabaseHighlighted(db) => {
                 self.db = Some(db.clone());
