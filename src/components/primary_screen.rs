@@ -43,14 +43,10 @@ pub struct PrimaryScreen<'a> {
 }
 
 impl<'a> PrimaryScreen<'a> {
-    pub fn new(
-        app_focus: Rc<RefCell<AppFocus>>,
-        cursor_pos: Rc<Cell<(u16, u16)>>,
-        doc_page: Rc<RefCell<usize>>,
-    ) -> Self {
+    pub fn new(app_focus: Rc<RefCell<AppFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
         let db_list = Databases::new(app_focus.clone());
         let coll_list = Collections::new(app_focus.clone());
-        let doc_tree = Documents::new(app_focus.clone(), doc_page);
+        let doc_tree = Documents::new(app_focus.clone());
         let filter_input = FilterInput::new(app_focus.clone(), cursor_pos);
         Self {
             app_focus,

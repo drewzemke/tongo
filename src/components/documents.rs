@@ -32,7 +32,7 @@ pub struct Documents<'a> {
     #[expect(clippy::struct_field_names)]
     documents: Vec<Bson>,
 
-    page: Rc<RefCell<usize>>,
+    page: usize,
     count: u64,
 
     // HACK: (?) used to store the coll that should be selected
@@ -41,10 +41,9 @@ pub struct Documents<'a> {
 }
 
 impl<'a> Documents<'a> {
-    pub fn new(app_focus: Rc<RefCell<AppFocus>>, doc_page: Rc<RefCell<usize>>) -> Self {
+    pub fn new(app_focus: Rc<RefCell<AppFocus>>) -> Self {
         Self {
             app_focus,
-            page: doc_page,
             ..Default::default()
         }
     }
@@ -84,10 +83,6 @@ impl<'a> Documents<'a> {
         }
 
         Some(bson)
-    }
-
-    fn page(&self) -> usize {
-        *self.page.borrow()
     }
 }
 
@@ -162,29 +157,29 @@ impl<'a> Component for Documents<'a> {
                 }
             }
             Command::NextPage => {
-                let end = (self.page() + 1) * PAGE_SIZE;
+                let end = (self.page + 1) * PAGE_SIZE;
 
                 #[expect(clippy::cast_possible_truncation)]
                 if end < self.count as usize {
-                    *self.page.borrow_mut() += 1;
-                    out.push(Event::DocumentPageChanged);
+                    self.page += 1;
+                    out.push(Event::DocumentPageChanged(self.page));
                 }
             }
             Command::PreviousPage => {
-                if self.page() > 0 {
-                    *self.page.borrow_mut() -= 1;
-                    out.push(Event::DocumentPageChanged);
+                if self.page > 0 {
+                    self.page -= 1;
+                    out.push(Event::DocumentPageChanged(self.page));
                 }
             }
             Command::FirstPage => {
-                *self.page.borrow_mut() = 0;
-                out.push(Event::DocumentPageChanged);
+                self.page = 0;
+                out.push(Event::DocumentPageChanged(self.page));
             }
             Command::LastPage => {
                 #[expect(clippy::cast_possible_truncation)]
                 let last_page = (self.count as usize).div_ceil(PAGE_SIZE) - 1;
-                *self.page.borrow_mut() = last_page;
-                out.push(Event::DocumentPageChanged);
+                self.page = last_page;
+                out.push(Event::DocumentPageChanged(self.page));
             }
             Command::Refresh => {
                 out.push(Event::RefreshRequested);
@@ -276,6 +271,9 @@ impl<'a> Component for Documents<'a> {
                     };
                 }
             }
+            Event::DocumentPageChanged(page) => {
+                self.page = *page;
+            }
 
             _ => (),
         }
@@ -289,7 +287,7 @@ impl<'a> Component for Documents<'a> {
             Color::White
         };
 
-        let start = *self.page.borrow() * PAGE_SIZE + 1;
+        let start = self.page * PAGE_SIZE + 1;
         #[expect(clippy::cast_possible_truncation)]
         let end = (start + PAGE_SIZE - 1).min(self.count as usize);
 
