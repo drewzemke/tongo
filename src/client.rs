@@ -15,12 +15,22 @@ use ratatui::prelude::{Frame, Rect};
 use serde::{Deserialize, Serialize};
 use std::{
     cell::RefCell,
+    collections::HashSet,
     rc::Rc,
     sync::mpsc::{self, Receiver, Sender},
 };
 
 // TODO: make configurable
 pub const PAGE_SIZE: usize = 5;
+
+/// The types of async queries that `Client` can do.
+#[derive(Debug, Hash, Eq, PartialEq)]
+enum Operation {
+    Query(bool),
+    QueryCollections,
+    QueryDatabases,
+    Count,
+}
 
 #[derive(Debug)]
 pub struct Client {
@@ -35,6 +45,9 @@ pub struct Client {
 
     response_send: Sender<Event>,
     response_recv: Receiver<Event>,
+
+    /// Used to queue operations and avoid duplicate async calls.
+    queued_ops: HashSet<Operation>,
 }
 
 impl Default for Client {
@@ -50,6 +63,8 @@ impl Default for Client {
 
             response_send,
             response_recv,
+
+            queued_ops: HashSet::default(),
         }
     }
 }
@@ -193,6 +208,22 @@ impl Client {
 
         Some(())
     }
+
+    fn queue(&mut self, op: Operation) {
+        self.queued_ops.insert(op);
+    }
+
+    pub fn exec_queued_ops(&mut self) {
+        for op in &self.queued_ops {
+            let _ = match op {
+                Operation::Query(reset_state) => self.query(*reset_state),
+                Operation::QueryCollections => self.query_collections(),
+                Operation::QueryDatabases => self.query_dbs(),
+                Operation::Count => self.count(),
+            };
+        }
+        self.queued_ops = HashSet::default();
+    }
 }
 
 impl Component for Client {
@@ -214,14 +245,14 @@ impl Component for Client {
                 // TODO: should we query everything? if we're missing conn/db/coll
                 // then it just won't run, and if we just hydrated data we want to
                 // query as much as is relevant
-                self.query_dbs();
-                self.query_collections();
-                self.query(true);
-                self.count();
+                self.queue(Operation::Query(true));
+                self.queue(Operation::QueryDatabases);
+                self.queue(Operation::QueryCollections);
+                self.queue(Operation::Count);
             }
             Event::DatabaseHighlighted(db) => {
                 self.db = Some(db.clone());
-                self.query_collections();
+                self.queue(Operation::QueryCollections);
             }
             Event::CollectionHighlighted(coll) => {
                 self.coll = Some(coll.clone());
@@ -229,17 +260,17 @@ impl Component for Client {
             Event::CollectionSelected(coll) => {
                 self.coll = Some(coll.clone());
                 *self.page.borrow_mut() = 0;
-                self.query(true);
-                self.count();
+                self.queue(Operation::Query(true));
+                self.queue(Operation::Count);
             }
             Event::DocumentPageChanged => {
-                self.query(true);
+                self.queue(Operation::Query(true));
             }
             Event::DocFilterUpdated(doc) => {
                 self.filter.clone_from(doc);
                 *self.page.borrow_mut() = 0;
-                self.query(true);
-                self.count();
+                self.queue(Operation::Query(true));
+                self.queue(Operation::Count);
             }
             Event::DocumentEdited(doc) => {
                 if let Some(id) = doc.get("_id") {
@@ -250,9 +281,7 @@ impl Component for Client {
                     ));
                 }
             }
-            Event::UpdateConfirmed => {
-                self.query(false);
-            }
+            Event::UpdateConfirmed => self.queue(Operation::Query(false)),
             Event::DocumentCreated(doc) => {
                 self.insert_doc(doc.clone());
             }
@@ -266,8 +295,8 @@ impl Component for Client {
                 }
             }
             Event::RefreshRequested | Event::InsertConfirmed | Event::DeleteConfirmed => {
-                self.count();
-                self.query(false);
+                self.queue(Operation::Count);
+                self.queue(Operation::Query(false));
             }
             _ => (),
         }
