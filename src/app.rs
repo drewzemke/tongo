@@ -130,17 +130,7 @@ impl<'a> App<'a> {
             };
 
             // process events
-            let mut should_render = false;
-            let mut events_deque = VecDeque::from(events);
-            while let Some(event) = events_deque.pop_front() {
-                // set the render flag to true if we get an event that isn't `Event::Tick`
-                should_render = should_render || !matches!(event, Event::Tick);
-
-                let new_events = self.handle_event(&event);
-                for new_event in new_events {
-                    events_deque.push_back(new_event);
-                }
-            }
+            let should_render = self.process_events(events);
 
             // once all the events are processed for this loop, tell the client to execute
             // any operations it decided to do during event processing loop
@@ -165,6 +155,24 @@ impl<'a> App<'a> {
         }
     }
 
+    fn process_events(&mut self, events: Vec<Event>) -> bool {
+        let mut should_render = false;
+        let mut events_deque = VecDeque::from(events);
+
+        while let Some(event) = events_deque.pop_front() {
+            // set the render flag to true if we get an event that isn't `Event::Tick`
+            should_render = should_render || !matches!(event, Event::Tick);
+
+            let new_events = self.handle_event(&event);
+            for new_event in new_events {
+                events_deque.push_back(new_event);
+            }
+        }
+
+        should_render
+    }
+
+    // TODO: better name
     fn handle_user_event(&mut self, event: &CrosstermEvent) -> Vec<Event> {
         // NOTE: for now we only deal with key events
         if let CrosstermEvent::Key(key) = event {
@@ -355,19 +363,26 @@ impl<'a> PersistedComponent for App<'a> {
         }
     }
 
-    fn hydrate(&mut self, storage: Self::StorageType) {
+    fn hydrate(&mut self, storage: Self::StorageType) -> Vec<Event> {
         // HACK : record whether we have stored a selected connection string.
         // this should probably happen elsewhere
+        // (can we turn this into an event?)
         let selected_conn = storage.conn_screen.conn_list.selected_conn.clone();
 
         *self.focus.borrow_mut() = storage.focus;
 
-        self.client.hydrate(storage.client);
-        self.conn_screen.hydrate(storage.conn_screen);
-        self.primary_screen.hydrate(storage.primary_screen);
+        let mut out = vec![];
+        out.append(&mut self.client.hydrate(storage.client));
+        out.append(&mut self.conn_screen.hydrate(storage.conn_screen));
+        out.append(&mut self.primary_screen.hydrate(storage.primary_screen));
 
         if let Some(Connection { connection_str, .. }) = selected_conn {
             self.client.set_conn_str(connection_str);
         }
+
+        // process all of the events that were created during hydration
+        self.process_events(out);
+
+        vec![]
     }
 }
