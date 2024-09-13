@@ -3,6 +3,7 @@ use crate::{
     app::AppFocus,
     client::PAGE_SIZE,
     components::ComponentCommand,
+    sessions::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
         event::Event,
@@ -18,6 +19,7 @@ use ratatui::{
     prelude::*,
     widgets::{Block, Scrollbar, ScrollbarOrientation},
 };
+use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, rc::Rc};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
@@ -32,6 +34,10 @@ pub struct Documents<'a> {
 
     page: Rc<RefCell<usize>>,
     count: u64,
+
+    // HACK: (?) used to store the coll that should be selected
+    // the next time the colls are updated
+    pending_selection: Option<Vec<MongoKey>>,
 }
 
 impl<'a> Documents<'a> {
@@ -252,6 +258,12 @@ impl<'a> Component for Documents<'a> {
                     self.state = state;
                 }
 
+                if let Some(sel) = self.pending_selection.clone() {
+                    if self.state.select(sel) {
+                        self.pending_selection = None;
+                    }
+                }
+
                 self.items = items;
             }
             Event::CountUpdated(count) => {
@@ -299,5 +311,24 @@ impl<'a> Component for Documents<'a> {
             .highlight_style(Style::new().black().on_white().bold());
 
         frame.render_stateful_widget(widget, area, &mut self.state);
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PersistedDocuments {
+    selection: Vec<MongoKey>,
+}
+
+impl<'a> PersistedComponent for Documents<'a> {
+    type StorageType = PersistedDocuments;
+
+    fn persist(&self) -> Self::StorageType {
+        PersistedDocuments {
+            selection: self.state.selected().to_vec(),
+        }
+    }
+
+    fn hydrate(&mut self, storage: Self::StorageType) {
+        self.pending_selection = Some(storage.selection);
     }
 }
