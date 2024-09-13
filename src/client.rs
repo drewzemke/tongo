@@ -14,9 +14,7 @@ use mongodb::{
 use ratatui::prelude::{Frame, Rect};
 use serde::{Deserialize, Serialize};
 use std::{
-    cell::RefCell,
     collections::HashSet,
-    rc::Rc,
     sync::mpsc::{self, Receiver, Sender},
 };
 
@@ -41,7 +39,7 @@ pub struct Client {
     coll: Option<CollectionSpecification>,
 
     filter: Document,
-    page: Rc<RefCell<usize>>,
+    page: usize,
 
     response_send: Sender<Event>,
     response_recv: Receiver<Event>,
@@ -59,7 +57,7 @@ impl Default for Client {
             coll: None,
 
             filter: Document::default(),
-            page: Rc::new(RefCell::new(0)),
+            page: 0,
 
             response_send,
             response_recv,
@@ -70,13 +68,6 @@ impl Default for Client {
 }
 
 impl Client {
-    pub fn new(doc_page: Rc<RefCell<usize>>) -> Self {
-        Self {
-            page: doc_page,
-            ..Default::default()
-        }
-    }
-
     /// Executes an asynchronous operation and sends the result through a channel.
     ///
     /// # Arguments
@@ -146,7 +137,7 @@ impl Client {
     fn query(&self, reset_state: bool) -> Option<()> {
         let coll = self.get_collection::<Bson>()?;
         let filter = Some(self.filter.clone()); // self.filter_editor.filter.clone();
-        let skip = *self.page.borrow() * PAGE_SIZE;
+        let skip = self.page * PAGE_SIZE;
 
         #[expect(clippy::cast_possible_wrap)]
         let options = FindOptions::builder()
@@ -258,17 +249,22 @@ impl Component for Client {
                 self.coll = Some(coll.clone());
             }
             Event::CollectionSelected(coll) => {
+                self.page = 0;
+                out.push(Event::DocumentPageChanged(self.page));
+
                 self.coll = Some(coll.clone());
-                *self.page.borrow_mut() = 0;
                 self.queue(Operation::Query(true));
                 self.queue(Operation::Count);
             }
-            Event::DocumentPageChanged => {
+            Event::DocumentPageChanged(page) => {
+                self.page = *page;
                 self.queue(Operation::Query(true));
             }
             Event::DocFilterUpdated(doc) => {
                 self.filter.clone_from(doc);
-                *self.page.borrow_mut() = 0;
+                self.page = 0;
+                out.push(Event::DocumentPageChanged(self.page));
+
                 self.queue(Operation::Query(true));
                 self.queue(Operation::Count);
             }
@@ -300,6 +296,7 @@ impl Component for Client {
             }
             _ => (),
         }
+
         out
     }
 
@@ -339,13 +336,13 @@ impl PersistedComponent for Client {
         PersistedClient {
             db: self.db.clone(),
             coll: self.coll.clone(),
-            page: *self.page.borrow(),
+            page: self.page,
         }
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) {
         self.db = storage.db;
         self.coll = storage.coll;
-        *self.page.borrow_mut() = storage.page;
+        self.page = storage.page;
     }
 }

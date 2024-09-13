@@ -73,8 +73,7 @@ impl<'a> App<'a> {
     // TODO: all_connections can be stored in the persisted connection list rather than
     // read in from a separate file
     pub fn new(connection: Option<Connection>, all_connections: Vec<Connection>) -> Self {
-        let doc_page = Rc::new(RefCell::new(0));
-        let client = Client::new(doc_page.clone());
+        let client = Client::default();
 
         let initial_focus = if let Some(conn) = connection {
             client.set_conn_str(conn.connection_str);
@@ -89,7 +88,7 @@ impl<'a> App<'a> {
 
         let confirm_modal = ConfirmModal::new(focus.clone());
 
-        let primary_screen = PrimaryScreen::new(focus.clone(), cursor_pos.clone(), doc_page);
+        let primary_screen = PrimaryScreen::new(focus.clone(), cursor_pos.clone());
 
         let connection_list = Connections::new(focus.clone(), all_connections);
         let connection_screen =
