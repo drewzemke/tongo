@@ -143,6 +143,11 @@ impl<'a> App<'a> {
                 }
             }
 
+            // once all the events are processed for this loop, tell the client to execute
+            // any operations it decided to do during event processing loop
+            self.client.exec_queued_ops();
+
+            // save state if we're about to exit
             if self.exiting {
                 self.persist_self()?;
                 return Ok(());
