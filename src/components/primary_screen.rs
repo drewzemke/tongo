@@ -1,5 +1,6 @@
 use super::{
     connection_screen::ConnScreenFocus,
+    documents::PersistedDocuments,
     list::{collections::PersistedCollections, databases::PersistedDatabases},
 };
 use crate::{
@@ -233,7 +234,7 @@ impl<'a> Component for PrimaryScreen<'a> {
 pub struct PersistedPrimaryScreen {
     db_list: PersistedDatabases,
     coll_list: PersistedCollections,
-    // doc_tree: PersistedDocuments<'a>,
+    doc_tree: PersistedDocuments,
 }
 
 impl<'a> PersistedComponent for PrimaryScreen<'a> {
@@ -243,11 +244,13 @@ impl<'a> PersistedComponent for PrimaryScreen<'a> {
         PersistedPrimaryScreen {
             db_list: self.db_list.persist(),
             coll_list: self.coll_list.persist(),
+            doc_tree: self.doc_tree.persist(),
         }
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) {
         self.db_list.hydrate(storage.db_list);
         self.coll_list.hydrate(storage.coll_list);
+        self.doc_tree.hydrate(storage.doc_tree);
     }
 }

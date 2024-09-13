@@ -2,9 +2,10 @@ use std::fmt::Display;
 
 use mongodb::bson::{oid::ObjectId, Bson, Document};
 use ratatui::prelude::*;
+use serde::{Deserialize, Serialize};
 use tui_tree_widget::TreeItem;
 
-#[derive(Debug, PartialEq, Eq, Hash, Clone)]
+#[derive(Debug, PartialEq, Eq, Hash, Clone, Serialize, Deserialize)]
 pub enum MongoKey {
     String(String),
     ObjectId(ObjectId),
