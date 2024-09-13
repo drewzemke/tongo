@@ -340,9 +340,19 @@ impl PersistedComponent for Client {
         }
     }
 
-    fn hydrate(&mut self, storage: Self::StorageType) {
-        self.db = storage.db;
-        self.coll = storage.coll;
-        self.page = storage.page;
+    fn hydrate(&mut self, storage: Self::StorageType) -> Vec<Event> {
+        let mut out = vec![Event::DocumentPageChanged(storage.page)];
+
+        if let Some(db) = storage.db {
+            out.push(Event::DatabaseHighlighted(db));
+            out.push(Event::DatabaseSelected);
+        }
+
+        if let Some(coll) = storage.coll {
+            out.push(Event::CollectionHighlighted(coll.clone()));
+            out.push(Event::CollectionSelected(coll));
+        }
+
+        out
     }
 }

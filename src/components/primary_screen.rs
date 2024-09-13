@@ -244,9 +244,13 @@ impl<'a> PersistedComponent for PrimaryScreen<'a> {
         }
     }
 
-    fn hydrate(&mut self, storage: Self::StorageType) {
-        self.db_list.hydrate(storage.db_list);
-        self.coll_list.hydrate(storage.coll_list);
-        self.doc_tree.hydrate(storage.doc_tree);
+    fn hydrate(&mut self, storage: Self::StorageType) -> Vec<Event> {
+        let mut out = vec![];
+
+        out.append(&mut self.db_list.hydrate(storage.db_list));
+        out.append(&mut self.coll_list.hydrate(storage.coll_list));
+        out.append(&mut self.doc_tree.hydrate(storage.doc_tree));
+
+        out
     }
 }

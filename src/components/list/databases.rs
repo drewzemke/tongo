@@ -125,7 +125,15 @@ impl PersistedComponent for Databases {
         }
     }
 
-    fn hydrate(&mut self, storage: Self::StorageType) {
+    fn hydrate(&mut self, storage: Self::StorageType) -> Vec<Event> {
+        // TODO: do we need to do this?
         self.pending_selection = storage.selected_db;
+
+        let mut out = vec![];
+        if let Some(ref db) = self.pending_selection {
+            out.push(Event::DatabaseHighlighted(db.clone()));
+            out.push(Event::DatabaseSelected);
+        }
+        out
     }
 }

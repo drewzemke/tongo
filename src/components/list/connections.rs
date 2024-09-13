@@ -145,11 +145,14 @@ impl PersistedComponent for Connections {
         }
     }
 
-    fn hydrate(&mut self, storage: Self::StorageType) {
+    fn hydrate(&mut self, storage: Self::StorageType) -> Vec<Event> {
+        let mut out = vec![];
         if let Some(conn) = storage.selected_conn {
             let index = self.items.iter().position(|c| *c == conn);
             self.list.state.select(index);
+            out.push(Event::ListSelectionChanged);
         }
+        out
     }
 }
 

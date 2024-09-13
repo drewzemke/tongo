@@ -326,7 +326,10 @@ impl<'a> PersistedComponent for Documents<'a> {
         }
     }
 
-    fn hydrate(&mut self, storage: Self::StorageType) {
+    fn hydrate(&mut self, storage: Self::StorageType) -> Vec<Event> {
+        // TODO: do we need to do this? ... probably yes
         self.pending_selection = Some(storage.selection);
+
+        vec![Event::ListSelectionChanged]
     }
 }

@@ -125,7 +125,15 @@ impl PersistedComponent for Collections {
         }
     }
 
-    fn hydrate(&mut self, storage: Self::StorageType) {
+    fn hydrate(&mut self, storage: Self::StorageType) -> Vec<Event> {
+        // TODO: do we need to do this?
         self.pending_selection = storage.selected_coll;
+
+        let mut out = vec![];
+        if let Some(ref coll) = self.pending_selection {
+            out.push(Event::CollectionHighlighted(coll.clone()));
+            out.push(Event::CollectionSelected(coll.clone()));
+        }
+        out
     }
 }
