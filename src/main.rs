@@ -4,7 +4,7 @@ use clap::Parser;
 use connection::Connection;
 use ratatui::{backend::CrosstermBackend, Terminal};
 use sessions::PersistedComponent;
-use std::io::Stdout;
+use std::{io::Stdout, path::PathBuf};
 use utils::files::FileManager;
 
 mod app;
@@ -41,6 +41,14 @@ pub struct AutoConnectArgs {
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    init_tracing()?;
+
+    tracing::info!(
+        "Started {} v{}",
+        env!("CARGO_PKG_NAME"),
+        env!("CARGO_PKG_VERSION"),
+    );
+
     let args = Args::parse();
 
     // load connections
@@ -70,6 +78,7 @@ async fn main() -> Result<()> {
                 serde_json::from_str::<PersistedApp>(&file).context("TODO: better error handling")
             });
         if let Ok(session) = session {
+            tracing::info!("Loading previous app state");
             app.hydrate(session);
         }
     }
@@ -85,7 +94,10 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
+#[tracing::instrument(skip())]
 fn setup_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>> {
+    tracing::debug!("Setting up terminal");
+
     let mut stdout = std::io::stdout();
     crossterm::terminal::enable_raw_mode()?;
     crossterm::execute!(
@@ -97,6 +109,7 @@ fn setup_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>> {
     Ok(terminal)
 }
 
+#[tracing::instrument(skip(terminal))]
 fn restore_terminal(mut terminal: Terminal<CrosstermBackend<std::io::Stdout>>) -> Result<()> {
     crossterm::terminal::disable_raw_mode()?;
     crossterm::execute!(
@@ -105,6 +118,44 @@ fn restore_terminal(mut terminal: Terminal<CrosstermBackend<std::io::Stdout>>) -
         crossterm::event::DisableMouseCapture
     )?;
     terminal.show_cursor()?;
+
+    tracing::debug!("Terminal restored");
+
+    Ok(())
+}
+
+/// Initializes the `tracing` system for logging.
+fn init_tracing() -> Result<()> {
+    let log_env = format!("{}_LOGLEVEL", env!("CARGO_PKG_NAME").to_uppercase());
+    let log_filename = format!("{}.log", env!("CARGO_PKG_NAME"));
+
+    let log_file_path = if let Some(dir) = dirs::data_local_dir() {
+        dir.join(env!("CARGO_PKG_NAME")).join(log_filename)
+    } else {
+        PathBuf::from(".")
+            .join(format!(".{}", env!("CARGO_PKG_NAME")))
+            .join(log_filename)
+    };
+
+    let log_file = std::fs::File::create(log_file_path)?;
+
+    // set up the logging level env var
+    std::env::set_var(
+        "RUST_LOG",
+        std::env::var("RUST_LOG")
+            .or_else(|_| std::env::var(log_env))
+            .unwrap_or_else(|_| format!("{}=info", env!("CARGO_CRATE_NAME"))),
+    );
+
+    let subscriber = tracing_subscriber::fmt()
+        .with_line_number(true)
+        // TODO: default to `info` if no env is set
+        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .with_writer(log_file)
+        .pretty()
+        .finish();
+
+    tracing::subscriber::set_global_default(subscriber)?;
 
     Ok(())
 }

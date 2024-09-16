@@ -8,7 +8,7 @@ use crate::connection::Connection;
 
 use super::command::Command;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, strum_macros::Display)]
 pub enum Event {
     Tick,
 

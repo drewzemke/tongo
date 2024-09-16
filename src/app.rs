@@ -155,13 +155,20 @@ impl<'a> App<'a> {
         }
     }
 
+    #[tracing::instrument(skip(self))]
     fn process_events(&mut self, events: Vec<Event>) -> bool {
         let mut should_render = false;
         let mut events_deque = VecDeque::from(events);
 
         while let Some(event) = events_deque.pop_front() {
+            let is_nontrivial_event = !matches!(event, Event::Tick);
+
             // set the render flag to true if we get an event that isn't `Event::Tick`
-            should_render = should_render || !matches!(event, Event::Tick);
+            should_render = should_render || is_nontrivial_event;
+
+            if is_nontrivial_event {
+                tracing::debug!("Processing event {event}");
+            }
 
             let new_events = self.handle_event(&event);
             for new_event in new_events {
@@ -242,6 +249,7 @@ impl<'a> Component for App<'a> {
     #[must_use]
     fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
         if matches!(command, ComponentCommand::Command(Command::Quit)) {
+            tracing::info!("Quit command received. Exiting...");
             self.exiting = true;
             return vec![];
         }
