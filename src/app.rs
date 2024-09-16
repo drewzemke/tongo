@@ -215,6 +215,11 @@ impl<'a> App<'a> {
             }
         }
 
+        // returning a nontrivial event triggers a redraw
+        if matches!(event, CrosstermEvent::Resize(..)) {
+            return vec![Event::ScreenResized];
+        }
+
         vec![]
     }
 

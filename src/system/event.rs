@@ -56,6 +56,7 @@ pub enum Event {
     InputKeyPressed,
 
     ReturnedFromAltScreen,
+    ScreenResized,
 
     ConfirmationRequested(Command),
     // TODO: Better names
