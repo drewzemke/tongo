@@ -85,7 +85,11 @@ impl Component for FilterInput {
 
                         if let Some(doc) = filter {
                             self.input.stop_editing();
-                            vec![Event::DocFilterUpdated(doc), Event::RawModeExited]
+                            vec![
+                                Event::DocumentPageChanged(0),
+                                Event::DocFilterUpdated(doc),
+                                Event::RawModeExited,
+                            ]
                         } else {
                             vec![]
                         }

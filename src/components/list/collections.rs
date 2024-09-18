@@ -71,6 +71,7 @@ impl Component for Collections {
         };
         if matches!(command, Command::Confirm) {
             if let Some(coll) = self.get_selected() {
+                out.push(Event::DocumentPageChanged(0));
                 out.push(Event::CollectionSelected(coll.clone()));
             }
         }
