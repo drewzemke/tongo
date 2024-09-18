@@ -315,6 +315,7 @@ impl<'a> Component for Documents<'a> {
 #[derive(Serialize, Deserialize)]
 pub struct PersistedDocuments {
     selection: Vec<MongoKey>,
+    page: usize,
 }
 
 impl<'a> PersistedComponent for Documents<'a> {
@@ -323,6 +324,7 @@ impl<'a> PersistedComponent for Documents<'a> {
     fn persist(&self) -> Self::StorageType {
         PersistedDocuments {
             selection: self.state.selected().to_vec(),
+            page: self.page,
         }
     }
 
@@ -330,6 +332,6 @@ impl<'a> PersistedComponent for Documents<'a> {
         // TODO: do we need to do this? ... probably yes
         self.pending_selection = Some(storage.selection);
 
-        vec![Event::ListSelectionChanged]
+        vec![Event::DocumentPageChanged(storage.page)]
     }
 }

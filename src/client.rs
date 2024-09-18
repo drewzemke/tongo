@@ -1,6 +1,5 @@
 use crate::{
     components::{Component, ComponentCommand},
-    sessions::PersistedComponent,
     system::{command::CommandGroup, event::Event},
 };
 use anyhow::Result;
@@ -12,7 +11,6 @@ use mongodb::{
     Client as MongoClient, Collection, Database,
 };
 use ratatui::prelude::{Frame, Rect};
-use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
     sync::mpsc::{self, Receiver, Sender},
@@ -314,39 +312,4 @@ impl Component for Client {
 
     /// Not used
     fn render(&mut self, _frame: &mut Frame, _area: Rect) {}
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct PersistedClient {
-    db: Option<DatabaseSpecification>,
-    coll: Option<CollectionSpecification>,
-    page: usize,
-}
-
-impl PersistedComponent for Client {
-    type StorageType = PersistedClient;
-
-    fn persist(&self) -> Self::StorageType {
-        PersistedClient {
-            db: self.db.clone(),
-            coll: self.coll.clone(),
-            page: self.page,
-        }
-    }
-
-    fn hydrate(&mut self, storage: Self::StorageType) -> Vec<Event> {
-        let mut out = vec![Event::DocumentPageChanged(storage.page)];
-
-        if let Some(db) = storage.db {
-            out.push(Event::DatabaseHighlighted(db));
-            out.push(Event::DatabaseSelected);
-        }
-
-        if let Some(coll) = storage.coll {
-            out.push(Event::CollectionHighlighted(coll.clone()));
-            out.push(Event::CollectionSelected(coll));
-        }
-
-        out
-    }
 }
