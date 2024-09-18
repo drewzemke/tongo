@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use crate::system::event::Event;
 pub trait PersistedComponent {
     /// The type used for serialization and deserialization of the component
-    // FIXME: lifetime use might be wrong here
     type StorageType: Serialize + for<'a> Deserialize<'a>;
 
     /// Converts the component into its serializable form

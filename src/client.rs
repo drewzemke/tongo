@@ -249,9 +249,6 @@ impl Component for Client {
                 self.coll = Some(coll.clone());
             }
             Event::CollectionSelected(coll) => {
-                self.page = 0;
-                out.push(Event::DocumentPageChanged(self.page));
-
                 self.coll = Some(coll.clone());
                 self.queue(Operation::Query(true));
                 self.queue(Operation::Count);
@@ -262,9 +259,6 @@ impl Component for Client {
             }
             Event::DocFilterUpdated(doc) => {
                 self.filter.clone_from(doc);
-                self.page = 0;
-                out.push(Event::DocumentPageChanged(self.page));
-
                 self.queue(Operation::Query(true));
                 self.queue(Operation::Count);
             }
