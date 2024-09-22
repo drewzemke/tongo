@@ -13,8 +13,8 @@ pub mod filter;
 
 #[derive(Debug, Default)]
 pub struct InnerInput<T: Default + std::fmt::Debug> {
-    pub state: TuiInput,
-    pub formatter: T,
+    state: TuiInput,
+    formatter: T,
 
     title: &'static str,
     cursor_pos: Rc<Cell<(u16, u16)>>,
@@ -44,6 +44,15 @@ where
 
     const fn is_editing(&self) -> bool {
         self.editing
+    }
+
+    pub fn value(&self) -> &str {
+        self.state.value()
+    }
+
+    pub fn set_value(&mut self, value: &str) {
+        self.state = self.state.clone().with_value(value.to_string());
+        self.formatter.on_change(value);
     }
 
     fn handle_raw_event(&mut self, event: &CrosstermEvent) -> Vec<Event> {
