@@ -27,7 +27,7 @@ impl ConnNameInput {
     }
 
     pub fn value(&self) -> &str {
-        self.input.state.value()
+        self.input.value()
     }
 
     pub fn start_editing(&mut self) {

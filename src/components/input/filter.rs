@@ -18,7 +18,6 @@ use std::{
     cell::{Cell, RefCell},
     rc::Rc,
 };
-use tui_input::Input as TuiInput;
 
 #[derive(Debug, Default)]
 pub struct FilterInput {
@@ -31,8 +30,7 @@ const DEFAULT_FILTER: &str = "{}";
 impl FilterInput {
     pub fn new(app_focus: Rc<RefCell<AppFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
         let mut input = InnerInput::new("Filter", cursor_pos, FilterInputFormatter::default());
-        input.state = input.state.with_value(DEFAULT_FILTER.to_string());
-        input.formatter.on_change(DEFAULT_FILTER);
+        input.set_value(DEFAULT_FILTER);
         Self { app_focus, input }
     }
 
@@ -78,7 +76,7 @@ impl Component for FilterInput {
                 ComponentCommand::RawEvent(event) => self.input.handle_raw_event(event),
                 ComponentCommand::Command(command) => match command {
                     Command::Confirm => {
-                        let filter_str = self.input.state.value();
+                        let filter_str = self.input.value();
                         let filter = serde_json::from_str::<serde_json::Value>(filter_str)
                             .ok()
                             .and_then(|value| mongodb::bson::to_document(&value).ok());
@@ -108,8 +106,7 @@ impl Component for FilterInput {
                     vec![Event::RawModeEntered]
                 }
                 Command::Reset => {
-                    self.input.state = TuiInput::new(DEFAULT_FILTER.to_string());
-                    self.input.formatter.on_change(DEFAULT_FILTER);
+                    self.input.set_value(DEFAULT_FILTER);
                     vec![Event::DocFilterUpdated(Document::default())]
                 }
                 _ => vec![],
