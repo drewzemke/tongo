@@ -62,4 +62,7 @@ pub enum Event {
     // TODO: Better names
     ConfirmationYes(Command),
     ConfirmationNo,
+
+    AppFocusGained,
+    AppFocusLost,
 }

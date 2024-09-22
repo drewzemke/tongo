@@ -36,6 +36,7 @@ pub enum AppFocus {
     ConnScreen(ConnScreenFocus),
     PrimaryScreen(PrimaryScreenFocus),
     ConfirmModal,
+    AppNotfocused,
 }
 
 impl Default for AppFocus {
@@ -53,7 +54,8 @@ pub struct App<'a> {
     status_bar: StatusBar,
     confirm_modal: ConfirmModal,
 
-    // used when displaying the confirm modal
+    // used when displaying the confirm modal or while the app is unfocused
+    // FIXME: should these be seperate?
     background_focus: Option<AppFocus>,
 
     // shared data
@@ -215,12 +217,15 @@ impl<'a> App<'a> {
             }
         }
 
-        // returning a nontrivial event triggers a redraw
-        if matches!(event, CrosstermEvent::Resize(..)) {
-            return vec![Event::ScreenResized];
+        match event {
+            CrosstermEvent::Resize(..) => {
+                // returning a nontrivial event triggers a redraw
+                vec![Event::ScreenResized]
+            }
+            CrosstermEvent::FocusGained => vec![Event::AppFocusGained],
+            CrosstermEvent::FocusLost => vec![Event::AppFocusLost],
+            _ => vec![],
         }
-
-        vec![]
     }
 
     fn persist_self(&self) -> Result<()> {
@@ -247,6 +252,7 @@ impl<'a> Component for App<'a> {
             AppFocus::ConnScreen(_) => out.append(&mut self.conn_screen.commands()),
             AppFocus::PrimaryScreen(_) => out.append(&mut self.primary_screen.commands()),
             AppFocus::ConfirmModal => out.append(&mut self.confirm_modal.commands()),
+            AppFocus::AppNotfocused => {}
         }
         out
     }
@@ -266,6 +272,7 @@ impl<'a> Component for App<'a> {
             AppFocus::ConnScreen(_) => self.conn_screen.handle_command(command),
             AppFocus::PrimaryScreen(_) => self.primary_screen.handle_command(command),
             AppFocus::ConfirmModal => self.confirm_modal.handle_command(command),
+            AppFocus::AppNotfocused => vec![],
         }
     }
 
@@ -320,6 +327,7 @@ impl<'a> Component for App<'a> {
                 }
                 self.confirm_modal.render(frame, content);
             }
+            AppFocus::AppNotfocused => {}
         }
 
         // status bar
@@ -364,7 +372,9 @@ impl<'a> PersistedComponent for App<'a> {
                 };
                 AppFocus::PrimaryScreen(ps_focus)
             }
-            AppFocus::ConfirmModal => self.background_focus.clone().unwrap_or_default(),
+            AppFocus::ConfirmModal | AppFocus::AppNotfocused => {
+                self.background_focus.clone().unwrap_or_default()
+            }
         };
 
         PersistedApp {
