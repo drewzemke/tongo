@@ -200,7 +200,7 @@ impl<'a> App<'a> {
                 if key.code == KeyCode::Esc {
                     return self.handle_command(&ComponentCommand::Command(Command::Back));
                 }
-                return self.handle_command(&ComponentCommand::RawEvent(event));
+                return self.handle_command(&ComponentCommand::RawEvent(event.clone()));
             }
 
             // map the key to a command if we're not in raw mode

@@ -14,9 +14,9 @@ pub mod primary_screen;
 pub mod status_bar;
 
 // FIXME: crappy name
-pub enum ComponentCommand<'a> {
+pub enum ComponentCommand {
     Command(Command),
-    RawEvent(&'a CrosstermEvent),
+    RawEvent(CrosstermEvent),
 }
 
 pub trait Component {
