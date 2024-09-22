@@ -15,9 +15,9 @@ start-mongo:
 
 logs:
     #!/usr/bin/env sh
-    if [ -n "$XDG_DATA_HOME" ]; then
-        log_path="$XDG_DATA_HOME/tongo/tongo.log"
+    if [ -d ~/Library ]; then
+        log_path="$HOME/Library/Application Support/tongo/tongo.log"
     else
         log_path="$HOME/.local/share/tongo/tongo.log"
     fi
-    tail -f $log_path
+    tail -f "$log_path"
