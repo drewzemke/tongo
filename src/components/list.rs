@@ -65,7 +65,11 @@ impl InnerList {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect, items: Vec<ListItem>, focused: bool) {
-        let border_color = if focused { Color::Green } else { Color::White };
+        let (border_color, highlight_color) = if focused {
+            (Color::Green, Color::White)
+        } else {
+            (Color::White, Color::Gray)
+        };
 
         let list = List::new(items)
             .block(
@@ -73,7 +77,7 @@ impl InnerList {
                     .title(self.title)
                     .border_style(Style::default().fg(border_color)),
             )
-            .highlight_style(Style::default().bold().reversed().white());
+            .highlight_style(Style::default().bold().black().bg(highlight_color));
 
         StatefulWidget::render(list, area, frame.buffer_mut(), &mut self.state);
     }

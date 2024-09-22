@@ -281,10 +281,10 @@ impl<'a> Component for Documents<'a> {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        let border_color = if self.is_focused() {
-            Color::Green
+        let (border_color, highlight_color) = if self.is_focused() {
+            (Color::Green, Color::White)
         } else {
-            Color::White
+            (Color::White, Color::Gray)
         };
 
         let start = self.page * PAGE_SIZE + 1;
@@ -306,7 +306,7 @@ impl<'a> Component for Documents<'a> {
                     .track_symbol(None)
                     .end_symbol(None),
             ))
-            .highlight_style(Style::new().black().on_white().bold());
+            .highlight_style(Style::default().bold().black().bg(highlight_color));
 
         frame.render_stateful_widget(widget, area, &mut self.state);
     }
