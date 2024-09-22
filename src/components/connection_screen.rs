@@ -9,7 +9,10 @@ use crate::{
     sessions::PersistedComponent,
     system::{command::CommandGroup, event::Event},
 };
-use ratatui::prelude::*;
+use ratatui::{
+    prelude::*,
+    widgets::{Block, Clear},
+};
 use serde::{Deserialize, Serialize};
 use std::{
     cell::{Cell, RefCell},
@@ -129,17 +132,20 @@ impl Component for ConnectionScreen {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
+        self.conn_list.render(frame, area);
+
+        // render new connection inputs in an overlay
         if self.internal_focus() == Some(ConnScreenFocus::NameInput)
             || self.internal_focus() == Some(ConnScreenFocus::StringInput)
         {
-            let frame_layout = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            let overlay_layout = Layout::default()
+                .constraints([Constraint::Fill(1)])
+                .horizontal_margin(3)
+                .vertical_margin(2)
                 .split(area);
-            let frame_left = frame_layout[0];
-            let frame_right = frame_layout[1];
+            let overlay = overlay_layout[0];
 
-            let right_layout = Layout::default()
+            let inputs_layout = Layout::default()
                 .constraints(vec![
                     Constraint::Fill(1),
                     Constraint::Length(3),
@@ -148,13 +154,17 @@ impl Component for ConnectionScreen {
                     Constraint::Fill(1),
                 ])
                 .horizontal_margin(2)
-                .split(frame_right);
+                .split(overlay);
 
-            self.conn_list.render(frame, frame_left);
-            self.conn_name_input.render(frame, right_layout[1]);
-            self.conn_str_input.render(frame, right_layout[3]);
-        } else {
-            self.conn_list.render(frame, area);
+            // render container for the inputs
+            frame.render_widget(Clear, overlay);
+            let block = Block::bordered()
+                .title("New Connection")
+                .style(Style::default().green());
+            frame.render_widget(block, overlay);
+
+            self.conn_name_input.render(frame, inputs_layout[1]);
+            self.conn_str_input.render(frame, inputs_layout[3]);
         }
     }
 
