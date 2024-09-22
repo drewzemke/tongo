@@ -103,7 +103,8 @@ fn setup_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>> {
     crossterm::execute!(
         stdout,
         crossterm::terminal::EnterAlternateScreen,
-        crossterm::event::EnableMouseCapture
+        crossterm::event::EnableMouseCapture,
+        crossterm::event::EnableFocusChange
     )?;
     let terminal = Terminal::new(CrosstermBackend::new(stdout))?;
     Ok(terminal)
@@ -115,7 +116,8 @@ fn restore_terminal(mut terminal: Terminal<CrosstermBackend<std::io::Stdout>>) -
     crossterm::execute!(
         terminal.backend_mut(),
         crossterm::terminal::LeaveAlternateScreen,
-        crossterm::event::DisableMouseCapture
+        crossterm::event::DisableMouseCapture,
+        crossterm::event::DisableFocusChange
     )?;
     terminal.show_cursor()?;
 
