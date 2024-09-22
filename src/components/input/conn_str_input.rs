@@ -74,7 +74,37 @@ impl Component for ConnStrInput {
         }
     }
 
+    fn handle_event(&mut self, event: &Event) -> Vec<Event> {
+        if matches!(event, Event::ConnectionCreated(..)) {
+            self.input.set_value("");
+        }
+        vec![]
+    }
+
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         self.input.render(frame, area, self.is_focused());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::connection::Connection;
+    use crossterm::event::KeyCode;
+
+    #[test]
+    fn reset_input_after_creating_connection() {
+        let mut component = ConnStrInput::default();
+        component.start_editing();
+
+        // simulate keypress
+        let command = ComponentCommand::raw_from_key_code(KeyCode::Char('X'));
+        component.handle_command(&command);
+
+        // finish edit event
+        let event = Event::ConnectionCreated(Connection::default());
+        component.handle_event(&event);
+
+        assert_eq!(component.value(), "");
     }
 }
