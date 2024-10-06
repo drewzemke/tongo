@@ -89,22 +89,18 @@ impl Component for ConnStrInput {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::connection::Connection;
-    use crossterm::event::KeyCode;
+    use crate::{connection::Connection, testing::ComponentTestHarness};
 
     #[test]
     fn reset_input_after_creating_connection() {
-        let mut component = ConnStrInput::default();
-        component.start_editing();
+        let mut test = ComponentTestHarness::new(ConnStrInput::default());
 
-        // simulate keypress
-        let command = ComponentCommand::raw_from_key_code(KeyCode::Char('X'));
-        component.handle_command(&command);
+        test.component_mut().start_editing();
+        test.given_string("text!");
 
         // finish edit event
-        let event = Event::ConnectionCreated(Connection::default());
-        component.handle_event(&event);
+        test.given_event(Event::ConnectionCreated(Connection::default()));
 
-        assert_eq!(component.value(), "");
+        assert_eq!(test.component().value(), "");
     }
 }

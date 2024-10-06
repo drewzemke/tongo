@@ -27,12 +27,32 @@ pub enum ConnScreenFocus {
     StringInput,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ConnectionScreen {
     app_focus: Rc<RefCell<AppFocus>>,
     conn_list: Connections,
     conn_name_input: ConnNameInput,
     conn_str_input: ConnStrInput,
+}
+
+impl Default for ConnectionScreen {
+    fn default() -> Self {
+        let app_focus = Rc::new(RefCell::new(AppFocus::ConnScreen(
+            ConnScreenFocus::ConnList,
+        )));
+        let cursor_pos = Rc::new(Cell::new((0, 0)));
+
+        let conn_list = Connections::new(app_focus.clone(), vec![]);
+        let conn_name_input = ConnNameInput::new(app_focus.clone(), cursor_pos.clone());
+        let conn_str_input = ConnStrInput::new(app_focus.clone(), cursor_pos);
+
+        Self {
+            app_focus,
+            conn_list,
+            conn_name_input,
+            conn_str_input,
+        }
+    }
 }
 
 impl ConnectionScreen {
@@ -193,5 +213,27 @@ impl PersistedComponent for ConnectionScreen {
 
     fn hydrate(&mut self, storage: Self::StorageType) -> Vec<Event> {
         self.conn_list.hydrate(storage.conn_list)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{system::command::Command, testing::ComponentTestHarness};
+
+    #[test]
+    fn create_new_conn() {
+        let mut test = ComponentTestHarness::new(ConnectionScreen::default());
+        test.given_command(Command::CreateNew);
+
+        // name of connection
+        test.given_string("local");
+        test.given_command(Command::Confirm);
+
+        // connection string url
+        test.given_string("url");
+        test.given_command(Command::Confirm);
+
+        test.expect_event(|e| matches!(e, Event::ConnectionCreated(..)));
     }
 }

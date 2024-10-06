@@ -13,6 +13,8 @@ mod components;
 mod connection;
 mod sessions;
 mod system;
+#[cfg(test)]
+mod testing;
 mod utils;
 
 /// A TUI for viewing mongo databases.

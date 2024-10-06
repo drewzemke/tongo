@@ -19,17 +19,6 @@ pub enum ComponentCommand {
     RawEvent(CrosstermEvent),
 }
 
-// NOTE: this only used in tests for now
-#[cfg(test)]
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-#[cfg(test)]
-impl ComponentCommand {
-    pub const fn raw_from_key_code(key_code: KeyCode) -> Self {
-        let event = CrosstermEvent::Key(KeyEvent::new(key_code, KeyModifiers::empty()));
-        Self::RawEvent(event)
-    }
-}
-
 pub trait Component {
     fn commands(&self) -> Vec<CommandGroup> {
         vec![]
