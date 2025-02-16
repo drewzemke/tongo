@@ -11,18 +11,11 @@ $ cargo install tongo
 
 ### Using `nix`
 
-Install [Nix](https://nixos.org/), then clone this repo and install:
+Install [Nix](https://nixos.org/), then install:
 ```shell
-$ git clone git@github.com:drewzemke/tongo.git
-$ cd tongo
-$ nix-build
+$ nix-shell -p cargo # or clone the tongo repo and run `nix-shell` from there
+$ cargo install tongo
 ```
-
-Then you can move the created binary somewhere on your path:
-```shell
-$ cp ./result/bin/tongo /usr/local/bin/tongo
-```
-
 
 ## Usage
 
@@ -35,7 +28,7 @@ Load a connection directly:
 $ tongo --url mongodb://localhost:27017 
 ```
 
-If you've previously store a connection, you can load it by name:
+If you've previously stored a connection, you can load it by name:
 ```shell
 $ tongo --connection local
 ```
