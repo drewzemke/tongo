@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use super::InnerList;
 use crate::{
     app::AppFocus,
-    components::{connection_screen::ConnScreenFocus, Component, ComponentCommand},
+    components::{connection_screen::ConnScrFocus, Component, ComponentCommand},
     connection::Connection,
     sessions::PersistedComponent,
     system::{
@@ -53,11 +53,11 @@ impl Connections {
 
 impl Component for Connections {
     fn is_focused(&self) -> bool {
-        *self.app_focus.borrow() == AppFocus::ConnScreen(ConnScreenFocus::ConnList)
+        *self.app_focus.borrow() == AppFocus::ConnScr(ConnScrFocus::ConnList)
     }
 
     fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::ConnScreen(ConnScreenFocus::ConnList);
+        *self.app_focus.borrow_mut() = AppFocus::ConnScr(ConnScrFocus::ConnList);
     }
 
     fn commands(&self) -> Vec<CommandGroup> {

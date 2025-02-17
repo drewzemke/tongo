@@ -1,7 +1,7 @@
 use super::{InnerInput, InputFormatter};
 use crate::{
     app::AppFocus,
-    components::{primary_screen::PrimaryScreenFocus, Component, ComponentCommand},
+    components::{primary_screen::PrimScrFocus, Component, ComponentCommand},
     system::{
         command::{Command, CommandGroup},
         event::Event,
@@ -49,11 +49,11 @@ impl FilterInput {
 
 impl Component for FilterInput {
     fn is_focused(&self) -> bool {
-        *self.app_focus.borrow() == AppFocus::PrimaryScreen(PrimaryScreenFocus::FilterInput)
+        *self.app_focus.borrow() == AppFocus::PrimScr(PrimScrFocus::FilterIn)
     }
 
     fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::PrimaryScreen(PrimaryScreenFocus::FilterInput);
+        *self.app_focus.borrow_mut() = AppFocus::PrimScr(PrimScrFocus::FilterIn);
     }
 
     fn commands(&self) -> Vec<CommandGroup> {

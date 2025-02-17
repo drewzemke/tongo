@@ -1,7 +1,7 @@
 use super::InnerList;
 use crate::{
     app::AppFocus,
-    components::{primary_screen::PrimaryScreenFocus, Component, ComponentCommand},
+    components::{primary_screen::PrimScrFocus, Component, ComponentCommand},
     sessions::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
@@ -51,11 +51,11 @@ impl Collections {
 
 impl Component for Collections {
     fn is_focused(&self) -> bool {
-        *self.app_focus.borrow() == AppFocus::PrimaryScreen(PrimaryScreenFocus::CollList)
+        *self.app_focus.borrow() == AppFocus::PrimScr(PrimScrFocus::CollList)
     }
 
     fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::PrimaryScreen(PrimaryScreenFocus::CollList);
+        *self.app_focus.borrow_mut() = AppFocus::PrimScr(PrimScrFocus::CollList);
     }
 
     fn commands(&self) -> Vec<CommandGroup> {

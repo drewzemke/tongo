@@ -1,5 +1,5 @@
 use super::{
-    connection_screen::ConnScreenFocus,
+    connection_screen::ConnScrFocus,
     documents::PersistedDocuments,
     list::{collections::PersistedCollections, databases::PersistedDatabases},
 };
@@ -25,12 +25,12 @@ use std::{
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PrimaryScreenFocus {
+pub enum PrimScrFocus {
     #[default]
     DbList,
     CollList,
     DocTree,
-    FilterInput,
+    FilterIn,
 }
 
 #[derive(Debug, Default)]
@@ -58,9 +58,9 @@ impl PrimaryScreen<'_> {
     }
 
     /// Narrows the shared `AppFocus` variable into the focus enum for this componenent
-    fn internal_focus(&self) -> Option<PrimaryScreenFocus> {
+    fn internal_focus(&self) -> Option<PrimScrFocus> {
         match &*self.app_focus.borrow() {
-            AppFocus::PrimaryScreen(focus) => Some(focus.clone()),
+            AppFocus::PrimScr(focus) => Some(focus.clone()),
             _ => None,
         }
     }
@@ -84,10 +84,10 @@ impl Component for PrimaryScreen<'_> {
         }
 
         match self.internal_focus() {
-            Some(PrimaryScreenFocus::DbList) => out.append(&mut self.db_list.commands()),
-            Some(PrimaryScreenFocus::CollList) => out.append(&mut self.coll_list.commands()),
-            Some(PrimaryScreenFocus::DocTree) => out.append(&mut self.doc_tree.commands()),
-            Some(PrimaryScreenFocus::FilterInput) => out.append(&mut self.filter_input.commands()),
+            Some(PrimScrFocus::DbList) => out.append(&mut self.db_list.commands()),
+            Some(PrimScrFocus::CollList) => out.append(&mut self.coll_list.commands()),
+            Some(PrimScrFocus::DocTree) => out.append(&mut self.doc_tree.commands()),
+            Some(PrimScrFocus::FilterIn) => out.append(&mut self.filter_input.commands()),
             None => {}
         }
         out
@@ -97,74 +97,73 @@ impl Component for PrimaryScreen<'_> {
         // we need to pass the command to the currently-focused component first,
         // the way this component handles the command might change the focus
         let mut out = match self.internal_focus() {
-            Some(PrimaryScreenFocus::DbList) => self.db_list.handle_command(command),
-            Some(PrimaryScreenFocus::CollList) => self.coll_list.handle_command(command),
-            Some(PrimaryScreenFocus::DocTree) => self.doc_tree.handle_command(command),
-            Some(PrimaryScreenFocus::FilterInput) => self.filter_input.handle_command(command),
+            Some(PrimScrFocus::DbList) => self.db_list.handle_command(command),
+            Some(PrimScrFocus::CollList) => self.coll_list.handle_command(command),
+            Some(PrimScrFocus::DocTree) => self.doc_tree.handle_command(command),
+            Some(PrimScrFocus::FilterIn) => self.filter_input.handle_command(command),
             None => vec![],
         };
 
         if let ComponentCommand::Command(command) = command {
             match command {
                 Command::FocusLeft => match self.internal_focus() {
-                    Some(PrimaryScreenFocus::DocTree) => {
+                    Some(PrimScrFocus::DocTree) => {
                         self.coll_list.focus();
                         out.push(Event::FocusedChanged);
                     }
-                    Some(PrimaryScreenFocus::FilterInput) => {
+                    Some(PrimScrFocus::FilterIn) => {
                         self.db_list.focus();
                         out.push(Event::FocusedChanged);
                     }
                     _ => {}
                 },
                 Command::FocusUp => match self.internal_focus() {
-                    Some(PrimaryScreenFocus::CollList) => {
+                    Some(PrimScrFocus::CollList) => {
                         self.db_list.focus();
                         out.push(Event::FocusedChanged);
                     }
-                    Some(PrimaryScreenFocus::DocTree) => {
+                    Some(PrimScrFocus::DocTree) => {
                         self.filter_input.focus();
                         out.push(Event::FocusedChanged);
                     }
                     _ => {}
                 },
                 Command::FocusDown => match self.internal_focus() {
-                    Some(PrimaryScreenFocus::DbList) => {
+                    Some(PrimScrFocus::DbList) => {
                         self.coll_list.focus();
                         out.push(Event::FocusedChanged);
                     }
-                    Some(PrimaryScreenFocus::FilterInput) => {
+                    Some(PrimScrFocus::FilterIn) => {
                         self.doc_tree.focus();
                         out.push(Event::FocusedChanged);
                     }
                     _ => {}
                 },
                 Command::FocusRight => match self.internal_focus() {
-                    Some(PrimaryScreenFocus::DbList) => {
+                    Some(PrimScrFocus::DbList) => {
                         self.filter_input.focus();
                         out.push(Event::FocusedChanged);
                     }
-                    Some(PrimaryScreenFocus::CollList) => {
+                    Some(PrimScrFocus::CollList) => {
                         self.doc_tree.focus();
                         out.push(Event::FocusedChanged);
                     }
                     _ => {}
                 },
                 Command::Back => match self.internal_focus() {
-                    Some(PrimaryScreenFocus::DbList) => {
-                        *self.app_focus.borrow_mut() =
-                            AppFocus::ConnScreen(ConnScreenFocus::ConnList);
+                    Some(PrimScrFocus::DbList) => {
+                        *self.app_focus.borrow_mut() = AppFocus::ConnScr(ConnScrFocus::ConnList);
                         out.push(Event::FocusedChanged);
                     }
-                    Some(PrimaryScreenFocus::CollList) => {
+                    Some(PrimScrFocus::CollList) => {
                         self.db_list.focus();
                         out.push(Event::FocusedChanged);
                     }
-                    Some(PrimaryScreenFocus::DocTree) => {
+                    Some(PrimScrFocus::DocTree) => {
                         self.coll_list.focus();
                         out.push(Event::FocusedChanged);
                     }
-                    Some(PrimaryScreenFocus::FilterInput) => {
+                    Some(PrimScrFocus::FilterIn) => {
                         self.doc_tree.focus();
                         out.push(Event::FocusedChanged);
                     }
@@ -218,11 +217,11 @@ impl Component for PrimaryScreen<'_> {
     }
 
     fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::PrimaryScreen(PrimaryScreenFocus::default());
+        *self.app_focus.borrow_mut() = AppFocus::PrimScr(PrimScrFocus::default());
     }
 
     fn is_focused(&self) -> bool {
-        matches!(*self.app_focus.borrow(), AppFocus::PrimaryScreen(..))
+        matches!(*self.app_focus.borrow(), AppFocus::PrimScr(..))
     }
 }
 

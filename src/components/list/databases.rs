@@ -3,7 +3,7 @@ use std::{cell::RefCell, rc::Rc};
 use super::InnerList;
 use crate::{
     app::AppFocus,
-    components::{primary_screen::PrimaryScreenFocus, Component, ComponentCommand},
+    components::{primary_screen::PrimScrFocus, Component, ComponentCommand},
     sessions::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
@@ -53,11 +53,11 @@ impl Databases {
 
 impl Component for Databases {
     fn is_focused(&self) -> bool {
-        *self.app_focus.borrow() == AppFocus::PrimaryScreen(PrimaryScreenFocus::DbList)
+        *self.app_focus.borrow() == AppFocus::PrimScr(PrimScrFocus::DbList)
     }
 
     fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::PrimaryScreen(PrimaryScreenFocus::DbList);
+        *self.app_focus.borrow_mut() = AppFocus::PrimScr(PrimScrFocus::DbList);
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
