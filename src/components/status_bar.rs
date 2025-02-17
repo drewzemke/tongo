@@ -142,7 +142,7 @@ impl Component for StatusBar {
                 self.message = Some(Message::info("Copied to clipboard."));
             }
             _ => (),
-        };
+        }
 
         // check to see if it's time to clear the message
         if self.message.as_ref().is_some_and(

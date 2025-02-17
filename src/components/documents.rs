@@ -40,7 +40,7 @@ pub struct Documents<'a> {
     pending_selection: Option<Vec<MongoKey>>,
 }
 
-impl<'a> Documents<'a> {
+impl Documents<'_> {
     pub fn new(app_focus: Rc<RefCell<AppFocus>>) -> Self {
         Self {
             app_focus,
@@ -86,7 +86,7 @@ impl<'a> Documents<'a> {
     }
 }
 
-impl<'a> Component for Documents<'a> {
+impl Component for Documents<'_> {
     fn is_focused(&self) -> bool {
         *self.app_focus.borrow() == AppFocus::PrimaryScreen(PrimaryScreenFocus::DocTree)
     }
@@ -193,7 +193,7 @@ impl<'a> Component for Documents<'a> {
                 match edit_doc(doc.clone()) {
                     Ok(new_doc) => out.push(Event::DocumentEdited(new_doc)),
                     Err(err) => out.push(Event::ErrorOccurred(err.to_string())),
-                };
+                }
             }
             Command::InsertDoc => {
                 let doc = doc! { "_id" : ObjectId::new() };
@@ -203,7 +203,7 @@ impl<'a> Component for Documents<'a> {
                 match edit_doc(doc) {
                     Ok(new_doc) => out.push(Event::DocumentCreated(new_doc)),
                     Err(err) => out.push(Event::ErrorOccurred(err.to_string())),
-                };
+                }
             }
             Command::DuplicateDoc => {
                 let Some(doc) = self.selected_doc() else {
@@ -217,7 +217,7 @@ impl<'a> Component for Documents<'a> {
                 match edit_doc(duplicated_doc) {
                     Ok(new_doc) => out.push(Event::DocumentCreated(new_doc)),
                     Err(err) => out.push(Event::ErrorOccurred(err.to_string())),
-                };
+                }
             }
             Command::DeleteDoc => {
                 out.push(Event::ConfirmationRequested(Command::DeleteDoc));
@@ -226,7 +226,7 @@ impl<'a> Component for Documents<'a> {
                 if let Some(bson) = self.selected_bson() {
                     if send_bson_to_clipboard(bson).is_ok() {
                         out.push(Event::DataSentToClipboard);
-                    };
+                    }
                 }
             }
             _ => {}
@@ -268,7 +268,7 @@ impl<'a> Component for Documents<'a> {
                 if self.is_focused() {
                     if let Some(doc) = self.selected_doc() {
                         return vec![Event::DocumentDeleted(doc.clone())];
-                    };
+                    }
                 }
             }
             Event::DocumentPageChanged(page) => {
@@ -318,7 +318,7 @@ pub struct PersistedDocuments {
     page: usize,
 }
 
-impl<'a> PersistedComponent for Documents<'a> {
+impl PersistedComponent for Documents<'_> {
     type StorageType = PersistedDocuments;
 
     fn persist(&self) -> Self::StorageType {
