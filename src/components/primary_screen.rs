@@ -42,7 +42,7 @@ pub struct PrimaryScreen<'a> {
     filter_input: FilterInput,
 }
 
-impl<'a> PrimaryScreen<'a> {
+impl PrimaryScreen<'_> {
     pub fn new(app_focus: Rc<RefCell<AppFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
         let db_list = Databases::new(app_focus.clone());
         let coll_list = Collections::new(app_focus.clone());
@@ -66,7 +66,7 @@ impl<'a> PrimaryScreen<'a> {
     }
 }
 
-impl<'a> Component for PrimaryScreen<'a> {
+impl Component for PrimaryScreen<'_> {
     fn commands(&self) -> Vec<CommandGroup> {
         let mut out = vec![];
 
@@ -172,7 +172,7 @@ impl<'a> Component for PrimaryScreen<'a> {
                 },
                 _ => {}
             }
-        };
+        }
         out
     }
 
@@ -182,7 +182,7 @@ impl<'a> Component for PrimaryScreen<'a> {
             Event::DatabaseSelected => self.coll_list.focus(),
             Event::CollectionSelected(..) | Event::DocFilterUpdated(..) => self.doc_tree.focus(),
             _ => {}
-        };
+        }
         out.append(&mut self.db_list.handle_event(event));
         out.append(&mut self.coll_list.handle_event(event));
         out.append(&mut self.doc_tree.handle_event(event));
@@ -233,7 +233,7 @@ pub struct PersistedPrimaryScreen {
     doc_tree: PersistedDocuments,
 }
 
-impl<'a> PersistedComponent for PrimaryScreen<'a> {
+impl PersistedComponent for PrimaryScreen<'_> {
     type StorageType = PersistedPrimaryScreen;
 
     fn persist(&self) -> Self::StorageType {

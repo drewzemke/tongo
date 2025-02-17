@@ -144,7 +144,7 @@ impl Component for ConnectionScreen {
                 });
             }
             _ => {}
-        };
+        }
         out.append(&mut self.conn_list.handle_event(event));
         out.append(&mut self.conn_name_input.handle_event(event));
         out.append(&mut self.conn_str_input.handle_event(event));

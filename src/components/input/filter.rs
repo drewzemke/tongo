@@ -38,11 +38,11 @@ impl FilterInput {
         self.input.is_editing()
     }
 
-    pub fn start_editing(&mut self) {
+    pub const fn start_editing(&mut self) {
         self.input.start_editing();
     }
 
-    pub fn stop_editing(&mut self) {
+    pub const fn stop_editing(&mut self) {
         self.input.stop_editing();
     }
 }

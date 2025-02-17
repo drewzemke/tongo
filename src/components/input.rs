@@ -34,11 +34,11 @@ where
         }
     }
 
-    pub fn start_editing(&mut self) {
+    pub const fn start_editing(&mut self) {
         self.editing = true;
     }
 
-    pub fn stop_editing(&mut self) {
+    pub const fn stop_editing(&mut self) {
         self.editing = false;
     }
 

@@ -70,7 +70,7 @@ pub struct App<'a> {
 
 const DEBOUNCE: Duration = Duration::from_millis(20); // 50 FPS
 
-impl<'a> App<'a> {
+impl App<'_> {
     // TODO: organize this function a bit better
     // TODO: all_connections can be stored in the persisted connection list rather than
     // read in from a separate file
@@ -237,7 +237,7 @@ impl<'a> App<'a> {
     }
 }
 
-impl<'a> Component for App<'a> {
+impl Component for App<'_> {
     fn commands(&self) -> Vec<CommandGroup> {
         let mut out = if self.raw_mode {
             vec![]
@@ -299,7 +299,7 @@ impl<'a> Component for App<'a> {
                 *self.focus.borrow_mut() = self.background_focus.take().unwrap_or_default();
             }
             _ => {}
-        };
+        }
         out.append(&mut self.client.handle_event(event));
         out.append(&mut self.conn_screen.handle_event(event));
         out.append(&mut self.primary_screen.handle_event(event));
@@ -358,7 +358,7 @@ pub struct PersistedApp {
     primary_screen: PersistedPrimaryScreen,
 }
 
-impl<'a> PersistedComponent for App<'a> {
+impl PersistedComponent for App<'_> {
     type StorageType = PersistedApp;
 
     fn persist(&self) -> Self::StorageType {
