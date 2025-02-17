@@ -1,4 +1,4 @@
-use super::{primary_screen::PrimaryScreenFocus, Component};
+use super::{primary_screen::PrimScrFocus, Component};
 use crate::{
     app::AppFocus,
     client::PAGE_SIZE,
@@ -88,11 +88,11 @@ impl Documents<'_> {
 
 impl Component for Documents<'_> {
     fn is_focused(&self) -> bool {
-        *self.app_focus.borrow() == AppFocus::PrimaryScreen(PrimaryScreenFocus::DocTree)
+        *self.app_focus.borrow() == AppFocus::PrimScr(PrimScrFocus::DocTree)
     }
 
     fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::PrimaryScreen(PrimaryScreenFocus::DocTree);
+        *self.app_focus.borrow_mut() = AppFocus::PrimScr(PrimScrFocus::DocTree);
     }
 
     fn commands(&self) -> Vec<CommandGroup> {

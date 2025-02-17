@@ -2,9 +2,9 @@ use crate::{
     client::Client,
     components::{
         confirm_modal::ConfirmModal,
-        connection_screen::{ConnScreenFocus, ConnectionScreen, PersistedConnectionScreen},
+        connection_screen::{ConnScrFocus, ConnectionScreen, PersistedConnectionScreen},
         list::connections::Connections,
-        primary_screen::{PersistedPrimaryScreen, PrimaryScreen, PrimaryScreenFocus},
+        primary_screen::{PersistedPrimaryScreen, PrimScrFocus, PrimaryScreen},
         status_bar::StatusBar,
         Component, ComponentCommand,
     },
@@ -33,15 +33,15 @@ use std::{
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AppFocus {
-    ConnScreen(ConnScreenFocus),
-    PrimaryScreen(PrimaryScreenFocus),
-    ConfirmModal,
-    AppNotfocused,
+    ConnScr(ConnScrFocus),
+    PrimScr(PrimScrFocus),
+    ConfModal,
+    NotFocused,
 }
 
 impl Default for AppFocus {
     fn default() -> Self {
-        Self::ConnScreen(ConnScreenFocus::ConnList)
+        Self::ConnScr(ConnScrFocus::ConnList)
     }
 }
 
@@ -79,9 +79,9 @@ impl App<'_> {
 
         let initial_focus = if let Some(conn) = connection {
             client.set_conn_str(conn.connection_str);
-            AppFocus::PrimaryScreen(PrimaryScreenFocus::DbList)
+            AppFocus::PrimScr(PrimScrFocus::DbList)
         } else {
-            AppFocus::ConnScreen(ConnScreenFocus::ConnList)
+            AppFocus::ConnScr(ConnScrFocus::ConnList)
         };
 
         // initialize shared data
@@ -208,6 +208,7 @@ impl App<'_> {
                 .commands()
                 .iter()
                 .flat_map(|group| &group.commands)
+                // TODO: use map
                 .find(|command| command.key() == key.code)
                 .copied();
 
@@ -249,10 +250,10 @@ impl Component for App<'_> {
         out.append(&mut self.status_bar.commands());
 
         match *self.focus.borrow() {
-            AppFocus::ConnScreen(_) => out.append(&mut self.conn_screen.commands()),
-            AppFocus::PrimaryScreen(_) => out.append(&mut self.primary_screen.commands()),
-            AppFocus::ConfirmModal => out.append(&mut self.confirm_modal.commands()),
-            AppFocus::AppNotfocused => {}
+            AppFocus::ConnScr(_) => out.append(&mut self.conn_screen.commands()),
+            AppFocus::PrimScr(_) => out.append(&mut self.primary_screen.commands()),
+            AppFocus::ConfModal => out.append(&mut self.confirm_modal.commands()),
+            AppFocus::NotFocused => {}
         }
         out
     }
@@ -269,10 +270,10 @@ impl Component for App<'_> {
         // TODO: refactor to use `Cell` instead of `RefCell`, since AppFocus is Copy
         let app_focus = self.focus.borrow().clone();
         match app_focus {
-            AppFocus::ConnScreen(_) => self.conn_screen.handle_command(command),
-            AppFocus::PrimaryScreen(_) => self.primary_screen.handle_command(command),
-            AppFocus::ConfirmModal => self.confirm_modal.handle_command(command),
-            AppFocus::AppNotfocused => vec![],
+            AppFocus::ConnScr(_) => self.conn_screen.handle_command(command),
+            AppFocus::PrimScr(_) => self.primary_screen.handle_command(command),
+            AppFocus::ConfModal => self.confirm_modal.handle_command(command),
+            AppFocus::NotFocused => vec![],
         }
     }
 
@@ -317,17 +318,17 @@ impl Component for App<'_> {
 
         // render a screen based on current focus
         match &*self.focus.borrow() {
-            AppFocus::PrimaryScreen(..) => self.primary_screen.render(frame, content),
-            AppFocus::ConnScreen(..) => self.conn_screen.render(frame, content),
-            AppFocus::ConfirmModal => {
+            AppFocus::PrimScr(..) => self.primary_screen.render(frame, content),
+            AppFocus::ConnScr(..) => self.conn_screen.render(frame, content),
+            AppFocus::ConfModal => {
                 match self.background_focus {
-                    Some(AppFocus::PrimaryScreen(..)) => self.primary_screen.render(frame, content),
-                    Some(AppFocus::ConnScreen(..)) => self.conn_screen.render(frame, content),
+                    Some(AppFocus::PrimScr(..)) => self.primary_screen.render(frame, content),
+                    Some(AppFocus::ConnScr(..)) => self.conn_screen.render(frame, content),
                     _ => {}
                 }
                 self.confirm_modal.render(frame, content);
             }
-            AppFocus::AppNotfocused => {}
+            AppFocus::NotFocused => {}
         }
 
         // status bar
@@ -364,15 +365,15 @@ impl PersistedComponent for App<'_> {
     fn persist(&self) -> Self::StorageType {
         // don't save focus as any of the input components, it gets weird
         let focus = match *self.focus.borrow() {
-            AppFocus::ConnScreen(..) => AppFocus::ConnScreen(ConnScreenFocus::ConnList),
-            AppFocus::PrimaryScreen(ref focus) => {
+            AppFocus::ConnScr(..) => AppFocus::ConnScr(ConnScrFocus::ConnList),
+            AppFocus::PrimScr(ref focus) => {
                 let ps_focus = match focus {
-                    PrimaryScreenFocus::FilterInput => PrimaryScreenFocus::DocTree,
+                    PrimScrFocus::FilterIn => PrimScrFocus::DocTree,
                     f => f.clone(),
                 };
-                AppFocus::PrimaryScreen(ps_focus)
+                AppFocus::PrimScr(ps_focus)
             }
-            AppFocus::ConfirmModal | AppFocus::AppNotfocused => {
+            AppFocus::ConfModal | AppFocus::NotFocused => {
                 self.background_focus.clone().unwrap_or_default()
             }
         };

@@ -48,11 +48,11 @@ impl ConfirmModal {
 
 impl Component for ConfirmModal {
     fn is_focused(&self) -> bool {
-        *self.app_focus.borrow() == AppFocus::ConfirmModal
+        *self.app_focus.borrow() == AppFocus::ConfModal
     }
 
     fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::ConfirmModal;
+        *self.app_focus.borrow_mut() = AppFocus::ConfModal;
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {

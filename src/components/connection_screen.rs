@@ -20,11 +20,11 @@ use std::{
 };
 
 #[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ConnScreenFocus {
+pub enum ConnScrFocus {
     #[default]
     ConnList,
-    NameInput,
-    StringInput,
+    NameIn,
+    StringIn,
 }
 
 #[derive(Debug)]
@@ -37,9 +37,7 @@ pub struct ConnectionScreen {
 
 impl Default for ConnectionScreen {
     fn default() -> Self {
-        let app_focus = Rc::new(RefCell::new(AppFocus::ConnScreen(
-            ConnScreenFocus::ConnList,
-        )));
+        let app_focus = Rc::new(RefCell::new(AppFocus::ConnScr(ConnScrFocus::ConnList)));
         let cursor_pos = Rc::new(Cell::new((0, 0)));
 
         let conn_list = Connections::new(app_focus.clone(), vec![]);
@@ -73,9 +71,9 @@ impl ConnectionScreen {
     }
 
     /// Narrows the shared `AppFocus` variable into the focus enum for this componenent
-    fn internal_focus(&self) -> Option<ConnScreenFocus> {
+    fn internal_focus(&self) -> Option<ConnScrFocus> {
         match &*self.app_focus.borrow() {
-            AppFocus::ConnScreen(focus) => Some(focus.clone()),
+            AppFocus::ConnScr(focus) => Some(focus.clone()),
             _ => None,
         }
     }
@@ -84,18 +82,18 @@ impl ConnectionScreen {
 impl Component for ConnectionScreen {
     fn commands(&self) -> Vec<CommandGroup> {
         match self.internal_focus() {
-            Some(ConnScreenFocus::ConnList) => self.conn_list.commands(),
-            Some(ConnScreenFocus::NameInput) => self.conn_name_input.commands(),
-            Some(ConnScreenFocus::StringInput) => self.conn_str_input.commands(),
+            Some(ConnScrFocus::ConnList) => self.conn_list.commands(),
+            Some(ConnScrFocus::NameIn) => self.conn_name_input.commands(),
+            Some(ConnScrFocus::StringIn) => self.conn_str_input.commands(),
             None => vec![],
         }
     }
 
     fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
         match self.internal_focus() {
-            Some(ConnScreenFocus::ConnList) => self.conn_list.handle_command(command),
-            Some(ConnScreenFocus::NameInput) => self.conn_name_input.handle_command(command),
-            Some(ConnScreenFocus::StringInput) => self.conn_str_input.handle_command(command),
+            Some(ConnScrFocus::ConnList) => self.conn_list.handle_command(command),
+            Some(ConnScrFocus::NameIn) => self.conn_name_input.handle_command(command),
+            Some(ConnScrFocus::StringIn) => self.conn_str_input.handle_command(command),
             None => vec![],
         }
     }
@@ -109,31 +107,31 @@ impl Component for ConnectionScreen {
                 out.push(Event::RawModeEntered);
             }
             Event::FocusedForward => match self.internal_focus() {
-                Some(ConnScreenFocus::NameInput) => {
+                Some(ConnScrFocus::NameIn) => {
                     self.conn_name_input.stop_editing();
                     self.conn_str_input.focus();
                     self.conn_str_input.start_editing();
                 }
-                Some(ConnScreenFocus::StringInput) => {
+                Some(ConnScrFocus::StringIn) => {
                     let conn = Connection::new(
                         self.conn_name_input.value().to_string(),
                         self.conn_str_input.value().to_string(),
                     );
                     out.push(Event::ConnectionCreated(conn));
                 }
-                Some(ConnScreenFocus::ConnList) | None => {}
+                Some(ConnScrFocus::ConnList) | None => {}
             },
             Event::FocusedBackward => match self.internal_focus() {
-                Some(ConnScreenFocus::NameInput) => {
+                Some(ConnScrFocus::NameIn) => {
                     self.conn_list.focus();
                     self.conn_name_input.stop_editing();
                 }
-                Some(ConnScreenFocus::StringInput) => {
+                Some(ConnScrFocus::StringIn) => {
                     self.conn_name_input.focus();
                     self.conn_name_input.start_editing();
                     self.conn_str_input.stop_editing();
                 }
-                Some(ConnScreenFocus::ConnList) | None => {}
+                Some(ConnScrFocus::ConnList) | None => {}
             },
             Event::ConnectionCreated(conn) => {
                 self.conn_list.items.push(conn.clone());
@@ -155,8 +153,8 @@ impl Component for ConnectionScreen {
         self.conn_list.render(frame, area);
 
         // render new connection inputs in an overlay
-        if self.internal_focus() == Some(ConnScreenFocus::NameInput)
-            || self.internal_focus() == Some(ConnScreenFocus::StringInput)
+        if self.internal_focus() == Some(ConnScrFocus::NameIn)
+            || self.internal_focus() == Some(ConnScrFocus::StringIn)
         {
             let overlay_layout = Layout::default()
                 .constraints([Constraint::Fill(1)])
@@ -189,11 +187,11 @@ impl Component for ConnectionScreen {
     }
 
     fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::ConnScreen(ConnScreenFocus::default());
+        *self.app_focus.borrow_mut() = AppFocus::ConnScr(ConnScrFocus::default());
     }
 
     fn is_focused(&self) -> bool {
-        matches!(*self.app_focus.borrow(), AppFocus::ConnScreen(..))
+        matches!(*self.app_focus.borrow(), AppFocus::ConnScr(..))
     }
 }
 
