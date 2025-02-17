@@ -11,6 +11,7 @@ mod app;
 mod client;
 mod components;
 mod connection;
+mod key_map;
 mod sessions;
 mod system;
 #[cfg(test)]
