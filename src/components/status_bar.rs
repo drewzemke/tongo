@@ -1,8 +1,13 @@
-use std::time::{Duration, Instant};
+use std::{
+    cell::RefCell,
+    rc::Rc,
+    time::{Duration, Instant},
+};
 
 use super::ComponentCommand;
 use crate::{
     components::Component,
+    key_map::KeyMap,
     system::{command::CommandGroup, event::Event},
 };
 use ratatui::{
@@ -64,8 +69,18 @@ pub struct StatusBar {
     pub commands: Vec<CommandGroup>,
     message: Option<Message>,
 
+    key_map: Rc<RefCell<KeyMap>>,
+
     // DEBUG:
     renders: usize,
+}
+impl StatusBar {
+    pub fn new(key_map: Rc<RefCell<KeyMap>>) -> Self {
+        Self {
+            key_map,
+            ..Default::default()
+        }
+    }
 }
 
 impl Component for StatusBar {
@@ -81,7 +96,7 @@ impl Component for StatusBar {
                 Line::from(
                     self.commands
                         .iter()
-                        .flat_map(Into::<Vec<Span>>::into)
+                        .flat_map(|group| self.key_map.borrow().cmd_group_to_span(group))
                         .collect::<Vec<Span>>(),
                 )
             },

@@ -9,6 +9,7 @@ use crate::{
         Component, ComponentCommand,
     },
     connection::Connection,
+    key_map::KeyMap,
     sessions::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
@@ -62,6 +63,9 @@ pub struct App<'a> {
     focus: Rc<RefCell<AppFocus>>,
     cursor_pos: Rc<Cell<(u16, u16)>>,
 
+    // config
+    key_map: Rc<RefCell<KeyMap>>,
+
     // flags
     raw_mode: bool,
     force_clear: bool,
@@ -87,6 +91,9 @@ impl App<'_> {
         // initialize shared data
         let focus = Rc::new(RefCell::new(initial_focus));
         let cursor_pos = Rc::new(Cell::new((0, 0)));
+        let key_map = Rc::new(RefCell::new(KeyMap::default()));
+
+        let status_bar = StatusBar::new(key_map.clone());
 
         let confirm_modal = ConfirmModal::new(focus.clone());
 
@@ -100,6 +107,8 @@ impl App<'_> {
             client,
 
             raw_mode: false,
+
+            status_bar,
             primary_screen,
             conn_screen: connection_screen,
             confirm_modal,
@@ -107,6 +116,8 @@ impl App<'_> {
             // commands: vec![],
             focus,
             cursor_pos,
+
+            key_map,
 
             ..Default::default()
         }
@@ -203,14 +214,9 @@ impl App<'_> {
                 return self.handle_command(&ComponentCommand::RawEvent(event.clone()));
             }
 
-            // map the key to a command if we're not in raw mode
-            let command = self
-                .commands()
-                .iter()
-                .flat_map(|group| &group.commands)
-                // TODO: use map
-                .find(|command| command.key() == key.code)
-                .copied();
+            // map the key to a command if we're not in raw mode,
+            // making sure it's one of the currently-available commands
+            let command = self.key_map.borrow().get(key.code, &self.commands());
 
             // handle the command
             if let Some(command) = command {
