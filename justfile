@@ -11,7 +11,9 @@ install:
     cargo install --path .
 
 start-mongo:
-    docker run -p 27017:27017 -d mongo:7
+    docker compose up -d \
+    && sleep 2 \
+    && ./scripts/seed.sh
 
 logs:
     #!/usr/bin/env sh
