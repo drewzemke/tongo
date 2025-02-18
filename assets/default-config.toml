@@ -1,0 +1,37 @@
+# NOTE: the available commands are subject to change between major (meaning 0.x) releases.
+# If this config can't be loaded because of an incompatibility, move it to a backup location
+# and restart `tongo` to generate a new config
+
+# TODO: explainers for all of these :)
+
+[keys]
+# nav_up = "up"
+# nav_down = "down"
+# nav_left = "left"
+# nav_right = "right"
+
+# focus_up = "K"
+# focus_down = "J"
+# focus_left = "H"
+# focus_right = "L"
+
+# create_new = "N"
+# confirm = "enter"
+# reset = "R"
+# refresh = "r"
+# expand_collapse = " "
+
+# next_page = "n"
+# previous_page = "p"
+# first_page = "P"
+# last_page = "N"
+
+# delete = "D"
+# back = "esc"
+# quit = "q"
+
+# insert_doc = "I"
+# edit_doc = "E"
+# duplicate_doc = "C"
+# delete_doc = "D"
+# yank = "y"

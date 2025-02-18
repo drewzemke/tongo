@@ -197,6 +197,28 @@ mod tests {
     }
 
     #[test]
+    fn create_key_map_from_default_config_file() {
+        let file = include_str!("../assets/default-config.toml");
+
+        // uncomment every line in the file under the [keys] header
+        let file = file
+            .lines()
+            .map(|line| {
+                if line.starts_with('#') && line.contains('=') {
+                    line.strip_prefix("# ").unwrap()
+                } else {
+                    line
+                }
+            })
+            .join("\n");
+
+        let config = Config::read_from_string(&file).unwrap();
+        let key_map_res = KeyMap::try_from_config(&config);
+
+        assert!(key_map_res.is_ok());
+    }
+
+    #[test]
     fn bad_config_files() {
         let config = Config {
             keys: HashMap::from([("not-a-command".to_string(), "k".to_string())]),
