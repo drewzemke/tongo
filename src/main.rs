@@ -1,13 +1,19 @@
 use anyhow::{Context, Result};
-use app::{App, PersistedApp};
+use app::App;
 use clap::Parser;
 use config::Config;
 use connection::Connection;
 use key_map::KeyMap;
 use ratatui::{backend::CrosstermBackend, Terminal};
-use sessions::PersistedComponent;
 use std::{io::Stdout, path::PathBuf};
-use utils::files::{get_app_data_path, FileManager};
+use utils::files::get_app_data_path;
+
+#[cfg(feature = "experimental_sessions")]
+use app::PersistedApp;
+#[cfg(feature = "experimental_sessions")]
+use sessions::PersistedComponent;
+#[cfg(feature = "experimental_sessions")]
+use utils::files::FileManager;
 
 mod app;
 mod client;
@@ -29,6 +35,7 @@ pub struct Args {
     auto_connect: Option<AutoConnectArgs>,
 
     /// Restore the most-recently-closed session
+    #[cfg(feature = "experimental_sessions")]
     #[arg(long, short)]
     last: bool,
 }
@@ -80,6 +87,8 @@ async fn main() -> Result<()> {
     let mut app = App::new(connection, stored_connections, key_map);
 
     // load stored app state
+
+    #[cfg(feature = "experimental_sessions")]
     if args.last {
         let session = FileManager::init()
             .and_then(|fm| fm.read_data("last-session.json".into()))
