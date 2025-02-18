@@ -6,6 +6,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.11.0](https://github.com/drewzemke/tongo/compare/v0.10.1...v0.11.0) - 2025-02-18
+
+### Added
+
+- *(config)* create a default config file if one is not present
+- *(key-map)* [**breaking**] override default keys with a config file
+- *(events)* add event for whole app losing/gaining focus
+- *(sessions)* store/load selected doc
+- *(sessions)* store/load document page
+- *(sessions)* store/load selected db/coll in lists
+- *(sessions)* store/load previously selected db and collections (still sorta buggy)
+- *(sessions)* store/load selected connection
+- *(sessions)* initial impl of storing/loading previous sessions
+- *(confirm)* better confirmation messages
+- *(confirm)* show confirm modal for deleting documents
+- feat(confirm): initial impl of a confirmation modal
+- *(docs)* commands to jump to first or last page of docs
+
+### Fixed
+
+- *(key-map)* allow one key to be mapped to multiple commands
+- *(connections)* clear input values after creating new connections
+- *(rendering)* redraw screen when terminal window size changes
+- *(sessions)* run count query when loading session
+- *(nav)* resolve panic when changing focus in primary screen
+- *(ci)* add correct(?) token to checkout in release-plz workflow
+- *(collections)* enable selecting a collection when there's only one in the list
+- *(perf)* prevent second query when selecting a collection
+- *(ci)* allow release-plz workflow to trigger other workflows
+- *(ci)* correct command for tests
+
+### Other
+
+- *(sessions)* put session functionality behind a feature flag
+- *(key-map)* add a few more options for binding keys
+- *(key-map)* create `KeyMap` to maintain key configuration
+- *(app)* shorten focus enum names
+- *(dev-ex)* add docker-compose and seed script
+- *(clippy)* address new lints
+- gitignore
+- *(testing)* add test harness to make component testing easier :)
+- *(commands)* don't pass crossterm event by reference
+- *(input)* `InputComponent` encapsulates its state better
+- *(lists)* dimmer selected highlight color for unfocused widgets
+- *(justfile)* fix `logs` script
+- *(connections)* render new connection inputs in an overlay
+- *(sessions)* client doesn't save any state
+- *(events)* client doesn't assume page changes when processing certain events
+- *(justfile)* add stuff to accommodate logging
+- *(logs)* add basic logging setup with `tracing`
+- *(sessions)* app hydration process produces/uses events
+- *(data)* `Client` and `Documents` can hold on to their own copies of the page value without causing extra queries
+- *(client)* execute (deduped) queries after all events have been processed (per command/event loop)
+- *(sessions)* slightly-more-graceful error handling when loading stored session
+- *(sessions)* don't save app focus as any of the input components
+- update justfile
+- *(client)* rename functions and use `Option`/`Result` to (hopefully) improve readability
+- *(lints)* turn `allow` attributes into `expect`s
+- *(data)* use `Cell` instead of `RefCell` for shared cursor position
+- *(ci)* only run CI checks on pull-request changes (ie. stuff from `release-plz`)
+- *(ci/cd)* add initial CI workflow to check stuff on push
+
 ## [0.10.1](https://github.com/drewzemke/tongo/compare/v0.10.0...v0.10.1) - 2024-09-01
 
 ### Added
