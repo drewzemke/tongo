@@ -1,13 +1,41 @@
-use anyhow::{bail, Result};
+use anyhow::{anyhow, Result};
 use std::{
     fs,
     path::{Path, PathBuf},
 };
 
-const APP_DATA_DIR_NAME: &str = "tongo";
+const APP_DIR_NAME: &str = "tongo";
+
+// NOTE: stole this from `gitui`
+fn get_app_config_path() -> Result<PathBuf> {
+    let mut path = if cfg!(target_os = "macos") {
+        dirs::home_dir().map(|h| h.join(".config"))
+    } else {
+        dirs::config_dir()
+    }
+    .ok_or_else(|| anyhow!("failed to find os config dir."))?;
+
+    path.push(APP_DIR_NAME);
+    fs::create_dir_all(&path)?;
+    Ok(path)
+}
+
+pub fn get_app_data_path() -> Result<PathBuf> {
+    let mut path = if cfg!(target_os = "macos") {
+        dirs::home_dir().map(|h| h.join(".local").join("share"))
+    } else {
+        dirs::data_local_dir()
+    }
+    .ok_or_else(|| anyhow!("failed to find os local data dir."))?;
+
+    path.push(APP_DIR_NAME);
+    fs::create_dir_all(&path)?;
+    Ok(path)
+}
 
 pub struct FileManager {
     data_dir: PathBuf,
+    config_dir: PathBuf,
 }
 
 impl FileManager {
@@ -15,17 +43,20 @@ impl FileManager {
     ///
     /// Returns an error if the local data directory cannot be found.
     pub fn init() -> Result<Self> {
-        let data_dir = if let Some(dir) = dirs::data_local_dir() {
-            dir.join(APP_DATA_DIR_NAME)
-        } else {
-            bail!("Could not find local data directory.");
-        };
+        Ok(Self {
+            data_dir: get_app_data_path()?,
+            config_dir: get_app_config_path()?,
+        })
+    }
 
-        if !data_dir.exists() {
-            fs::create_dir(&data_dir)?;
-        }
-
-        Ok(Self { data_dir })
+    /// # Errors
+    ///
+    /// Returns an error if the file does not exist, cannot be opened, or if
+    /// an error occurs while reading.
+    pub fn read_config(&self, path_from_config_dir: PathBuf) -> Result<String> {
+        let file_path = Path::new(&self.config_dir).join(path_from_config_dir);
+        let file = fs::read_to_string(file_path)?;
+        Ok(file)
     }
 
     /// # Errors

@@ -78,7 +78,11 @@ impl App<'_> {
     // TODO: organize this function a bit better
     // TODO: all_connections can be stored in the persisted connection list rather than
     // read in from a separate file
-    pub fn new(connection: Option<Connection>, all_connections: Vec<Connection>) -> Self {
+    pub fn new(
+        connection: Option<Connection>,
+        all_connections: Vec<Connection>,
+        key_map: KeyMap,
+    ) -> Self {
         let client = Client::default();
 
         let initial_focus = if let Some(conn) = connection {
@@ -91,7 +95,7 @@ impl App<'_> {
         // initialize shared data
         let focus = Rc::new(RefCell::new(initial_focus));
         let cursor_pos = Rc::new(Cell::new((0, 0)));
-        let key_map = Rc::new(RefCell::new(KeyMap::default()));
+        let key_map = Rc::new(RefCell::new(key_map));
 
         let status_bar = StatusBar::new(key_map.clone());
 
@@ -216,7 +220,10 @@ impl App<'_> {
 
             // map the key to a command if we're not in raw mode,
             // making sure it's one of the currently-available commands
-            let command = self.key_map.borrow().get(key.code, &self.commands());
+            let command = self
+                .key_map
+                .borrow()
+                .get_filtered(key.code, &self.commands());
 
             // handle the command
             if let Some(command) = command {

@@ -1,4 +1,8 @@
-use crate::system::command::{Command, CommandGroup};
+use crate::{
+    config::Config,
+    system::command::{Command, CommandGroup},
+};
+use anyhow::{bail, Result};
 use crossterm::event::KeyCode;
 use itertools::Itertools;
 use ratatui::{
@@ -6,6 +10,27 @@ use ratatui::{
     text::Span,
 };
 use std::collections::HashMap;
+
+fn key_code_from_str(s: &str) -> Result<KeyCode> {
+    match s {
+        "enter" | "return" | "ret" | "Enter" => Ok(KeyCode::Enter),
+        "up" | "Up" => Ok(KeyCode::Up),
+        "down" | "Down" => Ok(KeyCode::Down),
+        "left" | "Left" => Ok(KeyCode::Left),
+        "right" | "Right" => Ok(KeyCode::Right),
+        "space" | "Space" => Ok(KeyCode::Char(' ')),
+        // TODO: add more?
+
+        // just assume that any string of length 1 should
+        // refer to that character
+        s if s.len() == 1 => Ok(KeyCode::Char(
+            s.chars()
+                .next()
+                .expect("strings of len 1 have a first char"),
+        )),
+        _ => bail!(format!("Key not recognized: \"{s}\"")),
+    }
+}
 
 #[derive(Debug, Clone)]
 pub struct KeyMap {
@@ -23,7 +48,8 @@ impl Default for KeyMap {
             (KeyCode::Char('J'), Command::FocusDown),
             (KeyCode::Char('H'), Command::FocusLeft),
             (KeyCode::Char('L'), Command::FocusRight),
-            (KeyCode::Char('n'), Command::CreateNew),
+            // FIXME: bad default
+            (KeyCode::Char('X'), Command::CreateNew),
             (KeyCode::Enter, Command::Confirm),
             (KeyCode::Char('R'), Command::Reset),
             (KeyCode::Char('r'), Command::Refresh),
@@ -32,7 +58,8 @@ impl Default for KeyMap {
             (KeyCode::Char('p'), Command::PreviousPage),
             (KeyCode::Char('P'), Command::FirstPage),
             (KeyCode::Char('N'), Command::LastPage),
-            (KeyCode::Char('D'), Command::Delete),
+            // FIXME: bad default
+            (KeyCode::Char('Y'), Command::Delete),
             (KeyCode::Esc, Command::Back),
             (KeyCode::Char('q'), Command::Quit),
             (KeyCode::Char('I'), Command::InsertDoc),
@@ -48,11 +75,38 @@ impl Default for KeyMap {
 }
 
 impl KeyMap {
+    pub fn try_from_config(config: &Config) -> Result<Self> {
+        let mut key_map = Self::default();
+
+        for (command_str, key_str) in &config.keys {
+            let command = Command::try_from_str(command_str)?;
+            let key = key_code_from_str(key_str)?;
+
+            // remove existing binding for command
+            key_map.map.retain(|_, cmd| cmd != &command);
+
+            key_map.map.insert(key, command);
+        }
+
+        Ok(key_map)
+    }
+
     /// Gets the command corresponding to a key based on the loaded keymap,
     /// making sure that the command is one of the commands that the currently-focused
     /// component will respond to
-    pub fn get(&self, key: KeyCode, available_commands: &[CommandGroup]) -> Option<Command> {
-        let command = self.map.get(&key)?;
+    pub fn get(&self, key: KeyCode) -> Option<&Command> {
+        self.map.get(&key)
+    }
+
+    /// Gets the command corresponding to a key based on the loaded keymap,
+    /// making sure that the command is one of the commands that the currently-focused
+    /// component will respond to
+    pub fn get_filtered(
+        &self,
+        key: KeyCode,
+        available_commands: &[CommandGroup],
+    ) -> Option<Command> {
+        let command = self.get(key)?;
 
         // QUESTION: should this check be elsewhere?
         if available_commands
@@ -114,5 +168,50 @@ impl KeyMap {
             Span::styled(group.name, hint_style.fg(Color::Gray)),
             Span::raw("  "),
         ]
+    }
+}
+
+#[expect(clippy::unwrap_used)]
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn create_default_key_map() {
+        let config = Config {
+            keys: HashMap::new(),
+        };
+        let key_map = KeyMap::try_from_config(&config).unwrap();
+
+        assert_eq!(key_map.get(KeyCode::Up), Some(&Command::NavUp));
+        assert_eq!(key_map.get(KeyCode::Char('k')), None);
+    }
+
+    #[test]
+    fn create_overridden_key_map() {
+        let config = Config {
+            keys: HashMap::from([("nav_up".to_string(), "k".to_string())]),
+        };
+        let key_map = KeyMap::try_from_config(&config).unwrap();
+
+        assert_eq!(key_map.get(KeyCode::Up), None);
+        assert_eq!(key_map.get(KeyCode::Char('k')), Some(&Command::NavUp));
+    }
+
+    #[test]
+    fn bad_config_files() {
+        let config = Config {
+            keys: HashMap::from([("not-a-command".to_string(), "k".to_string())]),
+        };
+
+        let key_map_res = KeyMap::try_from_config(&config);
+        assert!(key_map_res.is_err());
+
+        let config = Config {
+            keys: HashMap::from([("nav_up".to_string(), "not-a-key".to_string())]),
+        };
+
+        let key_map_res = KeyMap::try_from_config(&config);
+        assert!(key_map_res.is_err());
     }
 }
