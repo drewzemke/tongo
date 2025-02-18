@@ -34,39 +34,37 @@ fn key_code_from_str(s: &str) -> Result<KeyCode> {
 
 #[derive(Debug, Clone)]
 pub struct KeyMap {
-    map: HashMap<KeyCode, Command>,
+    map: HashMap<Command, KeyCode>,
 }
 
 impl Default for KeyMap {
     fn default() -> Self {
         let map = [
-            (KeyCode::Up, Command::NavUp),
-            (KeyCode::Down, Command::NavDown),
-            (KeyCode::Left, Command::NavLeft),
-            (KeyCode::Right, Command::NavRight),
-            (KeyCode::Char('K'), Command::FocusUp),
-            (KeyCode::Char('J'), Command::FocusDown),
-            (KeyCode::Char('H'), Command::FocusLeft),
-            (KeyCode::Char('L'), Command::FocusRight),
-            // FIXME: bad default
-            (KeyCode::Char('X'), Command::CreateNew),
-            (KeyCode::Enter, Command::Confirm),
-            (KeyCode::Char('R'), Command::Reset),
-            (KeyCode::Char('r'), Command::Refresh),
-            (KeyCode::Char(' '), Command::ExpandCollapse),
-            (KeyCode::Char('n'), Command::NextPage),
-            (KeyCode::Char('p'), Command::PreviousPage),
-            (KeyCode::Char('P'), Command::FirstPage),
-            (KeyCode::Char('N'), Command::LastPage),
-            // FIXME: bad default
-            (KeyCode::Char('Y'), Command::Delete),
-            (KeyCode::Esc, Command::Back),
-            (KeyCode::Char('q'), Command::Quit),
-            (KeyCode::Char('I'), Command::InsertDoc),
-            (KeyCode::Char('E'), Command::EditDoc),
-            (KeyCode::Char('C'), Command::DuplicateDoc),
-            (KeyCode::Char('D'), Command::DeleteDoc),
-            (KeyCode::Char('y'), Command::Yank),
+            (Command::NavUp, KeyCode::Up),
+            (Command::NavDown, KeyCode::Down),
+            (Command::NavLeft, KeyCode::Left),
+            (Command::NavRight, KeyCode::Right),
+            (Command::FocusUp, KeyCode::Char('K')),
+            (Command::FocusDown, KeyCode::Char('J')),
+            (Command::FocusLeft, KeyCode::Char('H')),
+            (Command::FocusRight, KeyCode::Char('L')),
+            (Command::CreateNew, KeyCode::Char('N')),
+            (Command::Confirm, KeyCode::Enter),
+            (Command::Reset, KeyCode::Char('R')),
+            (Command::Refresh, KeyCode::Char('r')),
+            (Command::ExpandCollapse, KeyCode::Char(' ')),
+            (Command::NextPage, KeyCode::Char('n')),
+            (Command::PreviousPage, KeyCode::Char('p')),
+            (Command::FirstPage, KeyCode::Char('P')),
+            (Command::LastPage, KeyCode::Char('N')),
+            (Command::Delete, KeyCode::Char('D')),
+            (Command::Back, KeyCode::Esc),
+            (Command::Quit, KeyCode::Char('q')),
+            (Command::InsertDoc, KeyCode::Char('I')),
+            (Command::EditDoc, KeyCode::Char('E')),
+            (Command::DuplicateDoc, KeyCode::Char('C')),
+            (Command::DeleteDoc, KeyCode::Char('D')),
+            (Command::Yank, KeyCode::Char('y')),
         ]
         .into();
 
@@ -81,11 +79,7 @@ impl KeyMap {
         for (command_str, key_str) in &config.keys {
             let command = Command::try_from_str(command_str)?;
             let key = key_code_from_str(key_str)?;
-
-            // remove existing binding for command
-            key_map.map.retain(|_, cmd| cmd != &command);
-
-            key_map.map.insert(key, command);
+            key_map.map.insert(command, key);
         }
 
         Ok(key_map)
@@ -94,41 +88,37 @@ impl KeyMap {
     /// Gets the command corresponding to a key based on the loaded keymap,
     /// making sure that the command is one of the commands that the currently-focused
     /// component will respond to
-    pub fn get(&self, key: KeyCode) -> Option<&Command> {
-        self.map.get(&key)
+    #[cfg(test)]
+    pub fn command_for_key_unfiltered(&self, key: KeyCode) -> Option<&Command> {
+        self.map
+            .iter()
+            .find_map(|(cmd, &k)| if k == key { Some(cmd) } else { None })
     }
 
     /// Gets the command corresponding to a key based on the loaded keymap,
     /// making sure that the command is one of the commands that the currently-focused
     /// component will respond to
-    pub fn get_filtered(
+    pub fn command_for_key(
         &self,
         key: KeyCode,
         available_commands: &[CommandGroup],
     ) -> Option<Command> {
-        let command = self.get(key)?;
+        let commands = available_commands.iter().flat_map(|group| &group.commands);
 
-        // QUESTION: should this check be elsewhere?
-        if available_commands
-            .iter()
-            .flat_map(|group| &group.commands)
-            .contains(command)
-        {
-            Some(*command)
-        } else {
-            None
-        }
-    }
-
-    fn rev_lookup(&self, command: Command) -> Option<KeyCode> {
         self.map
             .iter()
-            .find_map(|(key, com)| if command == *com { Some(key) } else { None })
+            .find_map(|(cmd, &k)| {
+                if k == key && commands.clone().contains(cmd) {
+                    Some(cmd)
+                } else {
+                    None
+                }
+            })
             .copied()
     }
 
     fn command_to_key_str(&self, command: Command) -> String {
-        let Some(key) = self.rev_lookup(command) else {
+        let Some(key) = self.map.get(&command) else {
             return "?".into();
         };
 
@@ -183,8 +173,11 @@ mod tests {
         };
         let key_map = KeyMap::try_from_config(&config).unwrap();
 
-        assert_eq!(key_map.get(KeyCode::Up), Some(&Command::NavUp));
-        assert_eq!(key_map.get(KeyCode::Char('k')), None);
+        assert_eq!(
+            key_map.command_for_key_unfiltered(KeyCode::Up),
+            Some(&Command::NavUp)
+        );
+        assert_eq!(key_map.command_for_key_unfiltered(KeyCode::Char('k')), None);
     }
 
     #[test]
@@ -194,8 +187,11 @@ mod tests {
         };
         let key_map = KeyMap::try_from_config(&config).unwrap();
 
-        assert_eq!(key_map.get(KeyCode::Up), None);
-        assert_eq!(key_map.get(KeyCode::Char('k')), Some(&Command::NavUp));
+        assert_eq!(key_map.command_for_key_unfiltered(KeyCode::Up), None);
+        assert_eq!(
+            key_map.command_for_key_unfiltered(KeyCode::Char('k')),
+            Some(&Command::NavUp)
+        );
     }
 
     #[test]
