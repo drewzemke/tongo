@@ -1,3 +1,5 @@
+#[cfg(feature = "experimental_sessions")]
+use crate::utils::files::FileManager;
 use crate::{
     client::Client,
     components::{
@@ -15,8 +17,8 @@ use crate::{
         command::{Command, CommandGroup},
         event::Event,
     },
-    utils::files::FileManager,
 };
+
 use anyhow::Result;
 use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
 use ratatui::{
@@ -246,8 +248,10 @@ impl App<'_> {
 
     fn persist_self(&self) -> Result<()> {
         let stored_app = self.persist();
-        let json = serde_json::to_string_pretty(&stored_app)?;
-        FileManager::init()?.write_data("last-session.json".into(), &json)?;
+        let _json = serde_json::to_string_pretty(&stored_app)?;
+
+        #[cfg(feature = "experimental_sessions")]
+        FileManager::init()?.write_data("last-session.json".into(), &_json)?;
 
         Ok(())
     }
