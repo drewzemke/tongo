@@ -13,13 +13,15 @@ use std::collections::HashMap;
 
 fn key_code_from_str(s: &str) -> Result<KeyCode> {
     match s {
-        "enter" | "return" | "ret" | "Enter" => Ok(KeyCode::Enter),
+        "enter" | "Enter" | "return" | "Return" => Ok(KeyCode::Enter),
+        "esc" | "Esc" => Ok(KeyCode::Esc),
         "up" | "Up" => Ok(KeyCode::Up),
         "down" | "Down" => Ok(KeyCode::Down),
         "left" | "Left" => Ok(KeyCode::Left),
         "right" | "Right" => Ok(KeyCode::Right),
         "space" | "Space" => Ok(KeyCode::Char(' ')),
-        // TODO: add more?
+        "bksp" | "backspace" | "Backspace" => Ok(KeyCode::Backspace),
+        "tab" | "Tab" => Ok(KeyCode::Tab),
 
         // just assume that any string of length 1 should
         // refer to that character
