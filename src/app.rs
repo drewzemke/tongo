@@ -208,6 +208,8 @@ impl App<'_> {
 
             // if in raw mode, check for enter or escape
             // otherwise just pass the whole event
+            //
+            // FIXME: these should be configurable!
             if self.raw_mode {
                 if key.code == KeyCode::Enter {
                     return self.handle_command(&ComponentCommand::Command(Command::Confirm));
@@ -223,7 +225,7 @@ impl App<'_> {
             let command = self
                 .key_map
                 .borrow()
-                .get_filtered(key.code, &self.commands());
+                .command_for_key(key.code, &self.commands());
 
             // handle the command
             if let Some(command) = command {
