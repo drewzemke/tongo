@@ -7,7 +7,7 @@ use std::{
 const APP_DIR_NAME: &str = "tongo";
 
 // NOTE: stole this from `gitui`
-fn get_app_config_path() -> Result<PathBuf> {
+pub fn get_app_config_path() -> Result<PathBuf> {
     let mut path = if cfg!(target_os = "macos") {
         dirs::home_dir().map(|h| h.join(".config"))
     } else {
