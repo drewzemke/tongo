@@ -1,15 +1,18 @@
 use anyhow::{Context, Result};
 use app::{App, PersistedApp};
 use clap::Parser;
+use config::Config;
 use connection::Connection;
+use key_map::KeyMap;
 use ratatui::{backend::CrosstermBackend, Terminal};
 use sessions::PersistedComponent;
 use std::{io::Stdout, path::PathBuf};
-use utils::files::FileManager;
+use utils::files::{get_app_data_path, FileManager};
 
 mod app;
 mod client;
 mod components;
+mod config;
 mod connection;
 mod key_map;
 mod sessions;
@@ -54,15 +57,19 @@ async fn main() -> Result<()> {
 
     let args = Args::parse();
 
+    // load config
+    let config = Config::read_from_storage().unwrap_or_default();
+    let key_map = KeyMap::try_from_config(&config).context("Parsing key map")?;
+
     // load connections
-    let store_connections = Connection::read_from_storage().unwrap_or_default();
+    let stored_connections = Connection::read_from_storage().unwrap_or_default();
 
     // connect to a connection based on command line argument (if applicable)
     let connection = args
         .auto_connect
         .and_then(|group| match (group.url, group.connection) {
             (Some(url), _) => Some(Connection::new("Unnamed Connection".to_string(), url)),
-            (_, Some(conn_name)) => store_connections
+            (_, Some(conn_name)) => stored_connections
                 .iter()
                 .find(|c| c.name.to_lowercase() == conn_name.to_lowercase())
                 .cloned(),
@@ -70,7 +77,7 @@ async fn main() -> Result<()> {
         });
 
     let mut terminal = setup_terminal()?;
-    let mut app = App::new(connection, store_connections);
+    let mut app = App::new(connection, stored_connections, key_map);
 
     // load stored app state
     if args.last {
@@ -134,8 +141,9 @@ fn init_tracing() -> Result<()> {
     let log_env = format!("{}_LOGLEVEL", env!("CARGO_PKG_NAME").to_uppercase());
     let log_filename = format!("{}.log", env!("CARGO_PKG_NAME"));
 
-    let log_file_path = if let Some(dir) = dirs::data_local_dir() {
-        dir.join(env!("CARGO_PKG_NAME")).join(log_filename)
+    // FIXME: could probably consolidate this better with the stuff in `files` module
+    let log_file_path = if let Ok(dir) = get_app_data_path() {
+        dir.join(log_filename)
     } else {
         PathBuf::from(".")
             .join(format!(".{}", env!("CARGO_PKG_NAME")))
