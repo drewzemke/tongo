@@ -1,5 +1,3 @@
-#[cfg(feature = "experimental_sessions")]
-use crate::utils::files::FileManager;
 use crate::{
     client::Client,
     components::{
@@ -17,6 +15,7 @@ use crate::{
         command::{Command, CommandGroup},
         event::Event,
     },
+    utils::files::FileManager,
 };
 
 use anyhow::Result;
@@ -64,6 +63,7 @@ pub struct App<'a> {
     // shared data
     focus: Rc<RefCell<AppFocus>>,
     cursor_pos: Rc<Cell<(u16, u16)>>,
+    file_manager: FileManager,
 
     // config
     key_map: Rc<RefCell<KeyMap>>,
@@ -78,12 +78,13 @@ const DEBOUNCE: Duration = Duration::from_millis(20); // 50 FPS
 
 impl App<'_> {
     // TODO: organize this function a bit better
-    // TODO: all_connections can be stored in the persisted connection list rather than
+    // TODO?: all_connections can be stored in the persisted connection list rather than
     // read in from a separate file
     pub fn new(
         connection: Option<Connection>,
         all_connections: Vec<Connection>,
         key_map: KeyMap,
+        file_manager: FileManager,
     ) -> Self {
         let client = Client::default();
 
@@ -105,9 +106,14 @@ impl App<'_> {
 
         let primary_screen = PrimaryScreen::new(focus.clone(), cursor_pos.clone());
 
-        let connection_list = Connections::new(focus.clone(), all_connections);
-        let connection_screen =
-            ConnectionScreen::new(connection_list, focus.clone(), cursor_pos.clone());
+        let connection_list =
+            Connections::new(focus.clone(), all_connections, file_manager.clone());
+        let connection_screen = ConnectionScreen::new(
+            connection_list,
+            focus.clone(),
+            cursor_pos.clone(),
+            file_manager.clone(),
+        );
 
         Self {
             client,
@@ -124,6 +130,7 @@ impl App<'_> {
             cursor_pos,
 
             key_map,
+            file_manager,
 
             ..Default::default()
         }
@@ -248,11 +255,7 @@ impl App<'_> {
 
     fn persist_self(&self) -> Result<()> {
         let stored_app = self.persist();
-        let _json = serde_json::to_string_pretty(&stored_app)?;
-
-        #[cfg(feature = "experimental_sessions")]
-        FileManager::init()?.write_data("last-session.json".into(), &_json)?;
-
+        self.file_manager.write_session(&stored_app)?;
         Ok(())
     }
 }

@@ -1,19 +1,14 @@
 use anyhow::{Context, Result};
 use app::App;
 use clap::Parser;
-use config::Config;
 use connection::Connection;
 use key_map::KeyMap;
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::{io::Stdout, path::PathBuf};
-use utils::files::get_app_data_path;
+use utils::files::{get_app_data_path, FileManager};
 
 #[cfg(feature = "experimental_sessions")]
-use app::PersistedApp;
-#[cfg(feature = "experimental_sessions")]
 use sessions::PersistedComponent;
-#[cfg(feature = "experimental_sessions")]
-use utils::files::FileManager;
 
 mod app;
 mod client;
@@ -64,12 +59,14 @@ async fn main() -> Result<()> {
 
     let args = Args::parse();
 
+    let file_manager = FileManager::init()?;
+
     // load config
-    let config = Config::read_from_storage().unwrap_or_default();
+    let config = file_manager.read_config().unwrap_or_default();
     let key_map = KeyMap::try_from_config(&config).context("Parsing key map")?;
 
     // load connections
-    let stored_connections = Connection::read_from_storage().unwrap_or_default();
+    let stored_connections = file_manager.read_connections().unwrap_or_default();
 
     // connect to a connection based on command line argument (if applicable)
     let connection = args
@@ -84,19 +81,18 @@ async fn main() -> Result<()> {
         });
 
     let mut terminal = setup_terminal()?;
-    let mut app = App::new(connection, stored_connections, key_map);
+    let mut app = App::new(
+        connection,
+        stored_connections,
+        key_map,
+        file_manager.clone(),
+    );
 
     // load stored app state
 
     #[cfg(feature = "experimental_sessions")]
     if args.last {
-        let session = FileManager::init()
-            .and_then(|fm| fm.read_data("last-session.json".into()))
-            .context("TODO: better error handling")
-            .and_then(|file| {
-                serde_json::from_str::<PersistedApp>(&file).context("TODO: better error handling")
-            });
-        if let Ok(session) = session {
+        if let Ok(session) = file_manager.read_session() {
             tracing::info!("Loading previous app state");
             app.hydrate(session);
         }

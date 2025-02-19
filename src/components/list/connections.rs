@@ -10,6 +10,7 @@ use crate::{
         command::{Command, CommandGroup},
         event::Event,
     },
+    utils::files::FileManager,
 };
 use ratatui::{prelude::*, widgets::ListItem};
 use serde::{Deserialize, Serialize};
@@ -19,14 +20,20 @@ pub struct Connections {
     app_focus: Rc<RefCell<AppFocus>>,
     pub items: Vec<Connection>,
     list: InnerList,
+    file_manager: FileManager,
 }
 
 impl Connections {
-    pub fn new(app_focus: Rc<RefCell<AppFocus>>, items: Vec<Connection>) -> Self {
+    pub fn new(
+        app_focus: Rc<RefCell<AppFocus>>,
+        items: Vec<Connection>,
+        file_manager: FileManager,
+    ) -> Self {
         Self {
             app_focus,
             items,
             list: InnerList::new("Connections"),
+            file_manager,
         }
     }
 
@@ -100,7 +107,7 @@ impl Component for Connections {
                 return out;
             };
             self.items.remove(index_to_delete);
-            let write_result = Connection::write_to_storage(&self.items);
+            let write_result = self.file_manager.write_connections(&self.items);
             if write_result.is_ok() {
                 out.push(Event::ConnectionDeleted);
             } else {
