@@ -93,6 +93,12 @@ impl Component for Databases {
                 if self.pending_selection.is_some() {
                     let db = self.pending_selection.take();
                     self.select(db);
+                } else if self.list.state.selected().is_none() {
+                    if let Some(first_db) = dbs.first() {
+                        // try to select the first thing
+                        self.list.state.select(Some(0));
+                        out.push(Event::DatabaseHighlighted(first_db.clone()));
+                    }
                 }
             }
             _ => (),
@@ -135,5 +141,33 @@ impl PersistedComponent for Databases {
             out.push(Event::DatabaseSelected);
         }
         out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use crate::testing::ComponentTestHarness;
+    use anyhow::Result;
+    use serde_json::json;
+
+    #[test]
+    fn select_first_item_on_new_data() -> Result<()> {
+        let mut test = ComponentTestHarness::new(Databases::default());
+
+        let db_spec_json = json!({
+            "name": "test_db",
+            "sizeOnDisk": 1024,
+            "empty": false,
+            "shards": null
+        });
+        let db_spec: DatabaseSpecification = serde_json::from_value(db_spec_json)?;
+
+        test.given_event(Event::DatabasesUpdated(vec![db_spec]));
+
+        assert_eq!(test.component().list.state.selected(), Some(0));
+
+        Ok(())
     }
 }
