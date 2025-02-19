@@ -35,7 +35,7 @@ jobs:
       run: cargo test
 
     - name: Clippy
-      run: cargo clippy
+      run: cargo clippy --all-features
 
     - name: Test Install
       run: cargo install --path "." --force --locked
