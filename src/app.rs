@@ -150,7 +150,7 @@ impl App<'_> {
             // if no key is pressed, process a `tick` event and send it
             let events = if crossterm::event::poll(timeout)? {
                 let event = crossterm::event::read()?;
-                self.handle_user_event(&event)
+                self.handle_terminal_event(&event)
             } else {
                 vec![Event::Tick]
             };
@@ -205,8 +205,7 @@ impl App<'_> {
         should_render
     }
 
-    // TODO: better name
-    fn handle_user_event(&mut self, event: &CrosstermEvent) -> Vec<Event> {
+    fn handle_terminal_event(&mut self, event: &CrosstermEvent) -> Vec<Event> {
         // NOTE: for now we only deal with key events
         if let CrosstermEvent::Key(key) = event {
             // always quit on Control-C
