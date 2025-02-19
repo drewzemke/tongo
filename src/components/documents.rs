@@ -235,6 +235,7 @@ impl Component for Documents<'_> {
     }
 
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
+        let mut out = vec![];
         match event {
             Event::DocumentsUpdated { docs, reset_state } => {
                 self.documents.clone_from(docs);
@@ -257,6 +258,12 @@ impl Component for Documents<'_> {
                     if self.state.select(sel) {
                         self.pending_selection = None;
                     }
+                } else if self.state.selected().is_empty() {
+                    if let Some(first_item) = items.first() {
+                        // try to select the first thing
+                        self.state.select(vec![first_item.identifier().clone()]);
+                        out.push(Event::ListSelectionChanged);
+                    }
                 }
 
                 self.items = items;
@@ -277,7 +284,7 @@ impl Component for Documents<'_> {
 
             _ => (),
         }
-        vec![]
+        out
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
@@ -333,5 +340,31 @@ impl PersistedComponent for Documents<'_> {
         self.pending_selection = Some(storage.selection);
 
         vec![Event::DocumentPageChanged(storage.page)]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use crate::testing::ComponentTestHarness;
+    use mongodb::bson::bson;
+
+    #[test]
+    fn select_first_item_on_new_data() {
+        let mut test = ComponentTestHarness::new(Documents::default());
+
+        let doc = bson!({ "_id": "document-id" });
+        let docs = vec![doc];
+
+        test.given_event(Event::DocumentsUpdated {
+            docs,
+            reset_state: false,
+        });
+
+        assert_eq!(
+            test.component().state.selected(),
+            vec![MongoKey::String("document-id".into())]
+        );
     }
 }

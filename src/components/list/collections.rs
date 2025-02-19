@@ -94,6 +94,12 @@ impl Component for Collections {
                 if self.pending_selection.is_some() {
                     let coll = self.pending_selection.take();
                     self.select(coll);
+                } else if self.list.state.selected().is_none() {
+                    if let Some(first_coll) = colls.first() {
+                        // try to select the first thing
+                        self.list.state.select(Some(0));
+                        out.push(Event::CollectionHighlighted(first_coll.clone()));
+                    }
                 }
             }
             _ => (),
@@ -136,5 +142,34 @@ impl PersistedComponent for Collections {
             out.push(Event::CollectionSelected(coll.clone()));
         }
         out
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+    use crate::testing::ComponentTestHarness;
+    use anyhow::Result;
+    use serde_json::json;
+
+    #[test]
+    fn select_first_item_on_new_data() -> Result<()> {
+        let mut test = ComponentTestHarness::new(Collections::default());
+
+        let coll_spec_json = json!({
+            "name": "test_collection",
+            "type": "collection",
+            "options": {},
+            "info": { "readOnly": false, "uuid": null },
+            "id_index": null
+        });
+        let coll_spec: CollectionSpecification = serde_json::from_value(coll_spec_json)?;
+
+        test.given_event(Event::CollectionsUpdated(vec![coll_spec]));
+
+        assert_eq!(test.component().list.state.selected(), Some(0));
+
+        Ok(())
     }
 }
