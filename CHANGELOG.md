@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.1](https://github.com/drewzemke/tongo/compare/v0.12.0...v0.12.1) - 2025-02-19
+
+### Added
+
+- *(nav)* automatically select the first item of a list when focusing it for the first time
+
+### Other
+
+- *(cleanup)* resolved a couple TODOs
+- *(files)* dependency inject FileManager and make it's functions more concrete
+- *(features)* enable all features in helix (and in CI)
+- *(changelog)* manually update
+
 ## [0.12.0](https://github.com/drewzemke/tongo/compare/v0.10.1...v0.12.0) - 2025-02-18
 
 ### Added
