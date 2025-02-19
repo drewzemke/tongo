@@ -54,10 +54,7 @@ impl<C: Component> ComponentTestHarness<C> {
         while let Some(event) = events_deque.pop_front() {
             let new_events = self.component.handle_event(&event);
 
-            // TODO: replace with .append()
-            for new_event in new_events {
-                events_deque.push_back(new_event);
-            }
+            events_deque.append(&mut new_events.into());
 
             self.events.push(event);
         }
