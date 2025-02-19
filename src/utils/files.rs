@@ -1,10 +1,15 @@
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use std::{
     fs,
     path::{Path, PathBuf},
 };
 
+use crate::{app::PersistedApp, config::Config, connection::Connection};
+
 const APP_DIR_NAME: &str = "tongo";
+const CONNECTIONS_FILE_NAME: &str = "connections.json";
+const SESSIONS_FILE_NAME: &str = "last-session.json";
+const CONFIG_FILE_NAME: &str = "config.toml";
 
 // NOTE: stole this from `gitui`
 pub fn get_app_config_path() -> Result<PathBuf> {
@@ -33,6 +38,7 @@ pub fn get_app_data_path() -> Result<PathBuf> {
     Ok(path)
 }
 
+#[derive(Debug, Clone, Default)]
 pub struct FileManager {
     data_dir: PathBuf,
     config_dir: PathBuf,
@@ -41,7 +47,7 @@ pub struct FileManager {
 impl FileManager {
     /// # Errors
     ///
-    /// Returns an error if the local data directory cannot be found.
+    /// Returns an error if the local data or config directories cannot be found.
     pub fn init() -> Result<Self> {
         Ok(Self {
             data_dir: get_app_data_path()?,
@@ -49,32 +55,66 @@ impl FileManager {
         })
     }
 
-    /// # Errors
-    ///
-    /// Returns an error if the file does not exist, cannot be opened, or if
-    /// an error occurs while reading.
-    pub fn read_config(&self, path_from_config_dir: PathBuf) -> Result<String> {
+    fn read_from_config_dir(&self, path_from_config_dir: PathBuf) -> Result<String> {
         let file_path = Path::new(&self.config_dir).join(path_from_config_dir);
         let file = fs::read_to_string(file_path)?;
         Ok(file)
     }
 
-    /// # Errors
-    ///
-    /// Returns an error if the file does not exist, cannot be opened, or if
-    /// an error occurs while reading.
-    pub fn read_data(&self, path_from_data_dir: PathBuf) -> Result<String> {
+    fn read_from_data_dir(&self, path_from_data_dir: PathBuf) -> Result<String> {
         let file_path = Path::new(&self.data_dir).join(path_from_data_dir);
         let file = fs::read_to_string(file_path)?;
         Ok(file)
     }
 
-    /// # Errors
-    ///
-    /// Returns an error if the file cannot be opened or if an error occurs while writing.
-    pub fn write_data(&self, path_from_data_dir: PathBuf, data: &str) -> Result<()> {
+    fn write_to_data_dir(&self, path_from_data_dir: PathBuf, data: &str) -> Result<()> {
         let file_path = Path::new(&self.data_dir).join(path_from_data_dir);
         fs::write(file_path, data)?;
         Ok(())
+    }
+
+    pub fn read_connections(&self) -> Result<Vec<Connection>> {
+        let file = self.read_from_data_dir(CONNECTIONS_FILE_NAME.into())?;
+        serde_json::from_str(&file).context("Error while parsing `connection.json`")
+    }
+
+    pub fn write_connections(&self, connections: &[Connection]) -> Result<()> {
+        self.write_to_data_dir(
+            CONNECTIONS_FILE_NAME.into(),
+            &serde_json::to_string_pretty(connections)?,
+        )
+    }
+
+    pub fn write_session(&self, persisted_app: &PersistedApp) -> Result<()> {
+        let json = serde_json::to_string_pretty(persisted_app)?;
+        self.write_to_data_dir(SESSIONS_FILE_NAME.into(), &json)?;
+        Ok(())
+    }
+
+    // HACK: until we remove the feature flag
+    #[allow(dead_code)]
+    pub fn read_session(&self) -> Result<PersistedApp> {
+        let file = self
+            .read_from_data_dir(SESSIONS_FILE_NAME.into())
+            .context("TODO: better error handling")?;
+
+        let session =
+            serde_json::from_str::<PersistedApp>(&file).context("TODO: better error handling")?;
+
+        Ok(session)
+    }
+
+    pub fn read_config(&self) -> Result<Config> {
+        let config_path = Path::new(&get_app_config_path()?).join(CONFIG_FILE_NAME);
+
+        if !config_path.exists() {
+            fs::write(
+                &config_path,
+                include_str!("../../assets/default-config.toml"),
+            )?;
+        }
+
+        let file = self.read_from_config_dir(CONFIG_FILE_NAME.into())?;
+        Config::read_from_string(&file)
     }
 }

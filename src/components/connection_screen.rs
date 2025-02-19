@@ -8,6 +8,7 @@ use crate::{
     connection::Connection,
     sessions::PersistedComponent,
     system::{command::CommandGroup, event::Event},
+    utils::files::FileManager,
 };
 use ratatui::{
     prelude::*,
@@ -33,6 +34,7 @@ pub struct ConnectionScreen {
     conn_list: Connections,
     conn_name_input: ConnNameInput,
     conn_str_input: ConnStrInput,
+    file_manager: FileManager,
 }
 
 impl Default for ConnectionScreen {
@@ -40,7 +42,8 @@ impl Default for ConnectionScreen {
         let app_focus = Rc::new(RefCell::new(AppFocus::ConnScr(ConnScrFocus::ConnList)));
         let cursor_pos = Rc::new(Cell::new((0, 0)));
 
-        let conn_list = Connections::new(app_focus.clone(), vec![]);
+        let file_manager = FileManager::default();
+        let conn_list = Connections::new(app_focus.clone(), vec![], file_manager.clone());
         let conn_name_input = ConnNameInput::new(app_focus.clone(), cursor_pos.clone());
         let conn_str_input = ConnStrInput::new(app_focus.clone(), cursor_pos);
 
@@ -49,6 +52,7 @@ impl Default for ConnectionScreen {
             conn_list,
             conn_name_input,
             conn_str_input,
+            file_manager,
         }
     }
 }
@@ -58,6 +62,7 @@ impl ConnectionScreen {
         connection_list: Connections,
         app_focus: Rc<RefCell<AppFocus>>,
         cursor_pos: Rc<Cell<(u16, u16)>>,
+        file_manager: FileManager,
     ) -> Self {
         let conn_name_input = ConnNameInput::new(app_focus.clone(), cursor_pos.clone());
         let conn_str_input = ConnStrInput::new(app_focus.clone(), cursor_pos);
@@ -67,6 +72,7 @@ impl ConnectionScreen {
             conn_list: connection_list,
             conn_name_input,
             conn_str_input,
+            file_manager,
         }
     }
 
@@ -135,11 +141,13 @@ impl Component for ConnectionScreen {
             },
             Event::ConnectionCreated(conn) => {
                 self.conn_list.items.push(conn.clone());
-                Connection::write_to_storage(&self.conn_list.items).unwrap_or_else(|_| {
-                    out.push(Event::ErrorOccurred(
-                        "Could not save updated connections.".to_string(),
-                    ));
-                });
+                self.file_manager
+                    .write_connections(&self.conn_list.items)
+                    .unwrap_or_else(|_| {
+                        out.push(Event::ErrorOccurred(
+                            "Could not save updated connections.".to_string(),
+                        ));
+                    });
             }
             _ => {}
         }
