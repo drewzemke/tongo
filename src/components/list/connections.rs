@@ -10,30 +10,41 @@ use crate::{
         command::{Command, CommandGroup},
         event::Event,
     },
-    utils::file_manager::FileManager,
+    utils::storage::{FileStorage, Storage},
 };
 use ratatui::{prelude::*, widgets::ListItem};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct Connections {
     app_focus: Rc<RefCell<AppFocus>>,
     pub items: Vec<Connection>,
     list: InnerList,
-    file_manager: FileManager,
+    storage: Rc<dyn Storage>,
+}
+
+impl Default for Connections {
+    fn default() -> Self {
+        Self {
+            app_focus: Rc::new(RefCell::new(AppFocus::default())),
+            items: Vec::new(),
+            list: InnerList::default(),
+            storage: Rc::new(FileStorage::default()),
+        }
+    }
 }
 
 impl Connections {
     pub fn new(
         app_focus: Rc<RefCell<AppFocus>>,
         items: Vec<Connection>,
-        file_manager: FileManager,
+        storage: Rc<dyn Storage>,
     ) -> Self {
         Self {
             app_focus,
             items,
             list: InnerList::new("Connections"),
-            file_manager,
+            storage,
         }
     }
 
@@ -107,7 +118,7 @@ impl Component for Connections {
                 return out;
             };
             self.items.remove(index_to_delete);
-            let write_result = self.file_manager.write_connections(&self.items);
+            let write_result = self.storage.write_connections(&self.items);
             if write_result.is_ok() {
                 out.push(Event::ConnectionDeleted);
             } else {

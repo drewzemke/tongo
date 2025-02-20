@@ -15,7 +15,7 @@ use crate::{
         command::{Command, CommandGroup},
         event::Event,
     },
-    utils::file_manager::FileManager,
+    utils::storage::{FileStorage, Storage},
 };
 
 use anyhow::Result;
@@ -47,7 +47,7 @@ impl Default for AppFocus {
     }
 }
 
-#[derive(Default)]
+#[derive(Debug)]
 pub struct App<'a> {
     // components
     client: Client,
@@ -63,15 +63,36 @@ pub struct App<'a> {
     // shared data
     focus: Rc<RefCell<AppFocus>>,
     cursor_pos: Rc<Cell<(u16, u16)>>,
-    file_manager: FileManager,
+    storage: Rc<dyn Storage>,
 
     // config
+    // FIXME - wait a minute, why do we need a `RefCell` here??
     key_map: Rc<RefCell<KeyMap>>,
 
     // flags
     raw_mode: bool,
     force_clear: bool,
     exiting: bool,
+}
+
+impl Default for App<'_> {
+    fn default() -> Self {
+        Self {
+            client: Client::default(),
+            conn_screen: ConnectionScreen::default(),
+            primary_screen: PrimaryScreen::default(),
+            status_bar: StatusBar::default(),
+            confirm_modal: ConfirmModal::default(),
+            background_focus: None,
+            focus: Rc::new(RefCell::new(AppFocus::default())),
+            cursor_pos: Rc::new(Cell::new((0, 0))),
+            storage: Rc::new(FileStorage::default()),
+            key_map: Rc::new(RefCell::new(KeyMap::default())),
+            raw_mode: false,
+            force_clear: false,
+            exiting: false,
+        }
+    }
 }
 
 const DEBOUNCE: Duration = Duration::from_millis(20); // 50 FPS
@@ -84,7 +105,7 @@ impl App<'_> {
         connection: Option<Connection>,
         all_connections: Vec<Connection>,
         key_map: KeyMap,
-        file_manager: FileManager,
+        storage: Rc<dyn Storage>,
     ) -> Self {
         let client = Client::default();
 
@@ -106,13 +127,12 @@ impl App<'_> {
 
         let primary_screen = PrimaryScreen::new(focus.clone(), cursor_pos.clone());
 
-        let connection_list =
-            Connections::new(focus.clone(), all_connections, file_manager.clone());
+        let connection_list = Connections::new(focus.clone(), all_connections, storage.clone());
         let connection_screen = ConnectionScreen::new(
             connection_list,
             focus.clone(),
             cursor_pos.clone(),
-            file_manager.clone(),
+            storage.clone(),
         );
 
         Self {
@@ -130,7 +150,7 @@ impl App<'_> {
             cursor_pos,
 
             key_map,
-            file_manager,
+            storage,
 
             ..Default::default()
         }
@@ -254,7 +274,7 @@ impl App<'_> {
 
     fn persist_self(&self) -> Result<()> {
         let stored_app = self.persist();
-        self.file_manager.write_session(&stored_app)?;
+        self.storage.write_session(&stored_app)?;
         Ok(())
     }
 }

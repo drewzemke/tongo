@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Context, Result};
 use std::{
+    fmt::Debug,
     fs,
     path::{Path, PathBuf},
 };
@@ -38,16 +39,66 @@ pub fn get_app_data_path() -> Result<PathBuf> {
     Ok(path)
 }
 
+pub trait Storage: Debug {
+    fn read_connections(&self) -> Result<Vec<Connection>>;
+    fn write_connections(&self, connections: &[Connection]) -> Result<()>;
+    fn write_session(&self, persisted_app: &PersistedApp) -> Result<()>;
+    fn read_session(&self) -> Result<PersistedApp>;
+    fn read_config(&self) -> Result<Config>;
+}
+
 #[derive(Debug, Clone, Default)]
-pub struct FileManager {
+pub struct FileStorage {
     data_dir: PathBuf,
     config_dir: PathBuf,
 }
 
-impl FileManager {
-    /// # Errors
-    ///
-    /// Returns an error if the local data or config directories cannot be found.
+impl Storage for FileStorage {
+    fn read_connections(&self) -> Result<Vec<Connection>> {
+        let file = self.read_from_data_dir(CONNECTIONS_FILE_NAME.into())?;
+        serde_json::from_str(&file).context("Error while parsing `connection.json`")
+    }
+
+    fn write_connections(&self, connections: &[Connection]) -> Result<()> {
+        self.write_to_data_dir(
+            CONNECTIONS_FILE_NAME.into(),
+            &serde_json::to_string_pretty(connections)?,
+        )
+    }
+
+    fn write_session(&self, persisted_app: &PersistedApp) -> Result<()> {
+        let json = serde_json::to_string_pretty(persisted_app)?;
+        self.write_to_data_dir(SESSIONS_FILE_NAME.into(), &json)?;
+        Ok(())
+    }
+
+    fn read_session(&self) -> Result<PersistedApp> {
+        let file = self
+            .read_from_data_dir(SESSIONS_FILE_NAME.into())
+            .context("TODO: better error handling")?;
+
+        let session =
+            serde_json::from_str::<PersistedApp>(&file).context("TODO: better error handling")?;
+
+        Ok(session)
+    }
+
+    fn read_config(&self) -> Result<Config> {
+        let config_path = Path::new(&get_app_config_path()?).join(CONFIG_FILE_NAME);
+
+        if !config_path.exists() {
+            fs::write(
+                &config_path,
+                include_str!("../../assets/default-config.toml"),
+            )?;
+        }
+
+        let file = self.read_from_config_dir(CONFIG_FILE_NAME.into())?;
+        Config::read_from_string(&file)
+    }
+}
+
+impl FileStorage {
     pub fn init() -> Result<Self> {
         Ok(Self {
             data_dir: get_app_data_path()?,
@@ -71,50 +122,5 @@ impl FileManager {
         let file_path = Path::new(&self.data_dir).join(path_from_data_dir);
         fs::write(file_path, data)?;
         Ok(())
-    }
-
-    pub fn read_connections(&self) -> Result<Vec<Connection>> {
-        let file = self.read_from_data_dir(CONNECTIONS_FILE_NAME.into())?;
-        serde_json::from_str(&file).context("Error while parsing `connection.json`")
-    }
-
-    pub fn write_connections(&self, connections: &[Connection]) -> Result<()> {
-        self.write_to_data_dir(
-            CONNECTIONS_FILE_NAME.into(),
-            &serde_json::to_string_pretty(connections)?,
-        )
-    }
-
-    pub fn write_session(&self, persisted_app: &PersistedApp) -> Result<()> {
-        let json = serde_json::to_string_pretty(persisted_app)?;
-        self.write_to_data_dir(SESSIONS_FILE_NAME.into(), &json)?;
-        Ok(())
-    }
-
-    // HACK: until we remove the feature flag
-    #[allow(dead_code)]
-    pub fn read_session(&self) -> Result<PersistedApp> {
-        let file = self
-            .read_from_data_dir(SESSIONS_FILE_NAME.into())
-            .context("TODO: better error handling")?;
-
-        let session =
-            serde_json::from_str::<PersistedApp>(&file).context("TODO: better error handling")?;
-
-        Ok(session)
-    }
-
-    pub fn read_config(&self) -> Result<Config> {
-        let config_path = Path::new(&get_app_config_path()?).join(CONFIG_FILE_NAME);
-
-        if !config_path.exists() {
-            fs::write(
-                &config_path,
-                include_str!("../../assets/default-config.toml"),
-            )?;
-        }
-
-        let file = self.read_from_config_dir(CONFIG_FILE_NAME.into())?;
-        Config::read_from_string(&file)
     }
 }

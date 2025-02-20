@@ -4,8 +4,8 @@ use clap::Parser;
 use connection::Connection;
 use key_map::KeyMap;
 use ratatui::{backend::CrosstermBackend, Terminal};
-use std::{io::Stdout, path::PathBuf};
-use utils::file_manager::{get_app_data_path, FileManager};
+use std::{io::Stdout, path::PathBuf, rc::Rc};
+use utils::storage::{get_app_data_path, FileStorage, Storage};
 
 #[cfg(feature = "experimental_sessions")]
 use sessions::PersistedComponent;
@@ -59,14 +59,14 @@ async fn main() -> Result<()> {
 
     let args = Args::parse();
 
-    let file_manager = FileManager::init()?;
+    let storage = FileStorage::init()?;
 
     // load config
-    let config = file_manager.read_config().unwrap_or_default();
+    let config = storage.read_config().unwrap_or_default();
     let key_map = KeyMap::try_from_config(&config).context("Parsing key map")?;
 
     // load connections
-    let stored_connections = file_manager.read_connections().unwrap_or_default();
+    let stored_connections = storage.read_connections().unwrap_or_default();
 
     // connect to a connection based on command line argument (if applicable)
     let connection = args
@@ -85,14 +85,14 @@ async fn main() -> Result<()> {
         connection,
         stored_connections,
         key_map,
-        file_manager.clone(),
+        Rc::new(storage.clone()),
     );
 
     // load stored app state
 
     #[cfg(feature = "experimental_sessions")]
     if args.last {
-        if let Ok(session) = file_manager.read_session() {
+        if let Ok(session) = storage.read_session() {
             tracing::info!("Loading previous app state");
             app.hydrate(session);
         }
