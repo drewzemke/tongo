@@ -6,6 +6,8 @@ use crossterm::event::KeyCode;
 use crossterm::event::{Event as CrosstermEvent, KeyEvent, KeyModifiers};
 use std::collections::VecDeque;
 
+pub mod mock_storage;
+
 pub struct ComponentTestHarness<C: Component> {
     component: C,
     events: Vec<Event>,

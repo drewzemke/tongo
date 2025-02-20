@@ -225,11 +225,23 @@ impl PersistedComponent for ConnectionScreen {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{system::command::Command, testing::ComponentTestHarness};
+    use crate::{
+        system::command::Command,
+        testing::{mock_storage::MockStorage, ComponentTestHarness},
+    };
+
+    impl ConnectionScreen {
+        fn new_mock() -> Self {
+            ConnectionScreen {
+                storage: Rc::new(MockStorage::default()),
+                ..Default::default()
+            }
+        }
+    }
 
     #[test]
     fn create_new_conn() {
-        let mut test = ComponentTestHarness::new(ConnectionScreen::default());
+        let mut test = ComponentTestHarness::new(ConnectionScreen::new_mock());
         test.given_command(Command::CreateNew);
 
         // name of connection
