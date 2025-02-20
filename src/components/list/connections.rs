@@ -10,7 +10,7 @@ use crate::{
         command::{Command, CommandGroup},
         event::Event,
     },
-    utils::files::FileManager,
+    utils::file_manager::FileManager,
 };
 use ratatui::{prelude::*, widgets::ListItem};
 use serde::{Deserialize, Serialize};

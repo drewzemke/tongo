@@ -8,7 +8,7 @@ use crate::{
     connection::Connection,
     sessions::PersistedComponent,
     system::{command::CommandGroup, event::Event},
-    utils::files::FileManager,
+    utils::file_manager::FileManager,
 };
 use ratatui::{
     prelude::*,

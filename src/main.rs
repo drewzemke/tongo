@@ -5,7 +5,7 @@ use connection::Connection;
 use key_map::KeyMap;
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::{io::Stdout, path::PathBuf};
-use utils::files::{get_app_data_path, FileManager};
+use utils::file_manager::{get_app_data_path, FileManager};
 
 #[cfg(feature = "experimental_sessions")]
 use sessions::PersistedComponent;

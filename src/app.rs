@@ -15,7 +15,7 @@ use crate::{
         command::{Command, CommandGroup},
         event::Event,
     },
-    utils::files::FileManager,
+    utils::file_manager::FileManager,
 };
 
 use anyhow::Result;
