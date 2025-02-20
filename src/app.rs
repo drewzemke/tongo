@@ -373,7 +373,7 @@ impl Component for App<'_> {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedApp {
     focus: AppFocus,
     conn_screen: PersistedConnectionScreen,

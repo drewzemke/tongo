@@ -138,7 +138,7 @@ impl Component for Connections {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedConnections {
     pub selected_conn: Option<Connection>,
 }

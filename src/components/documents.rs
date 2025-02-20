@@ -319,7 +319,7 @@ impl Component for Documents<'_> {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedDocuments {
     selection: Vec<MongoKey>,
     page: usize,

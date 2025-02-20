@@ -118,7 +118,7 @@ impl Component for Collections {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedCollections {
     selected_coll: Option<CollectionSpecification>,
 }

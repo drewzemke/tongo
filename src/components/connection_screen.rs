@@ -203,7 +203,7 @@ impl Component for ConnectionScreen {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedConnectionScreen {
     pub conn_list: PersistedConnections,
 }

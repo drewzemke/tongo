@@ -117,7 +117,7 @@ impl Component for Databases {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedDatabases {
     selected_db: Option<DatabaseSpecification>,
 }

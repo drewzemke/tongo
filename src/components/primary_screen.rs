@@ -225,7 +225,7 @@ impl Component for PrimaryScreen<'_> {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedPrimaryScreen {
     db_list: PersistedDatabases,
     coll_list: PersistedCollections,
