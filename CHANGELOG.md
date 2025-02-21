@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.2](https://github.com/drewzemke/tongo/compare/v0.12.1...v0.12.2) - 2025-02-21
+
+### Added
+
+- *(testing)* add `MockStorage` to stop tests from writing to the filesystem :D
+
+### Other
+
+- *(connections)* connections have ids
+- *(storage)* add `Storage` trait to decouple components from filesystem
+- *(components)* add some missing `Debug` and `Clone` derive macros
+- *(project)* rename module `files` -> `file_manager`
+
 ## [0.12.1](https://github.com/drewzemke/tongo/compare/v0.12.0...v0.12.1) - 2025-02-19
 
 ### Added
