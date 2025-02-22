@@ -50,7 +50,7 @@ impl Component for ConnStrInput {
 
     fn commands(&self) -> Vec<crate::system::command::CommandGroup> {
         vec![
-            CommandGroup::new(vec![Command::Confirm], "connect"),
+            CommandGroup::new(vec![Command::Confirm], "confirm"),
             CommandGroup::new(vec![Command::Back], "prev field"),
         ]
     }
@@ -75,8 +75,10 @@ impl Component for ConnStrInput {
     }
 
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
-        if matches!(event, Event::ConnectionCreated(..)) {
-            self.input.set_value("");
+        match event {
+            Event::ConnectionCreated(..) => self.input.set_value(""),
+            Event::EditConnectionStarted(conn) => self.input.set_value(&conn.connection_str),
+            _ => {}
         }
         vec![]
     }
@@ -102,5 +104,16 @@ mod tests {
         test.given_event(Event::ConnectionCreated(Connection::default()));
 
         assert_eq!(test.component().value(), "");
+    }
+
+    #[test]
+    fn populate_with_connection_on_edit() {
+        let mut test = ComponentTestHarness::new(ConnStrInput::default());
+
+        let connection = Connection::new("name".to_string(), "url".to_string());
+
+        test.given_event(Event::EditConnectionStarted(connection));
+
+        assert_eq!(test.component().value(), "url");
     }
 }

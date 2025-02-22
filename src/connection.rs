@@ -10,11 +10,16 @@ pub struct Connection {
 }
 
 impl Connection {
+    // TODO: change arg types to AsRef<String> and clone here
     pub fn new(name: String, connection_str: String) -> Self {
         Self {
             id: Uuid::new_v4(),
             name,
             connection_str,
         }
+    }
+
+    pub fn id(&self) -> &Uuid {
+        &self.id
     }
 }

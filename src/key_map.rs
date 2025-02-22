@@ -11,7 +11,7 @@ use ratatui::{
 };
 use std::collections::HashMap;
 
-fn key_code_from_str(s: &str) -> Result<KeyCode> {
+pub fn key_code_from_str(s: &str) -> Result<KeyCode> {
     match s {
         "enter" | "Enter" | "return" | "Return" => Ok(KeyCode::Enter),
         "esc" | "Esc" => Ok(KeyCode::Esc),
@@ -51,6 +51,7 @@ impl Default for KeyMap {
             (Command::FocusLeft, KeyCode::Char('H')),
             (Command::FocusRight, KeyCode::Char('L')),
             (Command::CreateNew, KeyCode::Char('N')),
+            (Command::Edit, KeyCode::Char('E')),
             (Command::Confirm, KeyCode::Enter),
             (Command::Reset, KeyCode::Char('R')),
             (Command::Refresh, KeyCode::Char('r')),

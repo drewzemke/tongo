@@ -1,5 +1,6 @@
 use crate::{
     components::{Component, ComponentCommand},
+    key_map::key_code_from_str,
     system::{command::Command, event::Event},
 };
 use crossterm::event::KeyCode;
@@ -36,6 +37,14 @@ impl<C: Component> ComponentTestHarness<C> {
         self.process_events(events);
     }
 
+    pub fn given_key(&mut self, string: &str) {
+        let key_code = key_code_from_str(string).expect("key codes in tests should be correct");
+        let ct_event = CrosstermEvent::Key(KeyEvent::new(key_code, KeyModifiers::empty()));
+        let command = ComponentCommand::RawEvent(ct_event);
+        let events = self.component.handle_command(&command);
+        self.process_events(events);
+    }
+
     pub fn given_string(&mut self, string: &str) {
         for c in string.chars() {
             let ct_event =
@@ -64,6 +73,10 @@ impl<C: Component> ComponentTestHarness<C> {
 
     pub fn expect_event<P: FnMut(&&Event) -> bool>(&self, predicate: P) {
         let event = self.events.iter().find(predicate);
-        assert!(event.is_some(), "Matching event not found");
+        assert!(
+            event.is_some(),
+            "Matching event not found. These events were recorded:\n{:?}",
+            self.events
+        );
     }
 }

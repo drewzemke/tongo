@@ -35,6 +35,7 @@ pub struct ConnectionScreen {
     conn_name_input: ConnNameInput,
     conn_str_input: ConnStrInput,
     storage: Rc<dyn Storage>,
+    editing: Option<Connection>,
 }
 
 impl Default for ConnectionScreen {
@@ -53,6 +54,7 @@ impl Default for ConnectionScreen {
             conn_name_input,
             conn_str_input,
             storage,
+            editing: None,
         }
     }
 }
@@ -73,6 +75,7 @@ impl ConnectionScreen {
             conn_name_input,
             conn_str_input,
             storage: file_manager,
+            editing: None,
         }
     }
 
@@ -112,6 +115,12 @@ impl Component for ConnectionScreen {
                 self.conn_name_input.start_editing();
                 out.push(Event::RawModeEntered);
             }
+            Event::EditConnectionStarted(conn) => {
+                self.conn_name_input.focus();
+                self.conn_name_input.start_editing();
+                self.editing = Some(conn.clone());
+                out.push(Event::RawModeEntered);
+            }
             Event::FocusedForward => match self.internal_focus() {
                 Some(ConnScrFocus::NameIn) => {
                     self.conn_name_input.stop_editing();
@@ -119,11 +128,17 @@ impl Component for ConnectionScreen {
                     self.conn_str_input.start_editing();
                 }
                 Some(ConnScrFocus::StringIn) => {
-                    let conn = Connection::new(
-                        self.conn_name_input.value().to_string(),
-                        self.conn_str_input.value().to_string(),
-                    );
-                    out.push(Event::ConnectionCreated(conn));
+                    if let Some(mut editing_conn) = self.editing.take() {
+                        editing_conn.name = self.conn_name_input.value().to_string();
+                        editing_conn.connection_str = self.conn_str_input.value().to_string();
+                        out.push(Event::ConnectionEdited(editing_conn));
+                    } else {
+                        let conn = Connection::new(
+                            self.conn_name_input.value().to_string(),
+                            self.conn_str_input.value().to_string(),
+                        );
+                        out.push(Event::ConnectionCreated(conn));
+                    };
                 }
                 Some(ConnScrFocus::ConnList) | None => {}
             },
@@ -148,6 +163,24 @@ impl Component for ConnectionScreen {
                             "Could not save updated connections.".to_string(),
                         ));
                     });
+            }
+            Event::ConnectionEdited(conn) => {
+                let edited_conn = self
+                    .conn_list
+                    .items
+                    .iter_mut()
+                    .find(|c| c.id() == conn.id());
+                if let Some(edited_conn) = edited_conn {
+                    *edited_conn = conn.clone();
+                    self.storage
+                        .write_connections(&self.conn_list.items)
+                        .unwrap_or_else(|_| {
+                            out.push(Event::ErrorOccurred(
+                                "Could not save updated connections.".to_string(),
+                            ));
+                        });
+                }
+                self.conn_list.focus();
             }
             _ => {}
         }
@@ -231,9 +264,13 @@ mod tests {
     };
 
     impl ConnectionScreen {
-        fn new_mock() -> Self {
+        fn new_mock(connections: Vec<Connection>) -> Self {
             ConnectionScreen {
                 storage: Rc::new(MockStorage::default()),
+                conn_list: Connections {
+                    items: connections,
+                    ..Default::default()
+                },
                 ..Default::default()
             }
         }
@@ -241,7 +278,7 @@ mod tests {
 
     #[test]
     fn create_new_conn() {
-        let mut test = ComponentTestHarness::new(ConnectionScreen::new_mock());
+        let mut test = ComponentTestHarness::new(ConnectionScreen::new_mock(vec![]));
         test.given_command(Command::CreateNew);
 
         // name of connection
@@ -252,6 +289,34 @@ mod tests {
         test.given_string("url");
         test.given_command(Command::Confirm);
 
-        test.expect_event(|e| matches!(e, Event::ConnectionCreated(..)));
+        test.expect_event(|e| matches!(e, Event::ConnectionCreated(c) if c.name == "local"));
+    }
+
+    #[test]
+    fn edit_connection() {
+        let connection = Connection::new("conn".to_string(), "url".to_string());
+        let mut test =
+            ComponentTestHarness::new(ConnectionScreen::new_mock(vec![connection.clone()]));
+
+        // start editing
+        test.given_command(Command::NavDown);
+        test.given_command(Command::Edit);
+        test.expect_event(|e| matches!(e, Event::EditConnectionStarted(c) if c.name == "conn"));
+
+        // focus should be on name
+        // move to url field
+        test.given_command(Command::Confirm);
+
+        // connection string url
+        test.given_key("backspace");
+        test.given_key("backspace");
+        test.given_key("backspace");
+        test.given_key("backspace");
+        test.given_string("new_url");
+        test.given_command(Command::Confirm);
+
+        test.expect_event(
+            |e| matches!(e, Event::ConnectionEdited(c) if c.connection_str == "new_url" && c.id() == connection.id()),
+        );
     }
 }

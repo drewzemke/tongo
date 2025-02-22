@@ -12,7 +12,6 @@ pub enum Command {
     FocusLeft,
     FocusRight,
 
-    CreateNew,
     Confirm,
     Reset,
     Refresh,
@@ -23,13 +22,18 @@ pub enum Command {
     FirstPage,
     LastPage,
 
+    CreateNew,
+    Edit,
     Delete,
     Back,
     Quit,
 
+    // TODO: merge with `CreatNew`
     InsertDoc,
+    // TODO: merge with `Edit`
     EditDoc,
     DuplicateDoc,
+    // TODO: merge with `Delete`
     DeleteDoc,
     Yank,
 }
@@ -49,6 +53,7 @@ impl Command {
             "focus_right" => Ok(Self::FocusRight),
 
             "create_new" => Ok(Self::CreateNew),
+            "edit" => Ok(Self::Edit),
             "confirm" => Ok(Self::Confirm),
             "reset" => Ok(Self::Reset),
             "refresh" => Ok(Self::Refresh),

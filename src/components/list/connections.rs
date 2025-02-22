@@ -17,10 +17,10 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
 pub struct Connections {
-    app_focus: Rc<RefCell<AppFocus>>,
     pub items: Vec<Connection>,
-    list: InnerList,
-    storage: Rc<dyn Storage>,
+    pub app_focus: Rc<RefCell<AppFocus>>,
+    pub list: InnerList,
+    pub storage: Rc<dyn Storage>,
 }
 
 impl Default for Connections {
@@ -83,6 +83,7 @@ impl Component for Connections {
         out.append(&mut vec![
             CommandGroup::new(vec![Command::Confirm], "connect"),
             CommandGroup::new(vec![Command::CreateNew], "new conn."),
+            CommandGroup::new(vec![Command::Edit], "edit conn."),
             CommandGroup::new(vec![Command::Delete], "delete conn."),
         ]);
         out
@@ -101,6 +102,11 @@ impl Component for Connections {
             }
             Command::CreateNew => {
                 out.push(Event::NewConnectionStarted);
+            }
+            Command::Edit => {
+                if let Some(conn) = self.get_selected_conn() {
+                    out.push(Event::EditConnectionStarted(conn.clone()));
+                }
             }
             Command::Delete => {
                 out.push(Event::ConfirmationRequested(*command));

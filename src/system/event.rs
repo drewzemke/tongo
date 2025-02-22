@@ -18,7 +18,9 @@ pub enum Event {
 
     ConnectionSelected(Connection),
     NewConnectionStarted,
+    EditConnectionStarted(Connection),
     ConnectionCreated(Connection),
+    ConnectionEdited(Connection),
     ConnectionDeleted,
 
     ClientCreated(MongoClient),
