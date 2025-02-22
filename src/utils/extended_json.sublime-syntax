@@ -1,0 +1,141 @@
+%YAML 1.2
+---
+name: JSON5
+file_extensions:
+  - json5
+scope: source.json5
+
+variables:
+  identifier: '[a-zA-Z_$][a-zA-Z0-9_$]*'
+
+contexts:
+  main:
+    - include: value
+
+  value:
+    - include: comments
+    - include: constant
+    - include: number
+    - include: string
+    - include: array
+    - include: object
+
+  constant:
+    - match: 'true|false|null'
+      scope: constant.language.json5
+
+  number:
+    - match: '-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?'
+      scope: constant.numeric.json5
+
+  string:
+    - match: '"'
+      scope: punctuation.definition.string.begin.json5
+      push:
+        - meta_scope: string.quoted.double.json5
+        - match: '"'
+          scope: punctuation.definition.string.end.json5
+          pop: true
+        - include: string-escape
+    - match: "'"
+      scope: punctuation.definition.string.begin.json5
+      push:
+        - meta_scope: string.quoted.single.json5
+        - match: "'"
+          scope: punctuation.definition.string.end.json5
+          pop: true
+        - include: string-escape
+
+  string-escape:
+    - match: '\\(["\\/bfnrt]|u[0-9a-fA-F]{4})'
+      scope: constant.character.escape.json5
+
+  array:
+    - match: '\['
+      scope: punctuation.section.array.begin.json5
+      push:
+        - meta_scope: meta.structure.array.json5
+        - match: '\]'
+          scope: punctuation.section.array.end.json5
+          pop: true
+        - include: value
+        - match: ','
+          scope: punctuation.separator.array.json5
+        - match: '[^\s\]]'
+          scope: invalid.illegal.expected-array-separator.json5
+
+  object:
+    - match: '\{'
+      scope: punctuation.section.mapping.begin.json5
+      push:
+        - meta_scope: meta.structure.dictionary.json5
+        - match: '\}'
+          scope: punctuation.section.mapping.end.json5
+          pop: true
+        - include: key-value-pair
+        - match: ','
+          scope: punctuation.separator.dictionary.pair.json5
+
+  key-value-pair:
+  - include: comments
+  - match: '(\${{identifier}})\s*(:)'
+    captures:
+      1: meta.structure.dictionary.key.special.json5 string.unquoted.special.json5
+      2: punctuation.separator.dictionary.key-value.json5
+    push:
+      - meta_content_scope: meta.structure.dictionary.value.json5
+      - include: value
+      - match: '(?=[,}])'
+        pop: true
+  - match: '({{identifier}})\s*(:)'
+    captures:
+      1: meta.structure.dictionary.key.json5 string.unquoted.json5
+      2: punctuation.separator.dictionary.key-value.json5
+    push:
+      - meta_content_scope: meta.structure.dictionary.value.json5
+      - include: value
+      - match: '(?=[,}])'
+        pop: true
+  - match: '(")'
+    scope: punctuation.definition.string.begin.json5
+    push:
+      - meta_scope: meta.structure.dictionary.key.json5 string.quoted.double.json5
+      - match: '"'
+        scope: punctuation.definition.string.end.json5
+        set:
+          - match: ':'
+            scope: punctuation.separator.dictionary.key-value.json5
+            set:
+              - meta_content_scope: meta.structure.dictionary.value.json5
+              - include: value
+              - match: '(?=[,}])'
+                pop: true
+  - match: "(')"
+    scope: punctuation.definition.string.begin.json5
+    push:
+      - meta_scope: meta.structure.dictionary.key.json5 string.quoted.single.json5
+      - match: "'"
+        scope: punctuation.definition.string.end.json5
+        set:
+          - match: ':'
+            scope: punctuation.separator.dictionary.key-value.json5
+            set:
+              - meta_content_scope: meta.structure.dictionary.value.json5
+              - include: value
+              - match: '(?=[,}])'
+                pop: true
+
+  comments:
+    - match: '//'
+      scope: punctuation.definition.comment.json5
+      push:
+        - meta_scope: comment.line.double-slash.json5
+        - match: $\n?
+          pop: true
+    - match: '/\*'
+      scope: punctuation.definition.comment.json5
+      push:
+        - meta_scope: comment.block.json5
+        - match: '\*/'
+          scope: punctuation.definition.comment.json5
+          pop: true

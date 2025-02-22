@@ -77,7 +77,7 @@ impl Component for FilterInput {
                 ComponentCommand::Command(command) => match command {
                     Command::Confirm => {
                         let filter_str = self.input.value();
-                        let filter = serde_json::from_str::<serde_json::Value>(filter_str)
+                        let filter = json5::from_str::<serde_json::Value>(filter_str)
                             .ok()
                             .and_then(|value| mongodb::bson::to_document(&value).ok());
 
@@ -148,6 +148,7 @@ impl InputFormatter for FilterInputFormatter {
                             JsonLabel::Constant => Style::default().cyan(),
                             JsonLabel::Whitespace => Style::default(),
                             JsonLabel::Error => Style::default().on_red(),
+                            JsonLabel::DollarSignKey => Style::default().magenta(),
                         };
 
                         Span::styled(s, style)
