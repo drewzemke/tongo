@@ -103,7 +103,10 @@ impl Client {
         Some(client.database(&db_spec.name))
     }
 
-    fn get_collection<T>(&self) -> Option<Collection<T>> {
+    fn get_collection<T>(&self) -> Option<Collection<T>>
+    where
+        T: Send + Sync,
+    {
         let db = self.get_database()?;
         let coll = self.coll.as_ref()?;
         Some(db.collection::<T>(&coll.name))
@@ -113,7 +116,7 @@ impl Client {
         let client = self.mongo_client.clone()?;
 
         self.exec(async move {
-            let dbs = client.list_databases(None, None).await?;
+            let dbs = client.list_databases().await?;
             Ok(Event::DatabasesUpdated(dbs))
         });
 
@@ -124,7 +127,7 @@ impl Client {
         let db = self.get_database()?;
 
         self.exec(async move {
-            let cursor = db.list_collections(None, None).await?;
+            let cursor = db.list_collections().await?;
             let colls = cursor.try_collect::<Vec<_>>().await?;
             Ok(Event::CollectionsUpdated(colls))
         });
@@ -134,7 +137,7 @@ impl Client {
 
     fn query(&self, reset_state: bool) -> Option<()> {
         let coll = self.get_collection::<Bson>()?;
-        let filter = Some(self.filter.clone()); // self.filter_editor.filter.clone();
+        let filter = self.filter.clone();
         let skip = self.page * PAGE_SIZE;
 
         #[expect(clippy::cast_possible_wrap)]
@@ -144,7 +147,7 @@ impl Client {
             .build();
 
         self.exec(async move {
-            let cursor = coll.find(filter, options).await?;
+            let cursor = coll.find(filter).with_options(options).await?;
             let docs = cursor.try_collect::<Vec<_>>().await?;
             Ok(Event::DocumentsUpdated { docs, reset_state })
         });
@@ -154,10 +157,10 @@ impl Client {
 
     fn count(&self) -> Option<()> {
         let coll = self.get_collection::<Bson>()?;
-        let filter = Some(self.filter.clone());
+        let filter = self.filter.clone();
 
         self.exec(async move {
-            let count = coll.count_documents(filter, None).await?;
+            let count = coll.count_documents(filter).await?;
             Ok(Event::CountUpdated(count))
         });
 
@@ -168,7 +171,7 @@ impl Client {
         let coll = self.get_collection::<Document>()?;
 
         self.exec(async move {
-            coll.insert_one(doc, None).await?;
+            coll.insert_one(doc).await?;
             Ok(Event::InsertConfirmed)
         });
 
@@ -180,7 +183,7 @@ impl Client {
         let update = doc! { "$set": update };
 
         self.exec(async move {
-            coll.update_one(filter, update, None).await?;
+            coll.update_one(filter, update).await?;
             Ok(Event::UpdateConfirmed)
         });
 
@@ -191,7 +194,7 @@ impl Client {
         let coll = self.get_collection::<Document>()?;
 
         self.exec(async move {
-            coll.delete_one(filter, None).await?;
+            coll.delete_one(filter).await?;
             Ok(Event::DeleteConfirmed)
         });
 
