@@ -1,5 +1,6 @@
 use crate::{
     components::{Component, ComponentCommand},
+    persistence::PersistedComponent,
     system::{command::CommandGroup, event::Event},
 };
 use anyhow::Result;
@@ -11,6 +12,7 @@ use mongodb::{
     Client as MongoClient, Collection, Database,
 };
 use ratatui::prelude::{Frame, Rect};
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
     sync::mpsc::{self, Receiver, Sender},
@@ -315,4 +317,32 @@ impl Component for Client {
 
     /// Not used
     fn render(&mut self, _frame: &mut Frame, _area: Rect) {}
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PersistedClient {
+    db: Option<DatabaseSpecification>,
+    coll: Option<CollectionSpecification>,
+    // filter: Document,
+    page: usize,
+}
+
+impl PersistedComponent for Client {
+    type StorageType = PersistedClient;
+
+    fn persist(&self) -> Self::StorageType {
+        PersistedClient {
+            db: self.db.clone(),
+            coll: self.coll.clone(),
+            // filter: self.filter.clone(),
+            page: self.page.clone(),
+        }
+    }
+
+    fn hydrate(&mut self, storage: Self::StorageType) {
+        self.db = storage.db;
+        self.coll = storage.coll;
+        // self.filter = storage.filter;
+        self.page = storage.page;
+    }
 }

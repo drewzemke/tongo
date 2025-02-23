@@ -1,5 +1,5 @@
 use crate::{
-    client::Client,
+    client::{Client, PersistedClient},
     components::{
         confirm_modal::ConfirmModal,
         connection_screen::{ConnScrFocus, ConnectionScreen, PersistedConnectionScreen},
@@ -396,6 +396,7 @@ impl Component for App<'_> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedApp {
     focus: AppFocus,
+    client: PersistedClient,
     conn_screen: PersistedConnectionScreen,
     primary_screen: PersistedPrimaryScreen,
 }
@@ -421,6 +422,7 @@ impl PersistedComponent for App<'_> {
 
         PersistedApp {
             focus,
+            client: self.client.persist(),
             conn_screen: self.conn_screen.persist(),
             primary_screen: self.primary_screen.persist(),
         }
@@ -428,8 +430,12 @@ impl PersistedComponent for App<'_> {
 
     fn hydrate(&mut self, storage: Self::StorageType) {
         *self.focus.borrow_mut() = storage.focus;
-
         self.conn_screen.hydrate(storage.conn_screen.clone());
         self.primary_screen.hydrate(storage.primary_screen);
+
+        self.client.hydrate(storage.client);
+        if let Some(conn) = storage.conn_screen.conn_list.selected_conn {
+            self.client.set_conn_str(conn.connection_str);
+        }
     }
 }
