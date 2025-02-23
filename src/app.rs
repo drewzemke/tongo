@@ -158,7 +158,7 @@ impl App<'_> {
 
     pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
         // initial draw call
-        terminal.draw(|frame| self.render(frame, frame.size()))?;
+        terminal.draw(|frame| self.render(frame, frame.area()))?;
 
         let debounce: Option<Instant> = None;
 
@@ -195,7 +195,7 @@ impl App<'_> {
 
             if should_render {
                 terminal.draw(|frame| {
-                    self.render(frame, frame.size());
+                    self.render(frame, frame.area());
                 })?;
             }
         }
@@ -380,7 +380,7 @@ impl Component for App<'_> {
         // show the cursor if we're editing something
         if self.raw_mode {
             let (x, y) = self.cursor_pos.get();
-            frame.set_cursor(x, y);
+            frame.set_cursor_position((x, y));
         }
     }
 
