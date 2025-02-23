@@ -230,6 +230,7 @@ pub struct PersistedPrimaryScreen {
     db_list: PersistedDatabases,
     coll_list: PersistedCollections,
     doc_tree: PersistedDocuments,
+    filter_input: String,
 }
 
 impl PersistedComponent for PrimaryScreen<'_> {
@@ -240,6 +241,7 @@ impl PersistedComponent for PrimaryScreen<'_> {
             db_list: self.db_list.persist(),
             coll_list: self.coll_list.persist(),
             doc_tree: self.doc_tree.persist(),
+            filter_input: self.filter_input.persist(),
         }
     }
 
@@ -247,5 +249,6 @@ impl PersistedComponent for PrimaryScreen<'_> {
         self.db_list.hydrate(storage.db_list);
         self.coll_list.hydrate(storage.coll_list);
         self.doc_tree.hydrate(storage.doc_tree);
+        self.filter_input.hydrate(storage.filter_input);
     }
 }

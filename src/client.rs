@@ -323,7 +323,7 @@ impl Component for Client {
 pub struct PersistedClient {
     db: Option<DatabaseSpecification>,
     coll: Option<CollectionSpecification>,
-    // filter: Document,
+    filter: Document,
     page: usize,
 }
 
@@ -334,7 +334,7 @@ impl PersistedComponent for Client {
         PersistedClient {
             db: self.db.clone(),
             coll: self.coll.clone(),
-            // filter: self.filter.clone(),
+            filter: self.filter.clone(),
             page: self.page.clone(),
         }
     }
@@ -342,7 +342,7 @@ impl PersistedComponent for Client {
     fn hydrate(&mut self, storage: Self::StorageType) {
         self.db = storage.db;
         self.coll = storage.coll;
-        // self.filter = storage.filter;
+        self.filter = storage.filter;
         self.page = storage.page;
     }
 }

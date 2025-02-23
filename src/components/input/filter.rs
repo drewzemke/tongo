@@ -2,6 +2,7 @@ use super::{InnerInput, InputFormatter};
 use crate::{
     app::AppFocus,
     components::{primary_screen::PrimScrFocus, Component, ComponentCommand},
+    persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
         event::Event,
@@ -122,6 +123,18 @@ impl Component for FilterInput {
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         self.input.render(frame, area, self.is_focused());
+    }
+}
+
+impl PersistedComponent for FilterInput {
+    type StorageType = String;
+
+    fn persist(&self) -> Self::StorageType {
+        self.input.value().to_string()
+    }
+
+    fn hydrate(&mut self, storage: Self::StorageType) {
+        self.input.set_value(&storage);
     }
 }
 
