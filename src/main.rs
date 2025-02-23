@@ -1,26 +1,16 @@
 use anyhow::{Context, Result};
-use app::App;
 use clap::Parser;
-use connection::Connection;
-use key_map::KeyMap;
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::{io::Stdout, path::PathBuf, rc::Rc};
-use utils::storage::{get_app_data_path, FileStorage, Storage};
+use tongo::{
+    app::App,
+    connection::Connection,
+    key_map::KeyMap,
+    utils::storage::{get_app_data_path, FileStorage, Storage},
+};
 
 #[cfg(feature = "experimental_sessions")]
-use sessions::PersistedComponent;
-
-mod app;
-mod client;
-mod components;
-mod config;
-mod connection;
-mod key_map;
-mod sessions;
-mod system;
-#[cfg(test)]
-mod testing;
-mod utils;
+use tongo::sessions::PersistedComponent;
 
 /// A TUI for viewing mongo databases.
 #[derive(Parser)]
