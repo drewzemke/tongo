@@ -16,10 +16,4 @@ start-mongo:
     && ./scripts/seed.sh
 
 logs:
-    #!/usr/bin/env sh
-    if [ -d ~/Library ]; then
-        log_path="$HOME/Library/Application Support/tongo/tongo.log"
-    else
-        log_path="$HOME/.local/share/tongo/tongo.log"
-    fi
-    tail -f "$log_path"
+    tail -f $HOME/.local/share/tongo/tongo.log

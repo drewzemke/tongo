@@ -35,6 +35,8 @@ impl Collections {
             .selected()
             .and_then(|index| self.items.get(index))
     }
+
+    // TODO: remove? only used for hydration
     fn select(&mut self, collection: Option<CollectionSpecification>) {
         let index = collection.and_then(|collection| {
             self.items
@@ -114,6 +116,7 @@ impl Component for Collections {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedCollections {
     selected_coll: Option<CollectionSpecification>,
+    all_colls: Vec<CollectionSpecification>,
 }
 
 impl PersistedComponent for Collections {
@@ -122,10 +125,12 @@ impl PersistedComponent for Collections {
     fn persist(&self) -> Self::StorageType {
         PersistedCollections {
             selected_coll: self.get_selected().cloned(),
+            all_colls: self.items.clone(),
         }
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) {
+        self.items = storage.all_colls;
         self.select(storage.selected_coll);
     }
 }
@@ -135,13 +140,9 @@ mod tests {
 
     use super::*;
     use crate::testing::ComponentTestHarness;
-    use anyhow::Result;
     use serde_json::json;
 
-    #[test]
-    fn select_first_item_on_new_data() -> Result<()> {
-        let mut test = ComponentTestHarness::new(Collections::default());
-
+    fn get_dummy_collection() -> CollectionSpecification {
         let coll_spec_json = json!({
             "name": "test_collection",
             "type": "collection",
@@ -149,12 +150,39 @@ mod tests {
             "info": { "readOnly": false, "uuid": null },
             "id_index": null
         });
-        let coll_spec: CollectionSpecification = serde_json::from_value(coll_spec_json)?;
 
+        serde_json::from_value(coll_spec_json)
+            .expect("should be able to parse collection from json")
+    }
+
+    #[test]
+    fn select_first_item_on_new_data() {
+        let mut test = ComponentTestHarness::new(Collections::default());
+
+        let coll_spec = get_dummy_collection();
         test.given_event(Event::CollectionsUpdated(vec![coll_spec]));
 
         assert_eq!(test.component().list.state.selected(), Some(0));
+    }
 
-        Ok(())
+    #[test]
+    fn persisting_and_hydrate() {
+        let coll_spec = get_dummy_collection();
+        let mut component = Collections {
+            items: vec![coll_spec],
+            ..Default::default()
+        };
+        component.list.state.select(Some(0));
+
+        let persisted_component = component.persist();
+
+        let mut new_component = Collections::default();
+        new_component.hydrate(persisted_component);
+
+        assert_eq!(component.items[0].name, new_component.items[0].name);
+        assert_eq!(
+            component.list.state.selected(),
+            new_component.list.state.selected()
+        );
     }
 }

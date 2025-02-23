@@ -113,6 +113,7 @@ impl Component for Databases {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedDatabases {
     selected_db: Option<DatabaseSpecification>,
+    all_dbs: Vec<DatabaseSpecification>,
 }
 
 impl PersistedComponent for Databases {
@@ -121,10 +122,12 @@ impl PersistedComponent for Databases {
     fn persist(&self) -> Self::StorageType {
         PersistedDatabases {
             selected_db: self.get_selected().cloned(),
+            all_dbs: self.items.clone(),
         }
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) {
+        self.items = storage.all_dbs;
         self.select(storage.selected_db);
     }
 }
@@ -134,25 +137,47 @@ mod tests {
 
     use super::*;
     use crate::testing::ComponentTestHarness;
-    use anyhow::Result;
     use serde_json::json;
 
-    #[test]
-    fn select_first_item_on_new_data() -> Result<()> {
-        let mut test = ComponentTestHarness::new(Databases::default());
-
+    fn get_dummy_database() -> DatabaseSpecification {
         let db_spec_json = json!({
             "name": "test_db",
             "sizeOnDisk": 1024,
             "empty": false,
             "shards": null
         });
-        let db_spec: DatabaseSpecification = serde_json::from_value(db_spec_json)?;
 
+        serde_json::from_value(db_spec_json).expect("should be able to parse database from json")
+    }
+
+    #[test]
+    fn select_first_item_on_new_data() {
+        let mut test = ComponentTestHarness::new(Databases::default());
+
+        let db_spec = get_dummy_database();
         test.given_event(Event::DatabasesUpdated(vec![db_spec]));
 
         assert_eq!(test.component().list.state.selected(), Some(0));
+    }
 
-        Ok(())
+    #[test]
+    fn persisting_and_hydrate() {
+        let db_spec = get_dummy_database();
+        let mut component = Databases {
+            items: vec![db_spec],
+            ..Default::default()
+        };
+        component.list.state.select(Some(0));
+
+        let persisted_component = component.persist();
+
+        let mut new_component = Databases::default();
+        new_component.hydrate(persisted_component);
+
+        assert_eq!(component.items[0].name, new_component.items[0].name);
+        assert_eq!(
+            component.list.state.selected(),
+            new_component.list.state.selected()
+        );
     }
 }

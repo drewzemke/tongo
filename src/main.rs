@@ -85,6 +85,7 @@ async fn main() -> Result<()> {
         if let Ok(session) = storage.read_last_session() {
             tracing::info!("Loading previous app state");
             app.hydrate(session);
+            tracing::info!("Done loading app");
         }
     }
 

@@ -44,6 +44,33 @@ impl Documents<'_> {
         }
     }
 
+    fn set_docs(&mut self, docs: &Vec<Bson>, reset_state: bool) {
+        self.documents.clone_from(docs);
+
+        let items: Vec<_> = docs
+            .iter()
+            .filter_map(|bson| bson.as_document().map(top_level_document))
+            .collect();
+
+        if reset_state {
+            // reset state to have all top-level documents expanded
+            let mut state = TreeState::default();
+            for item in &items {
+                state.open(vec![item.identifier().clone()]);
+            }
+            self.state = state;
+        }
+
+        if self.state.selected().is_empty() {
+            if let Some(first_item) = items.first() {
+                // try to select the first thing
+                self.state.select(vec![first_item.identifier().clone()]);
+            }
+        }
+
+        self.items = items;
+    }
+
     fn selected_doc_as_bson(&self) -> Option<&Bson> {
         let id = self.state.selected().first()?;
 
@@ -234,31 +261,8 @@ impl Component for Documents<'_> {
         let mut out = vec![];
         match event {
             Event::DocumentsUpdated { docs, reset_state } => {
-                self.documents.clone_from(docs);
-
-                let items: Vec<_> = docs
-                    .iter()
-                    .filter_map(|bson| bson.as_document().map(top_level_document))
-                    .collect();
-
-                if *reset_state {
-                    // reset state to have all top-level documents expanded
-                    let mut state = TreeState::default();
-                    for item in &items {
-                        state.open(vec![item.identifier().clone()]);
-                    }
-                    self.state = state;
-                }
-
-                if self.state.selected().is_empty() {
-                    if let Some(first_item) = items.first() {
-                        // try to select the first thing
-                        self.state.select(vec![first_item.identifier().clone()]);
-                        out.push(Event::ListSelectionChanged);
-                    }
-                }
-
-                self.items = items;
+                self.set_docs(docs, *reset_state);
+                out.push(Event::ListSelectionChanged);
             }
             Event::CountUpdated(count) => {
                 self.count = *count;
@@ -315,6 +319,8 @@ impl Component for Documents<'_> {
 pub struct PersistedDocuments {
     selection: Vec<MongoKey>,
     page: usize,
+    docs: Vec<Bson>,
+    count: u64,
 }
 
 impl PersistedComponent for Documents<'_> {
@@ -324,10 +330,15 @@ impl PersistedComponent for Documents<'_> {
         PersistedDocuments {
             selection: self.state.selected().to_vec(),
             page: self.page,
+            docs: self.documents.clone(),
+            count: self.count,
         }
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) {
+        self.page = storage.page;
+        self.count = storage.count;
+        self.set_docs(&storage.docs, true);
         self.state.select(storage.selection);
     }
 }
@@ -355,5 +366,26 @@ mod tests {
             test.component().state.selected(),
             vec![MongoKey::String("document-id".into())]
         );
+    }
+
+    #[test]
+    fn persisting_and_hydrate() {
+        let doc = bson!({ "_id": "document-id" });
+        let docs = vec![doc];
+        let mut component = Documents {
+            documents: docs,
+            ..Default::default()
+        };
+        component
+            .state
+            .select(vec![MongoKey::String("document-id".into())]);
+
+        let persisted_component = component.persist();
+
+        let mut new_component = Documents::default();
+        new_component.hydrate(persisted_component);
+
+        assert_eq!(component.documents, new_component.documents);
+        assert_eq!(component.state.selected(), new_component.state.selected());
     }
 }

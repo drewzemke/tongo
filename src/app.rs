@@ -431,10 +431,5 @@ impl PersistedComponent for App<'_> {
 
         self.conn_screen.hydrate(storage.conn_screen.clone());
         self.primary_screen.hydrate(storage.primary_screen);
-
-        if let Some(Connection { connection_str, .. }) = storage.conn_screen.conn_list.selected_conn
-        {
-            self.client.set_conn_str(connection_str);
-        }
     }
 }
