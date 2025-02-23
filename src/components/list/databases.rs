@@ -22,10 +22,6 @@ pub struct Databases {
     app_focus: Rc<RefCell<AppFocus>>,
     items: Vec<DatabaseSpecification>,
     list: InnerList,
-
-    // HACK: (?) used to store the db that should be selected
-    // the next time the dbs are updated
-    pending_selection: Option<DatabaseSpecification>,
 }
 
 impl Databases {
@@ -90,10 +86,7 @@ impl Component for Databases {
             Event::DatabasesUpdated(dbs) => {
                 self.items.clone_from(dbs);
 
-                if self.pending_selection.is_some() {
-                    let db = self.pending_selection.take();
-                    self.select(db);
-                } else if self.list.state.selected().is_none() {
+                if self.list.state.selected().is_none() {
                     if let Some(first_db) = dbs.first() {
                         // try to select the first thing
                         self.list.state.select(Some(0));
@@ -132,15 +125,8 @@ impl PersistedComponent for Databases {
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) -> Vec<Event> {
-        // TODO: do we need to do this?
-        self.pending_selection = storage.selected_db;
-
-        let mut out = vec![];
-        if let Some(ref db) = self.pending_selection {
-            out.push(Event::DatabaseHighlighted(db.clone()));
-            out.push(Event::DatabaseSelected);
-        }
-        out
+        self.select(storage.selected_db);
+        vec![]
     }
 }
 

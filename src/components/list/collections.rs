@@ -18,10 +18,6 @@ pub struct Collections {
     app_focus: Rc<RefCell<AppFocus>>,
     pub items: Vec<CollectionSpecification>,
     list: InnerList,
-
-    // HACK: (?) used to store the coll that should be selected
-    // the next time the colls are updated
-    pending_selection: Option<CollectionSpecification>,
 }
 
 impl Collections {
@@ -91,10 +87,7 @@ impl Component for Collections {
             Event::CollectionsUpdated(colls) => {
                 self.items.clone_from(colls);
 
-                if self.pending_selection.is_some() {
-                    let coll = self.pending_selection.take();
-                    self.select(coll);
-                } else if self.list.state.selected().is_none() {
+                if self.list.state.selected().is_none() {
                     if let Some(first_coll) = colls.first() {
                         // try to select the first thing
                         self.list.state.select(Some(0));
@@ -133,15 +126,8 @@ impl PersistedComponent for Collections {
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) -> Vec<Event> {
-        // TODO: do we need to do this?
-        self.pending_selection = storage.selected_coll;
-
-        let mut out = vec![];
-        if let Some(ref coll) = self.pending_selection {
-            out.push(Event::CollectionHighlighted(coll.clone()));
-            out.push(Event::CollectionSelected(coll.clone()));
-        }
-        out
+        self.select(storage.selected_coll);
+        vec![]
     }
 }
 

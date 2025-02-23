@@ -34,10 +34,6 @@ pub struct Documents<'a> {
 
     page: usize,
     count: u64,
-
-    // HACK: (?) used to store the coll that should be selected
-    // the next time the colls are updated
-    pending_selection: Option<Vec<MongoKey>>,
 }
 
 impl Documents<'_> {
@@ -254,11 +250,7 @@ impl Component for Documents<'_> {
                     self.state = state;
                 }
 
-                if let Some(sel) = self.pending_selection.clone() {
-                    if self.state.select(sel) {
-                        self.pending_selection = None;
-                    }
-                } else if self.state.selected().is_empty() {
+                if self.state.selected().is_empty() {
                     if let Some(first_item) = items.first() {
                         // try to select the first thing
                         self.state.select(vec![first_item.identifier().clone()]);
@@ -336,10 +328,8 @@ impl PersistedComponent for Documents<'_> {
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) -> Vec<Event> {
-        // TODO: do we need to do this? ... probably yes
-        self.pending_selection = Some(storage.selection);
-
-        vec![Event::DocumentPageChanged(storage.page)]
+        self.state.select(storage.selection);
+        vec![]
     }
 }
 
