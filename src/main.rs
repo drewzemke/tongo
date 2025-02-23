@@ -10,7 +10,7 @@ use tongo::{
 };
 
 #[cfg(feature = "experimental_sessions")]
-use tongo::sessions::PersistedComponent;
+use tongo::persistence::PersistedComponent;
 
 /// A TUI for viewing mongo databases.
 #[derive(Parser)]
@@ -82,7 +82,7 @@ async fn main() -> Result<()> {
 
     #[cfg(feature = "experimental_sessions")]
     if args.last {
-        if let Ok(session) = storage.read_session() {
+        if let Ok(session) = storage.read_last_session() {
             tracing::info!("Loading previous app state");
             app.hydrate(session);
         }

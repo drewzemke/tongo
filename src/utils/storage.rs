@@ -9,7 +9,7 @@ use crate::{app::PersistedApp, config::Config, connection::Connection};
 
 const APP_DIR_NAME: &str = "tongo";
 const CONNECTIONS_FILE_NAME: &str = "connections.json";
-const SESSIONS_FILE_NAME: &str = "last-session.json";
+const LAST_SESSION_FILE_NAME: &str = "last-session.json";
 const CONFIG_FILE_NAME: &str = "config.toml";
 
 // NOTE: stole this from `gitui`
@@ -42,8 +42,8 @@ pub fn get_app_data_path() -> Result<PathBuf> {
 pub trait Storage: Debug {
     fn read_connections(&self) -> Result<Vec<Connection>>;
     fn write_connections(&self, connections: &[Connection]) -> Result<()>;
-    fn write_session(&self, persisted_app: &PersistedApp) -> Result<()>;
-    fn read_session(&self) -> Result<PersistedApp>;
+    fn write_last_session(&self, persisted_app: &PersistedApp) -> Result<()>;
+    fn read_last_session(&self) -> Result<PersistedApp>;
     fn read_config(&self) -> Result<Config>;
 }
 
@@ -66,15 +66,15 @@ impl Storage for FileStorage {
         )
     }
 
-    fn write_session(&self, persisted_app: &PersistedApp) -> Result<()> {
+    fn write_last_session(&self, persisted_app: &PersistedApp) -> Result<()> {
         let json = serde_json::to_string_pretty(persisted_app)?;
-        self.write_to_data_dir(SESSIONS_FILE_NAME.into(), &json)?;
+        self.write_to_data_dir(LAST_SESSION_FILE_NAME.into(), &json)?;
         Ok(())
     }
 
-    fn read_session(&self) -> Result<PersistedApp> {
+    fn read_last_session(&self) -> Result<PersistedApp> {
         let file = self
-            .read_from_data_dir(SESSIONS_FILE_NAME.into())
+            .read_from_data_dir(LAST_SESSION_FILE_NAME.into())
             .context("TODO: better error handling")?;
 
         let session =

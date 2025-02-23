@@ -5,7 +5,7 @@ use crate::{
     app::AppFocus,
     components::{connection_screen::ConnScrFocus, Component, ComponentCommand},
     connection::Connection,
-    sessions::PersistedComponent,
+    persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
         event::Event,

@@ -10,7 +10,7 @@ use crate::{
     },
     connection::Connection,
     key_map::KeyMap,
-    sessions::PersistedComponent,
+    persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
         event::Event,
@@ -274,7 +274,7 @@ impl App<'_> {
 
     fn persist_self(&self) -> Result<()> {
         let stored_app = self.persist();
-        self.storage.write_session(&stored_app)?;
+        self.storage.write_last_session(&stored_app)?;
         Ok(())
     }
 }

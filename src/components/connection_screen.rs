@@ -6,7 +6,7 @@ use super::{
 use crate::{
     app::AppFocus,
     connection::Connection,
-    sessions::PersistedComponent,
+    persistence::PersistedComponent,
     system::{command::CommandGroup, event::Event},
     utils::storage::{FileStorage, Storage},
 };

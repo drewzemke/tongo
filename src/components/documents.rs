@@ -3,7 +3,7 @@ use crate::{
     app::AppFocus,
     client::PAGE_SIZE,
     components::ComponentCommand,
-    sessions::PersistedComponent,
+    persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
         event::Event,

@@ -11,7 +11,7 @@ use crate::{
         list::{collections::Collections, databases::Databases},
         Component, ComponentCommand,
     },
-    sessions::PersistedComponent,
+    persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
         event::Event,

@@ -19,11 +19,11 @@ impl Storage for MockStorage {
         Ok(())
     }
 
-    fn write_session(&self, _persisted_app: &PersistedApp) -> Result<()> {
+    fn write_last_session(&self, _persisted_app: &PersistedApp) -> Result<()> {
         Ok(())
     }
 
-    fn read_session(&self) -> Result<PersistedApp> {
+    fn read_last_session(&self) -> Result<PersistedApp> {
         self.persisted_app
             .clone()
             .ok_or_else(|| anyhow!("No persisted app in mock"))

@@ -2,7 +2,7 @@ use super::InnerList;
 use crate::{
     app::AppFocus,
     components::{primary_screen::PrimScrFocus, Component, ComponentCommand},
-    sessions::PersistedComponent,
+    persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
         event::Event,

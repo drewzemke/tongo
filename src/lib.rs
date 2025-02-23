@@ -4,7 +4,7 @@ mod components;
 mod config;
 pub mod connection;
 pub mod key_map;
-pub mod sessions;
+pub mod persistence;
 mod system;
 #[cfg(test)]
 mod testing;
