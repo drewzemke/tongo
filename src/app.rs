@@ -426,25 +426,15 @@ impl PersistedComponent for App<'_> {
         }
     }
 
-    fn hydrate(&mut self, storage: Self::StorageType) -> Vec<Event> {
-        // HACK : record whether we have stored a selected connection string.
-        // this should probably happen elsewhere
-        // (can we turn this into an event?)
-        let selected_conn = storage.conn_screen.conn_list.selected_conn.clone();
-
+    fn hydrate(&mut self, storage: Self::StorageType) {
         *self.focus.borrow_mut() = storage.focus;
 
-        let mut out = vec![];
-        out.append(&mut self.conn_screen.hydrate(storage.conn_screen));
-        out.append(&mut self.primary_screen.hydrate(storage.primary_screen));
+        self.conn_screen.hydrate(storage.conn_screen.clone());
+        self.primary_screen.hydrate(storage.primary_screen);
 
-        if let Some(Connection { connection_str, .. }) = selected_conn {
+        if let Some(Connection { connection_str, .. }) = storage.conn_screen.conn_list.selected_conn
+        {
             self.client.set_conn_str(connection_str);
         }
-
-        // process all of the events that were created during hydration
-        self.process_events(out);
-
-        vec![]
     }
 }

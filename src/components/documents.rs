@@ -327,9 +327,8 @@ impl PersistedComponent for Documents<'_> {
         }
     }
 
-    fn hydrate(&mut self, storage: Self::StorageType) -> Vec<Event> {
+    fn hydrate(&mut self, storage: Self::StorageType) {
         self.state.select(storage.selection);
-        vec![]
     }
 }
 

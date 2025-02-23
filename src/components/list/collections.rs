@@ -125,9 +125,8 @@ impl PersistedComponent for Collections {
         }
     }
 
-    fn hydrate(&mut self, storage: Self::StorageType) -> Vec<Event> {
+    fn hydrate(&mut self, storage: Self::StorageType) {
         self.select(storage.selected_coll);
-        vec![]
     }
 }
 

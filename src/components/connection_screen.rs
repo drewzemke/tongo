@@ -250,7 +250,7 @@ impl PersistedComponent for ConnectionScreen {
         }
     }
 
-    fn hydrate(&mut self, storage: Self::StorageType) -> Vec<Event> {
+    fn hydrate(&mut self, storage: Self::StorageType) {
         self.conn_list.hydrate(storage.conn_list)
     }
 }

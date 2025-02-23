@@ -1,6 +1,5 @@
 use serde::{Deserialize, Serialize};
 
-use crate::system::event::Event;
 pub trait PersistedComponent {
     /// The type used for serialization and deserialization of the component
     type StorageType: Serialize + for<'a> Deserialize<'a>;
@@ -9,5 +8,5 @@ pub trait PersistedComponent {
     fn persist(&self) -> Self::StorageType;
 
     /// Populates the component with data from its serialized form
-    fn hydrate(&mut self, storage: Self::StorageType) -> Vec<Event>;
+    fn hydrate(&mut self, storage: Self::StorageType);
 }
