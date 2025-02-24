@@ -12,7 +12,7 @@ use crate::{
 use mongodb::bson::Document;
 use ratatui::{
     prelude::{Frame, Rect},
-    style::{Style, Stylize},
+    style::{Color, Style, Stylize},
     text::{Line, Span, Text},
 };
 use std::{
@@ -46,6 +46,13 @@ impl FilterInput {
     pub const fn stop_editing(&mut self) {
         self.input.stop_editing();
     }
+
+    fn get_filter_doc(&mut self) -> Option<Document> {
+        let filter_str = self.input.value();
+        json5::from_str::<serde_json::Value>(filter_str)
+            .ok()
+            .and_then(|value| mongodb::bson::to_document(&value).ok())
+    }
 }
 
 impl Component for FilterInput {
@@ -77,12 +84,7 @@ impl Component for FilterInput {
                 ComponentCommand::RawEvent(event) => self.input.handle_raw_event(event),
                 ComponentCommand::Command(command) => match command {
                     Command::Confirm => {
-                        let filter_str = self.input.value();
-                        let filter = json5::from_str::<serde_json::Value>(filter_str)
-                            .ok()
-                            .and_then(|value| mongodb::bson::to_document(&value).ok());
-
-                        if let Some(doc) = filter {
+                        if let Some(doc) = self.get_filter_doc() {
                             self.input.stop_editing();
                             vec![
                                 Event::DocumentPageChanged(0),
@@ -123,6 +125,24 @@ impl Component for FilterInput {
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         self.input.render(frame, area, self.is_focused());
+
+        // render an indicator symbol to show if the filter is valid.
+        // first determine what symbol and color we'll use for the indicator
+        let valid_filter = self.get_filter_doc().is_some();
+        let (symbol, color) = if valid_filter {
+            ("●", Color::Green)
+        } else {
+            if self.is_editing() {
+                ("◯", Color::Red)
+            } else {
+                ("●", Color::Red)
+            }
+        };
+
+        frame
+            .buffer_mut()
+            .cell_mut((area.right() - 2, area.y + 1))
+            .map(|cell| cell.set_symbol(symbol).set_fg(color));
     }
 }
 
