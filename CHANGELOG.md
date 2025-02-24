@@ -6,6 +6,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.2](https://github.com/drewzemke/tongo/compare/v0.12.1...v0.12.2) - 2025-02-24
+
+### Added
+
+- *(filter)* show error when filter is not valid
+- *(filter)* show a symbol indicating if the filter is syntatically valid
+- *(persistence)* store/restore the document filter
+- *(persistence)* persist `Client` state
+- *(persistence)* store/restore list and doc component items rather than querying them after hydrating
+- *(filter)* expanded syntax for filter input
+- *(connections)* ability to edit connections
+- *(testing)* add `MockStorage` to stop tests from writing to the filesystem :D
+
+### Other
+
+- *(readme)* lil' updates
+- *(persistence)* remove feature flag since the thing is working now :)
+- *(persistence)* `PersistedComponent::hydrate` no longer generates events
+- *(persistence)* remove `pending_selection` state from lists and doc view
+- *(modules)* rename module `sessions` -> `persistence`
+- *(modules)* move top-level module defns to `lib.rs`
+- *(packages)* bump more packages (incompatible changes*)
+- *(packages)* bump `mongodb` to 3.2.1
+- *(packages)* bump `ratatui` to 0.29.0
+- *(packages)* bump packages (compatible changes)
+- *(connections)* connections have ids
+- *(storage)* add `Storage` trait to decouple components from filesystem
+- *(components)* add some missing `Debug` and `Clone` derive macros
+- *(project)* rename module `files` -> `file_manager`
+
 ## [0.12.1](https://github.com/drewzemke/tongo/compare/v0.12.0...v0.12.1) - 2025-02-19
 
 ### Added
