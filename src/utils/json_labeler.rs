@@ -4,7 +4,9 @@ use std::str::FromStr;
 use syntect::{
     easy::ScopeRegionIterator,
     highlighting::ScopeSelectors,
-    parsing::{ParseState, ScopeStack, SyntaxReference, SyntaxSet, SyntaxSetBuilder},
+    parsing::{
+        ParseState, ScopeStack, SyntaxDefinition, SyntaxReference, SyntaxSet, SyntaxSetBuilder,
+    },
 };
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -53,9 +55,14 @@ pub type JsonLabels = Vec<(String, JsonLabel)>;
 impl JsonLabeler {
     pub fn new() -> Self {
         let mut syntax_set_builder = SyntaxSetBuilder::new();
-        syntax_set_builder
-            .add_from_folder(".", true)
-            .expect("should be able to load syntax defns file");
+        syntax_set_builder.add(
+            SyntaxDefinition::load_from_str(
+                include_str!("./extended_json.sublime-syntax"),
+                true,
+                None,
+            )
+            .expect("should be able to load syntax defns file"),
+        );
         let syntax_set = syntax_set_builder.build();
         let syntax = syntax_set
             .find_syntax_by_extension("json5")
