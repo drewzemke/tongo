@@ -1,5 +1,14 @@
 # `tongo` -- a TUI for MongoDB
 
+`tongo` is a fast and keyboard-driven TUI (Terminal User Interface) for MongoDB.
+Navigate and manipulate your data without leaving your terminal.
+
+## Major Features
+
+- 🔌 Connect & save MongoDB connections 
+- ⚡️ Quickly navigate your data with customizable keybindings
+- 📝 Create and edit documents using your terminal editor of choice
+
 ## Installation
 
 ### Using `cargo`
@@ -35,8 +44,13 @@ Load a connection directly:
 $ tongo --url mongodb://localhost:27017 
 ```
 
-If you've previously store a connection, you can load it by name:
+If you've previously stored a connection, you can load it by name:
 ```shell
 $ tongo --connection local
+```
+
+Restore your most-recently-closed session in the app.
+```shell
+$ tongo --last
 ```
 
