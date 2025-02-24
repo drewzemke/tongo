@@ -92,7 +92,7 @@ impl Component for FilterInput {
                                 Event::RawModeExited,
                             ]
                         } else {
-                            vec![]
+                            vec![Event::ErrorOccurred("Invalid filter.".to_string())]
                         }
                     }
                     Command::Back => {
