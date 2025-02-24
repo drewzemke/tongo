@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.3](https://github.com/drewzemke/tongo/compare/v0.12.2...v0.12.3) - 2025-02-24
+
+### Fixed
+
+- *(filter)* actually bundle the extended json syntax file with the program instead of expecting it be found locally
+
 ## [0.12.2](https://github.com/drewzemke/tongo/compare/v0.12.1...v0.12.2) - 2025-02-24
 
 ### Added
