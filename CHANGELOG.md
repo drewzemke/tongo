@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0](https://github.com/drewzemke/tongo/compare/v0.12.3...v0.13.0) - 2025-02-26
+
+### Added
+
+- *(tabs)* convert `App.tab` into `App.tabs` (a list of tabs)
+
+### Other
+
+- *(tabs)* split a `Tab` component out of app that holds all of the main components
+
 ## [0.12.3](https://github.com/drewzemke/tongo/compare/v0.12.2...v0.12.3) - 2025-02-24
 
 ### Fixed
