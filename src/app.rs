@@ -26,8 +26,8 @@ use std::{
 
 #[derive(Debug)]
 pub struct App<'a> {
-    // TODO: more than one tab, obv
-    tab: Tab<'a>,
+    tabs: Vec<Tab<'a>>,
+    current_tab_idx: usize,
 
     // shared data
     cursor_pos: Rc<Cell<(u16, u16)>>,
@@ -46,7 +46,8 @@ pub struct App<'a> {
 impl Default for App<'_> {
     fn default() -> Self {
         Self {
-            tab: Tab::default(),
+            tabs: vec![Tab::default()],
+            current_tab_idx: 0,
             cursor_pos: Rc::new(Cell::new((0, 0))),
             storage: Rc::new(FileStorage::default()),
             key_map: Rc::new(RefCell::new(KeyMap::default())),
@@ -83,7 +84,8 @@ impl App<'_> {
         let key_map = Rc::new(RefCell::new(key_map));
 
         Self {
-            tab,
+            tabs: vec![tab],
+            current_tab_idx: 0,
 
             raw_mode: false,
 
@@ -120,7 +122,9 @@ impl App<'_> {
 
             // once all the events are processed for this loop, tell the client to execute
             // any operations it decided to do during event processing loop
-            self.tab.exec_queued_ops();
+            for tab in &mut self.tabs {
+                tab.exec_queued_ops();
+            }
 
             // save state if we're about to exit
             if self.exiting {
@@ -227,7 +231,8 @@ impl Component for App<'_> {
             vec![CommandGroup::new(vec![Command::Quit], "quit")]
         };
 
-        out.append(&mut self.tab.commands());
+        // FIXME: unchecked index
+        out.append(&mut self.tabs[self.current_tab_idx].commands());
 
         out
     }
@@ -240,7 +245,8 @@ impl Component for App<'_> {
             return vec![];
         }
 
-        self.tab.handle_command(command)
+        // FIXME: unchecked index
+        self.tabs[self.current_tab_idx].handle_command(command)
     }
 
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
@@ -257,12 +263,14 @@ impl Component for App<'_> {
             }
             _ => {}
         }
-        out.append(&mut self.tab.handle_event(event));
+        // FIXME: unchecked index
+        out.append(&mut self.tabs[self.current_tab_idx].handle_event(event));
         out
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        self.tab.render(frame, area);
+        // FIXME: unchecked index
+        self.tabs[self.current_tab_idx].render(frame, area);
 
         // show the cursor if we're editing something
         if self.raw_mode {
@@ -282,19 +290,34 @@ impl Component for App<'_> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedApp {
-    tab: PersistedTab,
+    tabs: Vec<PersistedTab>,
+    current_tab: usize,
 }
 
 impl PersistedComponent for App<'_> {
     type StorageType = PersistedApp;
 
     fn persist(&self) -> Self::StorageType {
+        let tabs = self.tabs.iter().map(Tab::persist).collect();
         PersistedApp {
-            tab: self.tab.persist(),
+            tabs,
+            current_tab: self.current_tab_idx,
         }
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) {
-        self.tab.hydrate(storage.tab);
+        // this probably doesn't work, need to generate a tab from the
+        // app so it has the same cursor etc
+        self.tabs = storage
+            .tabs
+            .into_iter()
+            .map(|persisted_tab| {
+                let mut tab = Tab::default();
+                tab.hydrate(persisted_tab);
+                tab
+            })
+            .collect();
+
+        self.current_tab_idx = storage.current_tab;
     }
 }
