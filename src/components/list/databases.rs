@@ -2,8 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use super::InnerList;
 use crate::{
-    app::AppFocus,
-    components::{primary_screen::PrimScrFocus, Component, ComponentCommand},
+    components::{primary_screen::PrimScrFocus, tab::TabFocus, Component, ComponentCommand},
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
@@ -19,15 +18,15 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default)]
 pub struct Databases {
-    app_focus: Rc<RefCell<AppFocus>>,
+    focus: Rc<RefCell<TabFocus>>,
     items: Vec<DatabaseSpecification>,
     list: InnerList,
 }
 
 impl Databases {
-    pub fn new(app_focus: Rc<RefCell<AppFocus>>) -> Self {
+    pub fn new(focus: Rc<RefCell<TabFocus>>) -> Self {
         Self {
-            app_focus,
+            focus,
             list: InnerList::new("Databases"),
             ..Default::default()
         }
@@ -49,11 +48,11 @@ impl Databases {
 
 impl Component for Databases {
     fn is_focused(&self) -> bool {
-        *self.app_focus.borrow() == AppFocus::PrimScr(PrimScrFocus::DbList)
+        *self.focus.borrow() == TabFocus::PrimScr(PrimScrFocus::DbList)
     }
 
     fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::PrimScr(PrimScrFocus::DbList);
+        *self.focus.borrow_mut() = TabFocus::PrimScr(PrimScrFocus::DbList);
     }
 
     fn commands(&self) -> Vec<CommandGroup> {

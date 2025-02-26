@@ -1,11 +1,6 @@
 use crate::{
-    client::{Client, PersistedClient},
     components::{
-        confirm_modal::ConfirmModal,
-        connection_screen::{ConnScrFocus, ConnectionScreen, PersistedConnectionScreen},
-        list::connections::Connections,
-        primary_screen::{PersistedPrimaryScreen, PrimScrFocus, PrimaryScreen},
-        status_bar::StatusBar,
+        tab::{PersistedTab, Tab},
         Component, ComponentCommand,
     },
     connection::Connection,
@@ -20,11 +15,7 @@ use crate::{
 
 use anyhow::Result;
 use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
-use ratatui::{
-    backend::Backend,
-    layout::{Constraint, Direction, Layout, Rect},
-    Frame, Terminal,
-};
+use ratatui::{backend::Backend, layout::Rect, Frame, Terminal};
 use serde::{Deserialize, Serialize};
 use std::{
     cell::{Cell, RefCell},
@@ -33,35 +24,12 @@ use std::{
     time::{Duration, Instant},
 };
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub enum AppFocus {
-    ConnScr(ConnScrFocus),
-    PrimScr(PrimScrFocus),
-    ConfModal,
-    NotFocused,
-}
-
-impl Default for AppFocus {
-    fn default() -> Self {
-        Self::ConnScr(ConnScrFocus::ConnList)
-    }
-}
-
 #[derive(Debug)]
 pub struct App<'a> {
-    // components
-    client: Client,
-    conn_screen: ConnectionScreen,
-    primary_screen: PrimaryScreen<'a>,
-    status_bar: StatusBar,
-    confirm_modal: ConfirmModal,
-
-    // used when displaying the confirm modal or while the app is unfocused
-    // FIXME: should these be seperate?
-    background_focus: Option<AppFocus>,
+    // TODO: more than one tab, obv
+    tab: Tab<'a>,
 
     // shared data
-    focus: Rc<RefCell<AppFocus>>,
     cursor_pos: Rc<Cell<(u16, u16)>>,
     storage: Rc<dyn Storage>,
 
@@ -78,13 +46,7 @@ pub struct App<'a> {
 impl Default for App<'_> {
     fn default() -> Self {
         Self {
-            client: Client::default(),
-            conn_screen: ConnectionScreen::default(),
-            primary_screen: PrimaryScreen::default(),
-            status_bar: StatusBar::default(),
-            confirm_modal: ConfirmModal::default(),
-            background_focus: None,
-            focus: Rc::new(RefCell::new(AppFocus::default())),
+            tab: Tab::default(),
             cursor_pos: Rc::new(Cell::new((0, 0))),
             storage: Rc::new(FileStorage::default()),
             key_map: Rc::new(RefCell::new(KeyMap::default())),
@@ -107,46 +69,24 @@ impl App<'_> {
         key_map: KeyMap,
         storage: Rc<dyn Storage>,
     ) -> Self {
-        let client = Client::default();
-
-        let initial_focus = if let Some(conn) = connection {
-            client.set_conn_str(conn.connection_str);
-            AppFocus::PrimScr(PrimScrFocus::DbList)
-        } else {
-            AppFocus::ConnScr(ConnScrFocus::ConnList)
-        };
-
         // initialize shared data
-        let focus = Rc::new(RefCell::new(initial_focus));
         let cursor_pos = Rc::new(Cell::new((0, 0)));
-        let key_map = Rc::new(RefCell::new(key_map));
 
-        let status_bar = StatusBar::new(key_map.clone());
-
-        let confirm_modal = ConfirmModal::new(focus.clone());
-
-        let primary_screen = PrimaryScreen::new(focus.clone(), cursor_pos.clone());
-
-        let connection_list = Connections::new(focus.clone(), all_connections, storage.clone());
-        let connection_screen = ConnectionScreen::new(
-            connection_list,
-            focus.clone(),
-            cursor_pos.clone(),
+        let tab = Tab::new(
+            connection.clone(),
+            all_connections,
+            key_map.clone(),
             storage.clone(),
+            cursor_pos.clone(),
         );
 
+        let key_map = Rc::new(RefCell::new(key_map));
+
         Self {
-            client,
+            tab,
 
             raw_mode: false,
 
-            status_bar,
-            primary_screen,
-            conn_screen: connection_screen,
-            confirm_modal,
-
-            // commands: vec![],
-            focus,
             cursor_pos,
 
             key_map,
@@ -180,7 +120,7 @@ impl App<'_> {
 
             // once all the events are processed for this loop, tell the client to execute
             // any operations it decided to do during event processing loop
-            self.client.exec_queued_ops();
+            self.tab.exec_queued_ops();
 
             // save state if we're about to exit
             if self.exiting {
@@ -287,15 +227,8 @@ impl Component for App<'_> {
             vec![CommandGroup::new(vec![Command::Quit], "quit")]
         };
 
-        out.append(&mut self.client.commands());
-        out.append(&mut self.status_bar.commands());
+        out.append(&mut self.tab.commands());
 
-        match *self.focus.borrow() {
-            AppFocus::ConnScr(_) => out.append(&mut self.conn_screen.commands()),
-            AppFocus::PrimScr(_) => out.append(&mut self.primary_screen.commands()),
-            AppFocus::ConfModal => out.append(&mut self.confirm_modal.commands()),
-            AppFocus::NotFocused => {}
-        }
         out
     }
 
@@ -307,23 +240,12 @@ impl Component for App<'_> {
             return vec![];
         }
 
-        // HACK: need to clone here to avoid borrow error with the focus `RefCell`
-        // TODO: refactor to use `Cell` instead of `RefCell`, since AppFocus is Copy
-        let app_focus = self.focus.borrow().clone();
-        match app_focus {
-            AppFocus::ConnScr(_) => self.conn_screen.handle_command(command),
-            AppFocus::PrimScr(_) => self.primary_screen.handle_command(command),
-            AppFocus::ConfModal => self.confirm_modal.handle_command(command),
-            AppFocus::NotFocused => vec![],
-        }
+        self.tab.handle_command(command)
     }
 
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
         let mut out = vec![];
         match event {
-            Event::ConnectionCreated(..) | Event::ConnectionSelected(..) => {
-                self.primary_screen.focus();
-            }
             Event::RawModeEntered => {
                 self.raw_mode = true;
             }
@@ -333,49 +255,14 @@ impl Component for App<'_> {
             Event::ReturnedFromAltScreen => {
                 self.force_clear = true;
             }
-            Event::ConfirmationRequested(command) => {
-                self.background_focus = Some(self.focus.borrow().clone());
-                self.confirm_modal.show_with(*command);
-            }
-            Event::ConfirmationYes(..) | Event::ConfirmationNo => {
-                *self.focus.borrow_mut() = self.background_focus.take().unwrap_or_default();
-            }
             _ => {}
         }
-        out.append(&mut self.client.handle_event(event));
-        out.append(&mut self.conn_screen.handle_event(event));
-        out.append(&mut self.primary_screen.handle_event(event));
-        out.append(&mut self.status_bar.handle_event(event));
+        out.append(&mut self.tab.handle_event(event));
         out
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        let frame_layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Percentage(100), Constraint::Length(1)])
-            .split(area);
-        let content = frame_layout[0];
-        let btm_line = frame_layout[1];
-
-        // render a screen based on current focus
-        match &*self.focus.borrow() {
-            AppFocus::PrimScr(..) => self.primary_screen.render(frame, content),
-            AppFocus::ConnScr(..) => self.conn_screen.render(frame, content),
-            AppFocus::ConfModal => {
-                match self.background_focus {
-                    Some(AppFocus::PrimScr(..)) => self.primary_screen.render(frame, content),
-                    Some(AppFocus::ConnScr(..)) => self.conn_screen.render(frame, content),
-                    _ => {}
-                }
-                self.confirm_modal.render(frame, content);
-            }
-            AppFocus::NotFocused => {}
-        }
-
-        // status bar
-        // TODO: avoid a second call to `commands()` here?
-        self.status_bar.commands = self.commands();
-        self.status_bar.render(frame, btm_line);
+        self.tab.render(frame, area);
 
         // show the cursor if we're editing something
         if self.raw_mode {
@@ -395,47 +282,19 @@ impl Component for App<'_> {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedApp {
-    focus: AppFocus,
-    client: PersistedClient,
-    conn_screen: PersistedConnectionScreen,
-    primary_screen: PersistedPrimaryScreen,
+    tab: PersistedTab,
 }
 
 impl PersistedComponent for App<'_> {
     type StorageType = PersistedApp;
 
     fn persist(&self) -> Self::StorageType {
-        // don't save focus as any of the input components, it gets weird
-        let focus = match *self.focus.borrow() {
-            AppFocus::ConnScr(..) => AppFocus::ConnScr(ConnScrFocus::ConnList),
-            AppFocus::PrimScr(ref focus) => {
-                let ps_focus = match focus {
-                    PrimScrFocus::FilterIn => PrimScrFocus::DocTree,
-                    f => f.clone(),
-                };
-                AppFocus::PrimScr(ps_focus)
-            }
-            AppFocus::ConfModal | AppFocus::NotFocused => {
-                self.background_focus.clone().unwrap_or_default()
-            }
-        };
-
         PersistedApp {
-            focus,
-            client: self.client.persist(),
-            conn_screen: self.conn_screen.persist(),
-            primary_screen: self.primary_screen.persist(),
+            tab: self.tab.persist(),
         }
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) {
-        *self.focus.borrow_mut() = storage.focus;
-        self.conn_screen.hydrate(storage.conn_screen.clone());
-        self.primary_screen.hydrate(storage.primary_screen);
-
-        self.client.hydrate(storage.client);
-        if let Some(conn) = storage.conn_screen.conn_list.selected_conn {
-            self.client.set_conn_str(conn.connection_str);
-        }
+        self.tab.hydrate(storage.tab);
     }
 }

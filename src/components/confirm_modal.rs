@@ -1,6 +1,5 @@
-use super::ComponentCommand;
+use super::{tab::TabFocus, ComponentCommand};
 use crate::{
-    app::AppFocus,
     components::Component,
     system::{
         command::{Command, CommandGroup},
@@ -15,13 +14,13 @@ use std::{cell::RefCell, rc::Rc};
 
 #[derive(Debug, Default)]
 pub struct ConfirmModal {
-    app_focus: Rc<RefCell<AppFocus>>,
+    focus: Rc<RefCell<TabFocus>>,
     command: Option<Command>,
 }
 impl ConfirmModal {
-    pub fn new(app_focus: Rc<RefCell<AppFocus>>) -> Self {
+    pub fn new(focus: Rc<RefCell<TabFocus>>) -> Self {
         Self {
-            app_focus,
+            focus,
             ..Default::default()
         }
     }
@@ -48,11 +47,11 @@ impl ConfirmModal {
 
 impl Component for ConfirmModal {
     fn is_focused(&self) -> bool {
-        *self.app_focus.borrow() == AppFocus::ConfModal
+        *self.focus.borrow() == TabFocus::ConfModal
     }
 
     fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::ConfModal;
+        *self.focus.borrow_mut() = TabFocus::ConfModal;
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {

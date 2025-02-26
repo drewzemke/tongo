@@ -1,7 +1,6 @@
 use super::InnerList;
 use crate::{
-    app::AppFocus,
-    components::{primary_screen::PrimScrFocus, Component, ComponentCommand},
+    components::{primary_screen::PrimScrFocus, tab::TabFocus, Component, ComponentCommand},
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
@@ -15,15 +14,15 @@ use std::{cell::RefCell, rc::Rc};
 
 #[derive(Debug, Default)]
 pub struct Collections {
-    app_focus: Rc<RefCell<AppFocus>>,
+    focus: Rc<RefCell<TabFocus>>,
     pub items: Vec<CollectionSpecification>,
     list: InnerList,
 }
 
 impl Collections {
-    pub fn new(app_focus: Rc<RefCell<AppFocus>>) -> Self {
+    pub fn new(focus: Rc<RefCell<TabFocus>>) -> Self {
         Self {
-            app_focus,
+            focus,
             list: InnerList::new("Collections"),
             ..Default::default()
         }
@@ -49,11 +48,11 @@ impl Collections {
 
 impl Component for Collections {
     fn is_focused(&self) -> bool {
-        *self.app_focus.borrow() == AppFocus::PrimScr(PrimScrFocus::CollList)
+        *self.focus.borrow() == TabFocus::PrimScr(PrimScrFocus::CollList)
     }
 
     fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::PrimScr(PrimScrFocus::CollList);
+        *self.focus.borrow_mut() = TabFocus::PrimScr(PrimScrFocus::CollList);
     }
 
     fn commands(&self) -> Vec<CommandGroup> {

@@ -1,10 +1,10 @@
 use super::{
     input::{conn_name_input::ConnNameInput, conn_str_input::ConnStrInput},
     list::connections::{Connections, PersistedConnections},
+    tab::TabFocus,
     Component, ComponentCommand,
 };
 use crate::{
-    app::AppFocus,
     connection::Connection,
     persistence::PersistedComponent,
     system::{command::CommandGroup, event::Event},
@@ -30,7 +30,7 @@ pub enum ConnScrFocus {
 
 #[derive(Debug)]
 pub struct ConnectionScreen {
-    app_focus: Rc<RefCell<AppFocus>>,
+    focus: Rc<RefCell<TabFocus>>,
     conn_list: Connections,
     conn_name_input: ConnNameInput,
     conn_str_input: ConnStrInput,
@@ -40,16 +40,16 @@ pub struct ConnectionScreen {
 
 impl Default for ConnectionScreen {
     fn default() -> Self {
-        let app_focus = Rc::new(RefCell::new(AppFocus::ConnScr(ConnScrFocus::ConnList)));
+        let focus = Rc::new(RefCell::new(TabFocus::ConnScr(ConnScrFocus::ConnList)));
         let cursor_pos = Rc::new(Cell::new((0, 0)));
 
         let storage = Rc::new(FileStorage::default());
-        let conn_list = Connections::new(app_focus.clone(), vec![], storage.clone());
-        let conn_name_input = ConnNameInput::new(app_focus.clone(), cursor_pos.clone());
-        let conn_str_input = ConnStrInput::new(app_focus.clone(), cursor_pos);
+        let conn_list = Connections::new(focus.clone(), vec![], storage.clone());
+        let conn_name_input = ConnNameInput::new(focus.clone(), cursor_pos.clone());
+        let conn_str_input = ConnStrInput::new(focus.clone(), cursor_pos);
 
         Self {
-            app_focus,
+            focus,
             conn_list,
             conn_name_input,
             conn_str_input,
@@ -62,7 +62,7 @@ impl Default for ConnectionScreen {
 impl ConnectionScreen {
     pub fn new(
         connection_list: Connections,
-        app_focus: Rc<RefCell<AppFocus>>,
+        app_focus: Rc<RefCell<TabFocus>>,
         cursor_pos: Rc<Cell<(u16, u16)>>,
         file_manager: Rc<dyn Storage>,
     ) -> Self {
@@ -70,7 +70,7 @@ impl ConnectionScreen {
         let conn_str_input = ConnStrInput::new(app_focus.clone(), cursor_pos);
 
         Self {
-            app_focus,
+            focus: app_focus,
             conn_list: connection_list,
             conn_name_input,
             conn_str_input,
@@ -81,8 +81,8 @@ impl ConnectionScreen {
 
     /// Narrows the shared `AppFocus` variable into the focus enum for this componenent
     fn internal_focus(&self) -> Option<ConnScrFocus> {
-        match &*self.app_focus.borrow() {
-            AppFocus::ConnScr(focus) => Some(focus.clone()),
+        match &*self.focus.borrow() {
+            TabFocus::ConnScr(focus) => Some(focus.clone()),
             _ => None,
         }
     }
@@ -228,11 +228,11 @@ impl Component for ConnectionScreen {
     }
 
     fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::ConnScr(ConnScrFocus::default());
+        *self.focus.borrow_mut() = TabFocus::ConnScr(ConnScrFocus::default());
     }
 
     fn is_focused(&self) -> bool {
-        matches!(*self.app_focus.borrow(), AppFocus::ConnScr(..))
+        matches!(*self.focus.borrow(), TabFocus::ConnScr(..))
     }
 }
 

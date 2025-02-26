@@ -1,6 +1,5 @@
-use super::{primary_screen::PrimScrFocus, Component};
+use super::{primary_screen::PrimScrFocus, tab::TabFocus, Component};
 use crate::{
-    app::AppFocus,
     client::PAGE_SIZE,
     components::ComponentCommand,
     persistence::PersistedComponent,
@@ -25,7 +24,7 @@ use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 #[derive(Debug, Default)]
 pub struct Documents<'a> {
-    app_focus: Rc<RefCell<AppFocus>>,
+    focus: Rc<RefCell<TabFocus>>,
     state: TreeState<MongoKey>,
     items: Vec<TreeItem<'a, MongoKey>>,
 
@@ -37,9 +36,9 @@ pub struct Documents<'a> {
 }
 
 impl Documents<'_> {
-    pub fn new(app_focus: Rc<RefCell<AppFocus>>) -> Self {
+    pub fn new(focus: Rc<RefCell<TabFocus>>) -> Self {
         Self {
-            app_focus,
+            focus,
             ..Default::default()
         }
     }
@@ -111,11 +110,11 @@ impl Documents<'_> {
 
 impl Component for Documents<'_> {
     fn is_focused(&self) -> bool {
-        *self.app_focus.borrow() == AppFocus::PrimScr(PrimScrFocus::DocTree)
+        *self.focus.borrow() == TabFocus::PrimScr(PrimScrFocus::DocTree)
     }
 
     fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::PrimScr(PrimScrFocus::DocTree);
+        *self.focus.borrow_mut() = TabFocus::PrimScr(PrimScrFocus::DocTree);
     }
 
     fn commands(&self) -> Vec<CommandGroup> {

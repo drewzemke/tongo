@@ -1,7 +1,6 @@
 use super::{InnerInput, InputFormatter};
 use crate::{
-    app::AppFocus,
-    components::{primary_screen::PrimScrFocus, Component, ComponentCommand},
+    components::{primary_screen::PrimScrFocus, tab::TabFocus, Component, ComponentCommand},
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
@@ -22,17 +21,17 @@ use std::{
 
 #[derive(Debug, Default)]
 pub struct FilterInput {
-    app_focus: Rc<RefCell<AppFocus>>,
+    focus: Rc<RefCell<TabFocus>>,
     input: InnerInput<FilterInputFormatter>,
 }
 
 const DEFAULT_FILTER: &str = "{}";
 
 impl FilterInput {
-    pub fn new(app_focus: Rc<RefCell<AppFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
+    pub fn new(focus: Rc<RefCell<TabFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
         let mut input = InnerInput::new("Filter", cursor_pos, FilterInputFormatter::default());
         input.set_value(DEFAULT_FILTER);
-        Self { app_focus, input }
+        Self { focus, input }
     }
 
     pub const fn is_editing(&self) -> bool {
@@ -57,11 +56,11 @@ impl FilterInput {
 
 impl Component for FilterInput {
     fn is_focused(&self) -> bool {
-        *self.app_focus.borrow() == AppFocus::PrimScr(PrimScrFocus::FilterIn)
+        *self.focus.borrow() == TabFocus::PrimScr(PrimScrFocus::FilterIn)
     }
 
     fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::PrimScr(PrimScrFocus::FilterIn);
+        *self.focus.borrow_mut() = TabFocus::PrimScr(PrimScrFocus::FilterIn);
     }
 
     fn commands(&self) -> Vec<CommandGroup> {

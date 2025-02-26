@@ -2,8 +2,7 @@ use ratatui::prelude::{Frame, Rect};
 
 use super::{DefaultFormatter, InnerInput};
 use crate::{
-    app::AppFocus,
-    components::{connection_screen::ConnScrFocus, Component, ComponentCommand},
+    components::{connection_screen::ConnScrFocus, tab::TabFocus, Component, ComponentCommand},
     system::{
         command::{Command, CommandGroup},
         event::Event,
@@ -16,14 +15,14 @@ use std::{
 
 #[derive(Debug, Default)]
 pub struct ConnStrInput {
-    app_focus: Rc<RefCell<AppFocus>>,
+    focus: Rc<RefCell<TabFocus>>,
     input: InnerInput<DefaultFormatter>,
 }
 
 impl ConnStrInput {
-    pub fn new(app_focus: Rc<RefCell<AppFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
+    pub fn new(focus: Rc<RefCell<TabFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
         let input = InnerInput::new("Connection String", cursor_pos, DefaultFormatter::default());
-        Self { app_focus, input }
+        Self { focus, input }
     }
 
     pub fn value(&self) -> &str {
@@ -41,11 +40,11 @@ impl ConnStrInput {
 
 impl Component for ConnStrInput {
     fn is_focused(&self) -> bool {
-        *self.app_focus.borrow() == AppFocus::ConnScr(ConnScrFocus::StringIn)
+        *self.focus.borrow() == TabFocus::ConnScr(ConnScrFocus::StringIn)
     }
 
     fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::ConnScr(ConnScrFocus::StringIn);
+        *self.focus.borrow_mut() = TabFocus::ConnScr(ConnScrFocus::StringIn);
     }
 
     fn commands(&self) -> Vec<crate::system::command::CommandGroup> {

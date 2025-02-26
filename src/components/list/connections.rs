@@ -2,8 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use super::InnerList;
 use crate::{
-    app::AppFocus,
-    components::{connection_screen::ConnScrFocus, Component, ComponentCommand},
+    components::{connection_screen::ConnScrFocus, tab::TabFocus, Component, ComponentCommand},
     connection::Connection,
     persistence::PersistedComponent,
     system::{
@@ -18,7 +17,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug)]
 pub struct Connections {
     pub items: Vec<Connection>,
-    pub app_focus: Rc<RefCell<AppFocus>>,
+    pub focus: Rc<RefCell<TabFocus>>,
     pub list: InnerList,
     pub storage: Rc<dyn Storage>,
 }
@@ -26,7 +25,7 @@ pub struct Connections {
 impl Default for Connections {
     fn default() -> Self {
         Self {
-            app_focus: Rc::new(RefCell::new(AppFocus::default())),
+            focus: Rc::new(RefCell::new(TabFocus::default())),
             items: Vec::new(),
             list: InnerList::default(),
             storage: Rc::new(FileStorage::default()),
@@ -36,12 +35,12 @@ impl Default for Connections {
 
 impl Connections {
     pub fn new(
-        app_focus: Rc<RefCell<AppFocus>>,
+        focus: Rc<RefCell<TabFocus>>,
         items: Vec<Connection>,
         storage: Rc<dyn Storage>,
     ) -> Self {
         Self {
-            app_focus,
+            focus,
             items,
             list: InnerList::new("Connections"),
             storage,
@@ -71,11 +70,11 @@ impl Connections {
 
 impl Component for Connections {
     fn is_focused(&self) -> bool {
-        *self.app_focus.borrow() == AppFocus::ConnScr(ConnScrFocus::ConnList)
+        *self.focus.borrow() == TabFocus::ConnScr(ConnScrFocus::ConnList)
     }
 
     fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::ConnScr(ConnScrFocus::ConnList);
+        *self.focus.borrow_mut() = TabFocus::ConnScr(ConnScrFocus::ConnList);
     }
 
     fn commands(&self) -> Vec<CommandGroup> {

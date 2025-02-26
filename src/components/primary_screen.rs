@@ -2,9 +2,9 @@ use super::{
     connection_screen::ConnScrFocus,
     documents::PersistedDocuments,
     list::{collections::PersistedCollections, databases::PersistedDatabases},
+    tab::TabFocus,
 };
 use crate::{
-    app::AppFocus,
     components::{
         documents::Documents,
         input::filter::FilterInput,
@@ -35,7 +35,7 @@ pub enum PrimScrFocus {
 
 #[derive(Debug, Default)]
 pub struct PrimaryScreen<'a> {
-    app_focus: Rc<RefCell<AppFocus>>,
+    focus: Rc<RefCell<TabFocus>>,
     db_list: Databases,
     coll_list: Collections,
     doc_tree: Documents<'a>,
@@ -43,13 +43,13 @@ pub struct PrimaryScreen<'a> {
 }
 
 impl PrimaryScreen<'_> {
-    pub fn new(app_focus: Rc<RefCell<AppFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
-        let db_list = Databases::new(app_focus.clone());
-        let coll_list = Collections::new(app_focus.clone());
-        let doc_tree = Documents::new(app_focus.clone());
-        let filter_input = FilterInput::new(app_focus.clone(), cursor_pos);
+    pub fn new(focus: Rc<RefCell<TabFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
+        let db_list = Databases::new(focus.clone());
+        let coll_list = Collections::new(focus.clone());
+        let doc_tree = Documents::new(focus.clone());
+        let filter_input = FilterInput::new(focus.clone(), cursor_pos);
         Self {
-            app_focus,
+            focus,
             db_list,
             coll_list,
             doc_tree,
@@ -59,8 +59,8 @@ impl PrimaryScreen<'_> {
 
     /// Narrows the shared `AppFocus` variable into the focus enum for this componenent
     fn internal_focus(&self) -> Option<PrimScrFocus> {
-        match &*self.app_focus.borrow() {
-            AppFocus::PrimScr(focus) => Some(focus.clone()),
+        match &*self.focus.borrow() {
+            TabFocus::PrimScr(focus) => Some(focus.clone()),
             _ => None,
         }
     }
@@ -152,7 +152,7 @@ impl Component for PrimaryScreen<'_> {
                 },
                 Command::Back => match self.internal_focus() {
                     Some(PrimScrFocus::DbList) => {
-                        *self.app_focus.borrow_mut() = AppFocus::ConnScr(ConnScrFocus::ConnList);
+                        *self.focus.borrow_mut() = TabFocus::ConnScr(ConnScrFocus::ConnList);
                         out.push(Event::FocusedChanged);
                     }
                     Some(PrimScrFocus::CollList) => {
@@ -217,11 +217,11 @@ impl Component for PrimaryScreen<'_> {
     }
 
     fn focus(&self) {
-        *self.app_focus.borrow_mut() = AppFocus::PrimScr(PrimScrFocus::default());
+        *self.focus.borrow_mut() = TabFocus::PrimScr(PrimScrFocus::default());
     }
 
     fn is_focused(&self) -> bool {
-        matches!(*self.app_focus.borrow(), AppFocus::PrimScr(..))
+        matches!(*self.focus.borrow(), TabFocus::PrimScr(..))
     }
 }
 
