@@ -1,4 +1,8 @@
 use serde::{Deserialize, Serialize};
+use std::{
+    cell::{Ref, RefCell, RefMut},
+    rc::Rc,
+};
 use uuid::Uuid;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -21,5 +25,27 @@ impl Connection {
 
     pub fn id(&self) -> &Uuid {
         &self.id
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct ConnectionManager {
+    connections: Rc<RefCell<Vec<Connection>>>,
+    // TODO: add file_manager
+}
+
+impl ConnectionManager {
+    pub fn new(connections: Vec<Connection>) -> Self {
+        Self {
+            connections: Rc::new(RefCell::new(connections)),
+        }
+    }
+
+    pub fn connections(&self) -> Ref<Vec<Connection>> {
+        self.connections.borrow()
+    }
+
+    pub fn connections_mut(&mut self) -> RefMut<Vec<Connection>> {
+        self.connections.borrow_mut()
     }
 }

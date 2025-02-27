@@ -8,7 +8,7 @@ use crate::{
         status_bar::StatusBar,
         Component, ComponentCommand,
     },
-    connection::Connection,
+    connection::{Connection, ConnectionManager},
     key_map::KeyMap,
     persistence::PersistedComponent,
     system::{command::CommandGroup, event::Event},
@@ -71,15 +71,15 @@ impl Tab<'_> {
     // TODO?: all_connections can be stored in the persisted connection list rather than
     // read in from a separate file
     pub fn new(
-        connection: Option<Connection>,
-        all_connections: Vec<Connection>,
+        selected_connection: Option<Connection>,
+        connection_manager: ConnectionManager,
         key_map: KeyMap,
         storage: Rc<dyn Storage>,
         cursor_pos: Rc<Cell<(u16, u16)>>,
     ) -> Tab<'static> {
         let client = Client::default();
 
-        let initial_focus = if let Some(conn) = connection {
+        let initial_focus = if let Some(conn) = selected_connection {
             client.set_conn_str(conn.connection_str);
             TabFocus::PrimScr(PrimScrFocus::DbList)
         } else {
@@ -96,7 +96,7 @@ impl Tab<'_> {
 
         let primary_screen = PrimaryScreen::new(focus.clone(), cursor_pos.clone());
 
-        let connection_list = Connections::new(focus.clone(), all_connections, storage.clone());
+        let connection_list = Connections::new(focus.clone(), connection_manager, storage.clone());
         let conn_screen = ConnectionScreen::new(
             connection_list,
             focus.clone(),

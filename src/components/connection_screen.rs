@@ -5,7 +5,7 @@ use super::{
     Component, ComponentCommand,
 };
 use crate::{
-    connection::Connection,
+    connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
     system::{command::CommandGroup, event::Event},
     utils::storage::{FileStorage, Storage},
@@ -44,7 +44,8 @@ impl Default for ConnectionScreen {
         let cursor_pos = Rc::new(Cell::new((0, 0)));
 
         let storage = Rc::new(FileStorage::default());
-        let conn_list = Connections::new(focus.clone(), vec![], storage.clone());
+        let conn_list =
+            Connections::new(focus.clone(), ConnectionManager::default(), storage.clone());
         let conn_name_input = ConnNameInput::new(focus.clone(), cursor_pos.clone());
         let conn_str_input = ConnStrInput::new(focus.clone(), cursor_pos);
 
@@ -155,9 +156,12 @@ impl Component for ConnectionScreen {
                 Some(ConnScrFocus::ConnList) | None => {}
             },
             Event::ConnectionCreated(conn) => {
-                self.conn_list.items.push(conn.clone());
+                self.conn_list
+                    .connection_manager
+                    .connections_mut()
+                    .push(conn.clone());
                 self.storage
-                    .write_connections(&self.conn_list.items)
+                    .write_connections(&self.conn_list.connection_manager.connections())
                     .unwrap_or_else(|_| {
                         out.push(Event::ErrorOccurred(
                             "Could not save updated connections.".to_string(),
@@ -165,6 +169,8 @@ impl Component for ConnectionScreen {
                     });
             }
             Event::ConnectionEdited(conn) => {
+                // HELP: probably the way to save this is to move all the connection editing functionality
+                // into `ConnectionManager`
                 let edited_conn = self
                     .conn_list
                     .items
@@ -173,7 +179,7 @@ impl Component for ConnectionScreen {
                 if let Some(edited_conn) = edited_conn {
                     *edited_conn = conn.clone();
                     self.storage
-                        .write_connections(&self.conn_list.items)
+                        .write_connections(&self.conn_list.connection_manager.connections())
                         .unwrap_or_else(|_| {
                             out.push(Event::ErrorOccurred(
                                 "Could not save updated connections.".to_string(),

@@ -3,7 +3,7 @@ use crate::{
         tab::{PersistedTab, Tab},
         Component, ComponentCommand,
     },
-    connection::Connection,
+    connection::{Connection, ConnectionManager},
     key_map::KeyMap,
     persistence::PersistedComponent,
     system::{
@@ -32,6 +32,7 @@ pub struct App<'a> {
     // shared data
     cursor_pos: Rc<Cell<(u16, u16)>>,
     storage: Rc<dyn Storage>,
+    connection_manager: ConnectionManager,
 
     // config
     // FIXME - wait a minute, why do we need a `RefCell` here??
@@ -49,6 +50,7 @@ impl Default for App<'_> {
             tabs: vec![Tab::default()],
             current_tab_idx: 0,
             cursor_pos: Rc::new(Cell::new((0, 0))),
+            connection_manager: ConnectionManager::default(),
             storage: Rc::new(FileStorage::default()),
             key_map: Rc::new(RefCell::new(KeyMap::default())),
             raw_mode: false,
@@ -65,17 +67,18 @@ impl App<'_> {
     // TODO?: all_connections can be stored in the persisted connection list rather than
     // read in from a separate file
     pub fn new(
-        connection: Option<Connection>,
-        all_connections: Vec<Connection>,
+        selected_connection: Option<Connection>,
+        connections: Vec<Connection>,
         key_map: KeyMap,
         storage: Rc<dyn Storage>,
     ) -> Self {
         // initialize shared data
         let cursor_pos = Rc::new(Cell::new((0, 0)));
+        let connection_manager = ConnectionManager::new(connections);
 
         let tab = Tab::new(
-            connection.clone(),
-            all_connections,
+            selected_connection.clone(),
+            connection_manager.clone(),
             key_map.clone(),
             storage.clone(),
             cursor_pos.clone(),
@@ -93,8 +96,10 @@ impl App<'_> {
 
             key_map,
             storage,
+            connection_manager,
 
-            ..Default::default()
+            force_clear: false,
+            exiting: false,
         }
     }
 
