@@ -67,4 +67,7 @@ pub enum Event {
 
     AppFocusGained,
     AppFocusLost,
+
+    TabCreated,
+    TabChanged,
 }

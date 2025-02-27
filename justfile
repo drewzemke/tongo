@@ -1,5 +1,5 @@
 run: 
-    TONGO_LOGLEVEL=info,debug cargo run --all-features -- --last
+    TONGO_LOGLEVEL=info,debug cargo run 
 
 build:
     cargo build

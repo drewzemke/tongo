@@ -228,7 +228,11 @@ impl Component for App<'_> {
         let mut out = if self.raw_mode {
             vec![]
         } else {
-            vec![CommandGroup::new(vec![Command::Quit], "quit")]
+            vec![
+                CommandGroup::new(vec![Command::Quit], "quit"),
+                CommandGroup::new(vec![Command::NewTab], "new tab"),
+                CommandGroup::new(vec![Command::NextTab, Command::PreviousTab], "change tab"),
+            ]
         };
 
         // FIXME: unchecked index
@@ -239,10 +243,31 @@ impl Component for App<'_> {
 
     #[must_use]
     fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
-        if matches!(command, ComponentCommand::Command(Command::Quit)) {
-            tracing::info!("Quit command received. Exiting...");
-            self.exiting = true;
-            return vec![];
+        if let ComponentCommand::Command(command) = command {
+            match command {
+                Command::Quit => {
+                    tracing::info!("Quit command received. Exiting...");
+                    self.exiting = true;
+                    return vec![];
+                }
+                Command::NewTab => {
+                    // FIXME: disconnected tab
+                    let tab = Tab::default();
+                    self.tabs.push(tab);
+                    self.current_tab_idx = self.tabs.len() - 1;
+                    return vec![Event::TabCreated];
+                }
+                Command::NextTab => {
+                    self.current_tab_idx = (self.current_tab_idx + 1) % self.tabs.len();
+                    return vec![Event::TabChanged];
+                }
+                Command::PreviousTab => {
+                    self.current_tab_idx =
+                        (self.current_tab_idx + self.tabs.len() - 1) % self.tabs.len();
+                    return vec![Event::TabChanged];
+                }
+                _ => {}
+            }
         }
 
         // FIXME: unchecked index

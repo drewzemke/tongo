@@ -36,6 +36,10 @@ pub enum Command {
     // TODO: merge with `Delete`
     DeleteDoc,
     Yank,
+
+    NewTab,
+    NextTab,
+    PreviousTab,
 }
 
 impl Command {
@@ -73,6 +77,10 @@ impl Command {
             "duplicate_doc" => Ok(Self::DuplicateDoc),
             "delete_doc" => Ok(Self::DeleteDoc),
             "yank" => Ok(Self::Yank),
+
+            "new_tab" => Ok(Self::NewTab),
+            "next_tab" => Ok(Self::NextTab),
+            "previous_tab" => Ok(Self::PreviousTab),
             _ => bail!(format!("Command not recognized: \"{value}\"")),
         }
     }
