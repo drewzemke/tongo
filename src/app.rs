@@ -3,7 +3,7 @@ use crate::{
         tab::{PersistedTab, Tab},
         Component, ComponentCommand,
     },
-    connection::Connection,
+    connection::{Connection, ConnectionManager},
     key_map::KeyMap,
     persistence::PersistedComponent,
     system::{
@@ -12,7 +12,6 @@ use crate::{
     },
     utils::storage::{FileStorage, Storage},
 };
-
 use anyhow::Result;
 use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
 use ratatui::{backend::Backend, layout::Rect, Frame, Terminal};
@@ -65,19 +64,19 @@ impl App<'_> {
     // TODO?: all_connections can be stored in the persisted connection list rather than
     // read in from a separate file
     pub fn new(
-        connection: Option<Connection>,
-        all_connections: Vec<Connection>,
+        selected_connection: Option<Connection>,
+        connections: Vec<Connection>,
         key_map: KeyMap,
         storage: Rc<dyn Storage>,
     ) -> Self {
         // initialize shared data
         let cursor_pos = Rc::new(Cell::new((0, 0)));
+        let connection_manager = ConnectionManager::new(connections, storage.clone());
 
         let tab = Tab::new(
-            connection.clone(),
-            all_connections,
+            selected_connection.clone(),
+            connection_manager,
             key_map.clone(),
-            storage.clone(),
             cursor_pos.clone(),
         );
 
@@ -94,7 +93,8 @@ impl App<'_> {
             key_map,
             storage,
 
-            ..Default::default()
+            force_clear: false,
+            exiting: false,
         }
     }
 

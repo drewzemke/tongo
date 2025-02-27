@@ -5,10 +5,10 @@ use super::{
     Component, ComponentCommand,
 };
 use crate::{
-    connection::Connection,
+    connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
     system::{command::CommandGroup, event::Event},
-    utils::storage::{FileStorage, Storage},
+    utils::storage::FileStorage,
 };
 use ratatui::{
     prelude::*,
@@ -31,10 +31,10 @@ pub enum ConnScrFocus {
 #[derive(Debug)]
 pub struct ConnectionScreen {
     focus: Rc<RefCell<TabFocus>>,
+    pub connection_manager: ConnectionManager,
     conn_list: Connections,
     conn_name_input: ConnNameInput,
     conn_str_input: ConnStrInput,
-    storage: Rc<dyn Storage>,
     editing: Option<Connection>,
 }
 
@@ -44,16 +44,18 @@ impl Default for ConnectionScreen {
         let cursor_pos = Rc::new(Cell::new((0, 0)));
 
         let storage = Rc::new(FileStorage::default());
-        let conn_list = Connections::new(focus.clone(), vec![], storage.clone());
+
+        let connection_manager = ConnectionManager::new(vec![], storage.clone());
+        let conn_list = Connections::new(focus.clone(), connection_manager.clone());
         let conn_name_input = ConnNameInput::new(focus.clone(), cursor_pos.clone());
         let conn_str_input = ConnStrInput::new(focus.clone(), cursor_pos);
 
         Self {
             focus,
+            connection_manager,
             conn_list,
             conn_name_input,
             conn_str_input,
-            storage,
             editing: None,
         }
     }
@@ -64,7 +66,7 @@ impl ConnectionScreen {
         connection_list: Connections,
         app_focus: Rc<RefCell<TabFocus>>,
         cursor_pos: Rc<Cell<(u16, u16)>>,
-        file_manager: Rc<dyn Storage>,
+        connection_manager: ConnectionManager,
     ) -> Self {
         let conn_name_input = ConnNameInput::new(app_focus.clone(), cursor_pos.clone());
         let conn_str_input = ConnStrInput::new(app_focus.clone(), cursor_pos);
@@ -74,7 +76,7 @@ impl ConnectionScreen {
             conn_list: connection_list,
             conn_name_input,
             conn_str_input,
-            storage: file_manager,
+            connection_manager,
             editing: None,
         }
     }
@@ -155,9 +157,8 @@ impl Component for ConnectionScreen {
                 Some(ConnScrFocus::ConnList) | None => {}
             },
             Event::ConnectionCreated(conn) => {
-                self.conn_list.items.push(conn.clone());
-                self.storage
-                    .write_connections(&self.conn_list.items)
+                self.connection_manager
+                    .add_connection(conn.clone())
                     .unwrap_or_else(|_| {
                         out.push(Event::ErrorOccurred(
                             "Could not save updated connections.".to_string(),
@@ -165,21 +166,14 @@ impl Component for ConnectionScreen {
                     });
             }
             Event::ConnectionEdited(conn) => {
-                let edited_conn = self
-                    .conn_list
-                    .items
-                    .iter_mut()
-                    .find(|c| c.id() == conn.id());
-                if let Some(edited_conn) = edited_conn {
-                    *edited_conn = conn.clone();
-                    self.storage
-                        .write_connections(&self.conn_list.items)
-                        .unwrap_or_else(|_| {
-                            out.push(Event::ErrorOccurred(
-                                "Could not save updated connections.".to_string(),
-                            ));
-                        });
-                }
+                self.connection_manager
+                    .update_connection(conn)
+                    .unwrap_or_else(|_| {
+                        out.push(Event::ErrorOccurred(
+                            "Could not save updated connections.".to_string(),
+                        ));
+                    });
+
                 self.conn_list.focus();
             }
             _ => {}
@@ -265,12 +259,14 @@ mod tests {
 
     impl ConnectionScreen {
         fn new_mock(connections: Vec<Connection>) -> Self {
+            let storage = Rc::new(MockStorage::default());
+            let connection_manager = ConnectionManager::new(connections, storage);
             ConnectionScreen {
-                storage: Rc::new(MockStorage::default()),
                 conn_list: Connections {
-                    items: connections,
+                    connection_manager: connection_manager.clone(),
                     ..Default::default()
                 },
+                connection_manager,
                 ..Default::default()
             }
         }

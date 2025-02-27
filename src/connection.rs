@@ -1,4 +1,10 @@
+use crate::utils::storage::{FileStorage, Storage};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use std::{
+    cell::{Ref, RefCell},
+    rc::Rc,
+};
 use uuid::Uuid;
 
 #[derive(Clone, Debug, Default, Deserialize, Serialize, PartialEq, Eq)]
@@ -21,5 +27,62 @@ impl Connection {
 
     pub fn id(&self) -> &Uuid {
         &self.id
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct ConnectionManager {
+    connections: Rc<RefCell<Vec<Connection>>>,
+    storage: Rc<dyn Storage>,
+}
+
+impl Default for ConnectionManager {
+    fn default() -> Self {
+        Self {
+            connections: Rc::default(),
+            storage: Rc::new(FileStorage::default()),
+        }
+    }
+}
+
+impl ConnectionManager {
+    pub fn new(connections: Vec<Connection>, storage: Rc<dyn Storage>) -> Self {
+        Self {
+            connections: Rc::new(RefCell::new(connections)),
+            storage,
+        }
+    }
+
+    pub fn connections(&self) -> Ref<Vec<Connection>> {
+        self.connections.borrow()
+    }
+
+    pub fn set_connections(&mut self, connections: Vec<Connection>) {
+        *self.connections.borrow_mut() = connections;
+    }
+
+    pub fn add_connection(&mut self, connection: Connection) -> Result<()> {
+        let mut connections = self.connections.borrow_mut();
+        connections.push(connection);
+
+        self.storage.write_connections(&connections)
+    }
+
+    pub fn update_connection(&mut self, connection: &Connection) -> Result<()> {
+        let mut connections = self.connections.borrow_mut();
+        let edited_conn = connections.iter_mut().find(|c| c.id() == connection.id());
+
+        if let Some(edited_conn) = edited_conn {
+            *edited_conn = connection.clone();
+            self.storage.write_connections(&connections)?;
+        }
+
+        Ok(())
+    }
+
+    pub fn delete_connection(&mut self, index: usize) -> Result<()> {
+        let mut connections = self.connections.borrow_mut();
+        connections.remove(index);
+        self.storage.write_connections(&connections)
     }
 }

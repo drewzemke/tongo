@@ -1,57 +1,50 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{
+    cell::{Ref, RefCell},
+    rc::Rc,
+};
 
 use super::InnerList;
 use crate::{
     components::{connection_screen::ConnScrFocus, tab::TabFocus, Component, ComponentCommand},
-    connection::Connection,
+    connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
         event::Event,
     },
-    utils::storage::{FileStorage, Storage},
 };
 use ratatui::{prelude::*, widgets::ListItem};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug)]
 pub struct Connections {
-    pub items: Vec<Connection>,
     pub focus: Rc<RefCell<TabFocus>>,
+    pub connection_manager: ConnectionManager,
     pub list: InnerList,
-    pub storage: Rc<dyn Storage>,
 }
 
 impl Default for Connections {
     fn default() -> Self {
         Self {
             focus: Rc::new(RefCell::new(TabFocus::default())),
-            items: Vec::new(),
+            connection_manager: ConnectionManager::default(),
             list: InnerList::default(),
-            storage: Rc::new(FileStorage::default()),
         }
     }
 }
 
 impl Connections {
-    pub fn new(
-        focus: Rc<RefCell<TabFocus>>,
-        items: Vec<Connection>,
-        storage: Rc<dyn Storage>,
-    ) -> Self {
+    pub fn new(focus: Rc<RefCell<TabFocus>>, connection_manager: ConnectionManager) -> Self {
         Self {
             focus,
-            items,
+            connection_manager,
             list: InnerList::new("Connections"),
-            storage,
         }
     }
 
-    fn get_selected_conn(&self) -> Option<&Connection> {
-        self.list
-            .state
-            .selected()
-            .and_then(|index| self.items.get(index))
+    fn get_selected_conn(&self) -> Option<Ref<Connection>> {
+        let index = self.list.state.selected()?;
+        Ref::filter_map(self.connection_manager.connections(), |v| v.get(index)).ok()
     }
 
     fn mask_password(conn_str: &str) -> String {
@@ -89,7 +82,9 @@ impl Component for Connections {
     }
 
     fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
-        let mut out = self.list.handle_base_command(command, self.items.len());
+        let mut out = self
+            .list
+            .handle_base_command(command, self.connection_manager.connections().len());
         let ComponentCommand::Command(command) = command else {
             return vec![];
         };
@@ -117,14 +112,14 @@ impl Component for Connections {
 
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
         let mut out = vec![];
+
         // only process the confirmation if this component is focused
         if self.is_focused() && matches!(event, Event::ConfirmationYes(Command::Delete)) {
             let Some(index_to_delete) = self.list.state.selected() else {
                 return out;
             };
-            self.items.remove(index_to_delete);
-            let write_result = self.storage.write_connections(&self.items);
-            if write_result.is_ok() {
+
+            if let Ok(_) = self.connection_manager.delete_connection(index_to_delete) {
                 out.push(Event::ConnectionDeleted);
             } else {
                 out.push(Event::ErrorOccurred(
@@ -137,7 +132,8 @@ impl Component for Connections {
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         let items: Vec<ListItem> = self
-            .items
+            .connection_manager
+            .connections()
             .iter()
             .map(|item| {
                 let masked_conn_str = Self::mask_password(&item.connection_str);
@@ -157,6 +153,7 @@ impl Component for Connections {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedConnections {
     pub selected_conn: Option<Connection>,
+    connections: Vec<Connection>,
 }
 
 impl PersistedComponent for Connections {
@@ -164,13 +161,20 @@ impl PersistedComponent for Connections {
 
     fn persist(&self) -> Self::StorageType {
         PersistedConnections {
-            selected_conn: self.get_selected_conn().cloned(),
+            selected_conn: self.get_selected_conn().map(|conn| conn.clone()),
+            connections: self.connection_manager.connections().clone(),
         }
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) {
+        self.connection_manager.set_connections(storage.connections);
+
         if let Some(conn) = storage.selected_conn {
-            let index = self.items.iter().position(|c| *c == conn);
+            let index = self
+                .connection_manager
+                .connections()
+                .iter()
+                .position(|c| *c == conn);
             self.list.state.select(index);
         }
     }
