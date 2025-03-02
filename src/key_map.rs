@@ -40,6 +40,8 @@ pub struct KeyMap {
 }
 
 impl Default for KeyMap {
+    // TODO: find a way to make this typesafe, so that an error is shown
+    // when a command isn't mapped here
     fn default() -> Self {
         let map = [
             (Command::NavUp, KeyCode::Up),
@@ -68,6 +70,10 @@ impl Default for KeyMap {
             (Command::DuplicateDoc, KeyCode::Char('C')),
             (Command::DeleteDoc, KeyCode::Char('D')),
             (Command::Yank, KeyCode::Char('y')),
+            (Command::NewTab, KeyCode::Char('T')),
+            // TODO: make these "tab" and "shift+tab" once modifiers are a thing
+            (Command::NextTab, KeyCode::Char(']')),
+            (Command::PreviousTab, KeyCode::Char('[')),
         ]
         .into();
 

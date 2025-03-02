@@ -36,3 +36,7 @@
 # duplicate_doc = "C"
 # delete_doc = "D"
 # yank = "y"
+
+# new_tab = "T"
+# next_tab = "]"
+# previous_tab = "["

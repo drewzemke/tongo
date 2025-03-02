@@ -72,7 +72,7 @@ impl Tab<'_> {
     pub fn new(
         selected_connection: Option<Connection>,
         connection_manager: ConnectionManager,
-        key_map: KeyMap,
+        key_map: Rc<KeyMap>,
         cursor_pos: Rc<Cell<(u16, u16)>>,
     ) -> Tab<'static> {
         let client = Client::default();
@@ -86,7 +86,6 @@ impl Tab<'_> {
 
         // initialize shared data
         let focus = Rc::new(RefCell::new(initial_focus));
-        let key_map = Rc::new(RefCell::new(key_map));
 
         let status_bar = StatusBar::new(key_map.clone());
 

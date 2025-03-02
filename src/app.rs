@@ -17,7 +17,7 @@ use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
 use ratatui::{backend::Backend, layout::Rect, Frame, Terminal};
 use serde::{Deserialize, Serialize};
 use std::{
-    cell::{Cell, RefCell},
+    cell::Cell,
     collections::VecDeque,
     rc::Rc,
     time::{Duration, Instant},
@@ -31,10 +31,10 @@ pub struct App<'a> {
     // shared data
     cursor_pos: Rc<Cell<(u16, u16)>>,
     storage: Rc<dyn Storage>,
+    connection_manager: ConnectionManager,
 
     // config
-    // FIXME - wait a minute, why do we need a `RefCell` here??
-    key_map: Rc<RefCell<KeyMap>>,
+    key_map: Rc<KeyMap>,
 
     // flags
     raw_mode: bool,
@@ -44,12 +44,14 @@ pub struct App<'a> {
 
 impl Default for App<'_> {
     fn default() -> Self {
+        let storage = Rc::new(FileStorage::default());
         Self {
             tabs: vec![Tab::default()],
             current_tab_idx: 0,
             cursor_pos: Rc::new(Cell::new((0, 0))),
-            storage: Rc::new(FileStorage::default()),
-            key_map: Rc::new(RefCell::new(KeyMap::default())),
+            connection_manager: ConnectionManager::new(vec![], storage.clone()),
+            storage,
+            key_map: Rc::new(KeyMap::default()),
             raw_mode: false,
             force_clear: false,
             exiting: false,
@@ -72,15 +74,14 @@ impl App<'_> {
         // initialize shared data
         let cursor_pos = Rc::new(Cell::new((0, 0)));
         let connection_manager = ConnectionManager::new(connections, storage.clone());
+        let key_map = Rc::new(key_map);
 
         let tab = Tab::new(
             selected_connection.clone(),
-            connection_manager,
+            connection_manager.clone(),
             key_map.clone(),
             cursor_pos.clone(),
         );
-
-        let key_map = Rc::new(RefCell::new(key_map));
 
         Self {
             tabs: vec![tab],
@@ -92,10 +93,20 @@ impl App<'_> {
 
             key_map,
             storage,
+            connection_manager,
 
             force_clear: false,
             exiting: false,
         }
+    }
+
+    fn create_tab(&mut self) -> Tab<'static> {
+        Tab::new(
+            None,
+            self.connection_manager.clone(),
+            self.key_map.clone(),
+            self.cursor_pos.clone(),
+        )
     }
 
     pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
@@ -194,10 +205,7 @@ impl App<'_> {
 
             // map the key to a command if we're not in raw mode,
             // making sure it's one of the currently-available commands
-            let command = self
-                .key_map
-                .borrow()
-                .command_for_key(key.code, &self.commands());
+            let command = self.key_map.command_for_key(key.code, &self.commands());
 
             // handle the command
             if let Some(command) = command {
@@ -228,7 +236,11 @@ impl Component for App<'_> {
         let mut out = if self.raw_mode {
             vec![]
         } else {
-            vec![CommandGroup::new(vec![Command::Quit], "quit")]
+            vec![
+                CommandGroup::new(vec![Command::Quit], "quit"),
+                CommandGroup::new(vec![Command::NewTab], "new tab"),
+                CommandGroup::new(vec![Command::NextTab, Command::PreviousTab], "change tab"),
+            ]
         };
 
         // FIXME: unchecked index
@@ -239,10 +251,30 @@ impl Component for App<'_> {
 
     #[must_use]
     fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
-        if matches!(command, ComponentCommand::Command(Command::Quit)) {
-            tracing::info!("Quit command received. Exiting...");
-            self.exiting = true;
-            return vec![];
+        if let ComponentCommand::Command(command) = command {
+            match command {
+                Command::Quit => {
+                    tracing::info!("Quit command received. Exiting...");
+                    self.exiting = true;
+                    return vec![];
+                }
+                Command::NewTab => {
+                    let tab = self.create_tab();
+                    self.tabs.push(tab);
+                    self.current_tab_idx = self.tabs.len() - 1;
+                    return vec![Event::TabCreated];
+                }
+                Command::NextTab => {
+                    self.current_tab_idx = (self.current_tab_idx + 1) % self.tabs.len();
+                    return vec![Event::TabChanged];
+                }
+                Command::PreviousTab => {
+                    self.current_tab_idx =
+                        (self.current_tab_idx + self.tabs.len() - 1) % self.tabs.len();
+                    return vec![Event::TabChanged];
+                }
+                _ => {}
+            }
         }
 
         // FIXME: unchecked index
@@ -263,7 +295,7 @@ impl Component for App<'_> {
             }
             _ => {}
         }
-        // FIXME: unchecked index
+        // FIXME: all tabs should receive all events
         out.append(&mut self.tabs[self.current_tab_idx].handle_event(event));
         out
     }
@@ -306,17 +338,13 @@ impl PersistedComponent for App<'_> {
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) {
-        // this probably doesn't work, need to generate a tab from the
-        // app so it has the same cursor etc
-        self.tabs = storage
-            .tabs
-            .into_iter()
-            .map(|persisted_tab| {
-                let mut tab = Tab::default();
-                tab.hydrate(persisted_tab);
-                tab
-            })
-            .collect();
+        // delete the default tab, then create and hydreate new tabs for each stored one
+        self.tabs = vec![];
+        for persisted_tab in storage.tabs {
+            let mut tab = self.create_tab();
+            tab.hydrate(persisted_tab);
+            self.tabs.push(tab);
+        }
 
         self.current_tab_idx = storage.current_tab;
     }

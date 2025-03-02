@@ -1,5 +1,4 @@
 use std::{
-    cell::RefCell,
     rc::Rc,
     time::{Duration, Instant},
 };
@@ -69,13 +68,13 @@ pub struct StatusBar {
     pub commands: Vec<CommandGroup>,
     message: Option<Message>,
 
-    key_map: Rc<RefCell<KeyMap>>,
+    key_map: Rc<KeyMap>,
 
     // DEBUG:
     renders: usize,
 }
 impl StatusBar {
-    pub fn new(key_map: Rc<RefCell<KeyMap>>) -> Self {
+    pub fn new(key_map: Rc<KeyMap>) -> Self {
         Self {
             key_map,
             ..Default::default()
@@ -96,7 +95,7 @@ impl Component for StatusBar {
                 Line::from(
                     self.commands
                         .iter()
-                        .flat_map(|group| self.key_map.borrow().cmd_group_to_span(group))
+                        .flat_map(|group| self.key_map.cmd_group_to_span(group))
                         .collect::<Vec<Span>>(),
                 )
             },
