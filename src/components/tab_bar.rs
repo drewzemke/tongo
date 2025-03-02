@@ -4,18 +4,27 @@ use crate::system::{
     event::Event,
 };
 use ratatui::{prelude::*, widgets::Tabs};
+use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
 #[derive(Debug, Default)]
 pub struct TabBar {
     tabs: Vec<()>,
     current_tab_idx: usize,
+
+    scroll_state: ScrollViewState,
+    // set after the first render
+    visible_width: Option<u16>,
 }
+
+const TAB_NAME_SPACING: usize = 3;
 
 impl TabBar {
     pub fn new() -> Self {
         Self {
             tabs: vec![()],
             current_tab_idx: 0,
+            scroll_state: ScrollViewState::new(),
+            visible_width: None,
         }
     }
 
@@ -30,6 +39,46 @@ impl TabBar {
 
     pub fn num_tabs(&self) -> usize {
         self.tabs.len()
+    }
+
+    fn tab_names(&mut self) -> impl Iterator<Item = String> + Clone {
+        (1..self.tabs.len() + 1).map(|i| format!("[Tab {i}]"))
+    }
+
+    fn next_tab(&mut self) {
+        self.current_tab_idx = (self.current_tab_idx + 1) % self.tabs.len();
+    }
+
+    fn prev_tab(&mut self) {
+        self.current_tab_idx = (self.current_tab_idx + self.tabs.len() - 1) % self.tabs.len();
+    }
+
+    /// scrolls the view so that the currently-selected tab is visible
+    fn scroll_to_current_tab(&mut self) {
+        // calculate the positions (relative to the left edge) of the first and last character
+        // of this tab's name in the view
+        let left_char_pos = self
+            .tab_names()
+            .take(self.current_tab_idx)
+            .map(|s| s.len() + TAB_NAME_SPACING)
+            .sum::<usize>() as u16;
+
+        let right_char_pos = left_char_pos
+            + self
+                .tab_names()
+                .nth(self.current_tab_idx)
+                .unwrap_or_default()
+                .len() as u16;
+
+        let visible_width = self.visible_width.unwrap_or_default();
+
+        let mut offset = self.scroll_state.offset().x;
+        // make sure the right side of the name is visible
+        offset = offset.max(right_char_pos.saturating_sub(visible_width) + 2);
+        // make sure the left side of the name is visible
+        offset = offset.min(left_char_pos);
+
+        self.scroll_state.set_offset(Position::new(offset, 0));
     }
 }
 
@@ -55,15 +104,17 @@ impl Component for TabBar {
                 Command::NewTab => {
                     self.tabs.push(());
                     self.current_tab_idx = self.tabs.len() - 1;
+                    self.scroll_to_current_tab();
                     return vec![Event::TabCreated];
                 }
                 Command::NextTab => {
-                    self.current_tab_idx = (self.current_tab_idx + 1) % self.tabs.len();
+                    self.next_tab();
+                    self.scroll_to_current_tab();
                     return vec![Event::TabChanged];
                 }
                 Command::PreviousTab => {
-                    self.current_tab_idx =
-                        (self.current_tab_idx + self.tabs.len() - 1) % self.tabs.len();
+                    self.prev_tab();
+                    self.scroll_to_current_tab();
                     return vec![Event::TabChanged];
                 }
                 _ => {}
@@ -74,13 +125,22 @@ impl Component for TabBar {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        let tab_names = (1..self.tabs.len() + 1).map(|i| format!("[Tab {i}]"));
-        let tabs_widget = Tabs::new(tab_names)
+        self.visible_width = Some(area.width);
+
+        let tab_names = self.tab_names();
+
+        let content_width = tab_names.clone().map(|s| s.len() + 3).sum::<usize>() - 2;
+        let mut scroll_view = ScrollView::new(Size::new(content_width as u16, 1))
+            .scrollbars_visibility(ScrollbarVisibility::Never);
+
+        let tabs = Tabs::new(tab_names)
             .style(Style::default().gray())
             .highlight_style(Style::default().green())
             .divider(symbols::border::PLAIN.vertical_left)
             .select(self.current_tab_idx);
-        frame.render_widget(tabs_widget, area);
+        scroll_view.render_widget(tabs, scroll_view.buf().area);
+
+        frame.render_stateful_widget(scroll_view, area, &mut self.scroll_state);
     }
 }
 
