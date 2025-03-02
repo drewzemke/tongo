@@ -1,9 +1,13 @@
 use super::{Component, ComponentCommand};
-use crate::system::{
-    command::{Command, CommandGroup},
-    event::Event,
+use crate::{
+    persistence::PersistedComponent,
+    system::{
+        command::{Command, CommandGroup},
+        event::Event,
+    },
 };
 use ratatui::{prelude::*, widgets::Tabs};
+use serde::{Deserialize, Serialize};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
 #[derive(Debug, Default)]
@@ -30,11 +34,6 @@ impl TabBar {
 
     pub fn current_tab_idx(&self) -> usize {
         self.current_tab_idx
-    }
-
-    // HACK: instead of doing this, have this component implement PersistedComponent
-    pub(crate) fn set_current_tab(&mut self, index: usize) {
-        self.current_tab_idx = index;
     }
 
     pub fn num_tabs(&self) -> usize {
@@ -125,7 +124,12 @@ impl Component for TabBar {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        self.visible_width = Some(area.width);
+        // update the width and scrolling if this is the first render,
+        // or if the screen was resized
+        if !self.visible_width.is_some_and(|w| w == area.width) {
+            self.visible_width = Some(area.width);
+            self.scroll_to_current_tab();
+        }
 
         let tab_names = self.tab_names();
 
@@ -141,6 +145,28 @@ impl Component for TabBar {
         scroll_view.render_widget(tabs, scroll_view.buf().area);
 
         frame.render_stateful_widget(scroll_view, area, &mut self.scroll_state);
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PersistedTabBar {
+    tabs: Vec<()>,
+    current_tab_idx: usize,
+}
+
+impl PersistedComponent for TabBar {
+    type StorageType = PersistedTabBar;
+
+    fn persist(&self) -> Self::StorageType {
+        PersistedTabBar {
+            tabs: self.tabs.clone(),
+            current_tab_idx: self.current_tab_idx,
+        }
+    }
+
+    fn hydrate(&mut self, storage: Self::StorageType) {
+        self.tabs = storage.tabs;
+        self.current_tab_idx = storage.current_tab_idx;
     }
 }
 

@@ -1,7 +1,7 @@
 use crate::{
     components::{
         tab::{PersistedTab, Tab},
-        tab_bar::TabBar,
+        tab_bar::{PersistedTabBar, TabBar},
         Component, ComponentCommand,
     },
     connection::{Connection, ConnectionManager},
@@ -360,7 +360,7 @@ impl Component for App<'_> {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedApp {
     tabs: Vec<PersistedTab>,
-    current_tab: usize,
+    tab_bar: PersistedTabBar,
 }
 
 impl PersistedComponent for App<'_> {
@@ -370,7 +370,7 @@ impl PersistedComponent for App<'_> {
         let tabs = self.tabs.iter().map(Tab::persist).collect();
         PersistedApp {
             tabs,
-            current_tab: self.current_tab_idx(),
+            tab_bar: self.tab_bar.persist(),
         }
     }
 
@@ -383,6 +383,6 @@ impl PersistedComponent for App<'_> {
             self.tabs.push(tab);
         }
 
-        self.tab_bar.set_current_tab(storage.current_tab);
+        self.tab_bar.hydrate(storage.tab_bar);
     }
 }
