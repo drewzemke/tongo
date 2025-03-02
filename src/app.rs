@@ -15,7 +15,7 @@ use crate::{
 };
 use anyhow::Result;
 use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
-use ratatui::{backend::Backend, layout::Rect, Frame, Terminal};
+use ratatui::{backend::Backend, prelude::*};
 use serde::{Deserialize, Serialize};
 use std::{
     cell::Cell,
@@ -325,9 +325,20 @@ impl Component for App<'_> {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
+        let main_area = if self.tab_bar.num_tabs() > 1 {
+            let layout = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([Constraint::Length(1), Constraint::Fill(1)])
+                .split(area);
+            self.tab_bar.render(frame, layout[0]);
+            layout[1]
+        } else {
+            area
+        };
+
         let index = self.current_tab_idx();
         if let Some(tab) = &mut self.tabs.get_mut(index) {
-            tab.render(frame, area);
+            tab.render(frame, main_area);
         }
 
         // show the cursor if we're editing something

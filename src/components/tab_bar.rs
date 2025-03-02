@@ -3,7 +3,7 @@ use crate::system::{
     command::{Command, CommandGroup},
     event::Event,
 };
-use ratatui::prelude::*;
+use ratatui::{prelude::*, widgets::Tabs};
 
 #[derive(Debug, Default)]
 pub struct TabBar {
@@ -26,6 +26,10 @@ impl TabBar {
     // HACK: instead of doing this, have this component implement PersistedComponent
     pub(crate) fn set_current_tab(&mut self, index: usize) {
         self.current_tab_idx = index;
+    }
+
+    pub fn num_tabs(&self) -> usize {
+        self.tabs.len()
     }
 }
 
@@ -69,7 +73,15 @@ impl Component for TabBar {
         vec![]
     }
 
-    fn render(&mut self, _frame: &mut Frame, _area: Rect) {}
+    fn render(&mut self, frame: &mut Frame, area: Rect) {
+        let tab_names = (1..self.tabs.len() + 1).map(|i| format!("[Tab {i}]"));
+        let tabs_widget = Tabs::new(tab_names)
+            .style(Style::default().gray())
+            .highlight_style(Style::default().green())
+            .divider(symbols::border::PLAIN.vertical_left)
+            .select(self.current_tab_idx);
+        frame.render_widget(tabs_widget, area);
+    }
 }
 
 #[cfg(test)]
