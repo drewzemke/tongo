@@ -243,8 +243,9 @@ impl Component for App<'_> {
             ]
         };
 
-        // FIXME: unchecked index
-        out.append(&mut self.tabs[self.current_tab_idx].commands());
+        if let Some(tab) = &mut self.tabs.get(self.current_tab_idx) {
+            out.append(&mut tab.commands());
+        }
 
         out
     }
@@ -277,8 +278,12 @@ impl Component for App<'_> {
             }
         }
 
-        // FIXME: unchecked index
-        self.tabs[self.current_tab_idx].handle_command(command)
+        if let Some(tab) = &mut self.tabs.get_mut(self.current_tab_idx) {
+            tab.handle_command(command)
+        } else {
+            // this shouldn't happen, right?
+            vec![]
+        }
     }
 
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
@@ -295,14 +300,19 @@ impl Component for App<'_> {
             }
             _ => {}
         }
-        // FIXME: all tabs should receive all events
-        out.append(&mut self.tabs[self.current_tab_idx].handle_event(event));
+
+        // all tabs receive every event
+        for tab in &mut self.tabs {
+            out.append(&mut tab.handle_event(event));
+        }
+
         out
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        // FIXME: unchecked index
-        self.tabs[self.current_tab_idx].render(frame, area);
+        if let Some(tab) = &mut self.tabs.get_mut(self.current_tab_idx) {
+            tab.render(frame, area);
+        }
 
         // show the cursor if we're editing something
         if self.raw_mode {
