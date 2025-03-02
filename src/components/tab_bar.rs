@@ -10,15 +10,27 @@ use ratatui::{prelude::*, widgets::Tabs};
 use serde::{Deserialize, Serialize};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
+// other options for this: • · ⋅ ⋮ → ⟩ ⌲ ∕ ⟿ ⇝ ⇢ ▸ ⌁ ⁘ ⁙ ∶ ∷ ⟫ ⟾ ◈ ⟡ ⟜ ⟝ ‣
+const TAB_NAME_SEP: &str = "‣";
+
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 struct TabSpec {
     connection_name: Option<String>,
+    db_name: Option<String>,
+    coll_name: Option<String>,
 }
 
 impl TabSpec {
     fn name(&self) -> String {
         if let Some(conn_name) = &self.connection_name {
-            conn_name.clone()
+            let mut name = conn_name.clone();
+            if let Some(db_name) = &self.db_name {
+                name = name + TAB_NAME_SEP + db_name;
+                if let Some(coll_name) = &self.coll_name {
+                    name = name + TAB_NAME_SEP + coll_name;
+                }
+            }
+            name
         } else {
             String::from("New Tab")
         }
@@ -180,12 +192,22 @@ impl Component for TabBar {
     }
 
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
+        let Some(current_tab) = self.tabs.get_mut(self.current_tab_idx) else {
+            return vec![];
+        };
+
         match event {
             Event::ConnectionSelected(conn) | Event::ConnectionCreated(conn) => {
-                let Some(current_tab) = self.tabs.get_mut(self.current_tab_idx) else {
-                    return vec![];
-                };
                 current_tab.connection_name = Some(conn.name.clone());
+                current_tab.db_name = None;
+                current_tab.coll_name = None;
+            }
+            Event::DatabaseSelected(db) => {
+                current_tab.db_name = Some(db.name.clone());
+                current_tab.coll_name = None;
+            }
+            Event::CollectionSelected(coll) => {
+                current_tab.coll_name = Some(coll.name.clone());
             }
             _ => {}
         }
@@ -244,6 +266,8 @@ impl PersistedComponent for TabBar {
 mod tests {
     use super::*;
     use crate::{connection::Connection, testing::ComponentTestHarness};
+    use mongodb::results::{CollectionSpecification, DatabaseSpecification};
+    use serde_json::json;
 
     #[test]
     fn create_new_tab() {
@@ -354,6 +378,30 @@ mod tests {
         assert_eq!(test.component().current_tab_idx(), 0);
     }
 
+    fn get_dummy_database() -> DatabaseSpecification {
+        let db_spec_json = json!({
+            "name": "test_db",
+            "sizeOnDisk": 1024,
+            "empty": false,
+            "shards": null
+        });
+
+        serde_json::from_value(db_spec_json).expect("should be able to parse database from json")
+    }
+
+    fn get_dummy_collection() -> CollectionSpecification {
+        let coll_spec_json = json!({
+            "name": "test_collection",
+            "type": "collection",
+            "options": {},
+            "info": { "readOnly": false, "uuid": null },
+            "id_index": null
+        });
+
+        serde_json::from_value(coll_spec_json)
+            .expect("should be able to parse collection from json")
+    }
+
     #[test]
     fn update_tab_names() {
         let mut test = ComponentTestHarness::new(TabBar::new());
@@ -377,6 +425,37 @@ mod tests {
             String::from("url2"),
         )));
         assert_eq!(test.component().tabs[1].name(), String::from("Better Conn"));
+
+        // selecting a db should append that to the name
+        test.given_event(Event::DatabaseSelected(get_dummy_database()));
+        assert_eq!(
+            test.component().tabs[1].name(),
+            String::from("Better Conn‣test_db")
+        );
+
+        // selecting a coll should append to the name again
+        test.given_event(Event::CollectionSelected(get_dummy_collection()));
+        assert_eq!(
+            test.component().tabs[1].name(),
+            String::from("Better Conn‣test_db‣test_collection")
+        );
+
+        // selecting a db should reset the collection name
+        test.given_event(Event::DatabaseSelected(get_dummy_database()));
+        assert_eq!(
+            test.component().tabs[1].name(),
+            String::from("Better Conn‣test_db")
+        );
+
+        // selecting a connection should reset to just the connection
+        test.given_event(Event::ConnectionSelected(Connection::new(
+            String::from("Even Better Conn"),
+            String::from("url3"),
+        )));
+        assert_eq!(
+            test.component().tabs[1].name(),
+            String::from("Even Better Conn")
+        );
 
         // the original tab should not have a different name
         assert_eq!(test.component().tabs[0].name(), String::from("New Tab"));
