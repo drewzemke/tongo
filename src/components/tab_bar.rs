@@ -10,9 +10,24 @@ use ratatui::{prelude::*, widgets::Tabs};
 use serde::{Deserialize, Serialize};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+struct TabSpec {
+    connection_name: Option<String>,
+}
+
+impl TabSpec {
+    fn name(&self) -> String {
+        if let Some(conn_name) = &self.connection_name {
+            conn_name.clone()
+        } else {
+            String::from("New Tab")
+        }
+    }
+}
+
 #[derive(Debug, Default)]
 pub struct TabBar {
-    tabs: Vec<()>,
+    tabs: Vec<TabSpec>,
     current_tab_idx: usize,
 
     scroll_state: ScrollViewState,
@@ -25,7 +40,7 @@ const TAB_NAME_SPACING: usize = 3;
 impl TabBar {
     pub fn new() -> Self {
         Self {
-            tabs: vec![()],
+            tabs: vec![TabSpec::default()],
             current_tab_idx: 0,
             scroll_state: ScrollViewState::new(),
             visible_width: None,
@@ -40,8 +55,11 @@ impl TabBar {
         self.tabs.len()
     }
 
-    fn tab_names(&mut self) -> impl Iterator<Item = String> + Clone {
-        (1..self.tabs.len() + 1).map(|i| format!("[Tab {i}]"))
+    fn tab_names(&mut self) -> impl Iterator<Item = String> + Clone + use<'_> {
+        self.tabs
+            .iter()
+            .enumerate()
+            .map(|(idx, tab_spec)| format!("[{}] {}", idx + 1, tab_spec.name()))
     }
 
     fn next_tab(&mut self) {
@@ -54,18 +72,19 @@ impl TabBar {
 
     /// scrolls the view so that the currently-selected tab is visible
     fn scroll_to_current_tab(&mut self) {
+        let current_tab_idx = self.current_tab_idx;
         // calculate the positions (relative to the left edge) of the first and last character
         // of this tab's name in the view
         let left_char_pos = self
             .tab_names()
-            .take(self.current_tab_idx)
+            .take(current_tab_idx)
             .map(|s| s.len() + TAB_NAME_SPACING)
             .sum::<usize>() as u16;
 
         let right_char_pos = left_char_pos
             + self
                 .tab_names()
-                .nth(self.current_tab_idx)
+                .nth(current_tab_idx)
                 .unwrap_or_default()
                 .len() as u16;
 
@@ -116,7 +135,7 @@ impl Component for TabBar {
         if let ComponentCommand::Command(command) = command {
             match command {
                 Command::NewTab => {
-                    self.tabs.push(());
+                    self.tabs.push(TabSpec::default());
                     self.current_tab_idx = self.tabs.len() - 1;
                     self.scroll_to_current_tab();
                     return vec![Event::TabCreated];
@@ -160,6 +179,20 @@ impl Component for TabBar {
         vec![]
     }
 
+    fn handle_event(&mut self, event: &Event) -> Vec<Event> {
+        match event {
+            Event::ConnectionSelected(conn) | Event::ConnectionCreated(conn) => {
+                let Some(current_tab) = self.tabs.get_mut(self.current_tab_idx) else {
+                    return vec![];
+                };
+                current_tab.connection_name = Some(conn.name.clone());
+            }
+            _ => {}
+        }
+
+        vec![]
+    }
+
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         // update the width and scrolling if this is the first render,
         // or if the screen was resized
@@ -187,7 +220,7 @@ impl Component for TabBar {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedTabBar {
-    tabs: Vec<()>,
+    tabs: Vec<TabSpec>,
     current_tab_idx: usize,
 }
 
@@ -210,7 +243,7 @@ impl PersistedComponent for TabBar {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::testing::ComponentTestHarness;
+    use crate::{connection::Connection, testing::ComponentTestHarness};
 
     #[test]
     fn create_new_tab() {
@@ -319,5 +352,33 @@ mod tests {
         test.given_command(Command::CloseTab);
         test.given_command(Command::CloseTab);
         assert_eq!(test.component().current_tab_idx(), 0);
+    }
+
+    #[test]
+    fn update_tab_names() {
+        let mut test = ComponentTestHarness::new(TabBar::new());
+
+        // add a tab to make sure changes are only made to the current tab
+        test.given_command(Command::NewTab);
+
+        // default name should be "New Tab"
+        assert_eq!(test.component().tabs[1].name(), String::from("New Tab"));
+
+        // creating a connection with the tab focused should change the name
+        test.given_event(Event::ConnectionCreated(Connection::new(
+            String::from("Cool Conn"),
+            String::from("url"),
+        )));
+        assert_eq!(test.component().tabs[1].name(), String::from("Cool Conn"));
+
+        // selecting a connection should also change the name
+        test.given_event(Event::ConnectionSelected(Connection::new(
+            String::from("Better Conn"),
+            String::from("url2"),
+        )));
+        assert_eq!(test.component().tabs[1].name(), String::from("Better Conn"));
+
+        // the original tab should not have a different name
+        assert_eq!(test.component().tabs[0].name(), String::from("New Tab"));
     }
 }

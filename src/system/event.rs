@@ -27,7 +27,7 @@ pub enum Event {
 
     DatabasesUpdated(Vec<DatabaseSpecification>),
     DatabaseHighlighted(DatabaseSpecification),
-    DatabaseSelected,
+    DatabaseSelected(DatabaseSpecification),
 
     CollectionsUpdated(Vec<CollectionSpecification>),
     CollectionHighlighted(CollectionSpecification),

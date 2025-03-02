@@ -303,6 +303,8 @@ impl Component for App<'_> {
             _ => {}
         }
 
+        out.append(&mut self.tab_bar.handle_event(event));
+
         // all tabs receive every event
         // FIXME: this doesn't work, need to tag some events with tab id or something
         // so tabs don't react to event in other tabs

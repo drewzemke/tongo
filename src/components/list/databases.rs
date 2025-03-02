@@ -67,7 +67,9 @@ impl Component for Databases {
             return vec![];
         };
         if matches!(command, Command::Confirm) {
-            out.push(Event::DatabaseSelected);
+            if let Some(db) = self.get_selected() {
+                out.push(Event::DatabaseSelected(db.clone()));
+            }
         }
         out
     }

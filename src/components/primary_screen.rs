@@ -178,8 +178,8 @@ impl Component for PrimaryScreen<'_> {
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {
         let mut out = vec![];
         match event {
-            Event::DatabaseSelected => self.coll_list.focus(),
-            Event::CollectionSelected(..) | Event::DocFilterUpdated(..) => self.doc_tree.focus(),
+            Event::DatabaseSelected(_) => self.coll_list.focus(),
+            Event::CollectionSelected(_) | Event::DocFilterUpdated(_) => self.doc_tree.focus(),
             _ => {}
         }
         out.append(&mut self.db_list.handle_event(event));
