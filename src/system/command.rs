@@ -40,6 +40,7 @@ pub enum Command {
     NewTab,
     NextTab,
     PreviousTab,
+    GotoTab(usize),
 }
 
 impl Command {
@@ -81,6 +82,16 @@ impl Command {
             "new_tab" => Ok(Self::NewTab),
             "next_tab" => Ok(Self::NextTab),
             "previous_tab" => Ok(Self::PreviousTab),
+
+            "goto_tab_1" => Ok(Self::GotoTab(1)),
+            "goto_tab_2" => Ok(Self::GotoTab(2)),
+            "goto_tab_3" => Ok(Self::GotoTab(3)),
+            "goto_tab_4" => Ok(Self::GotoTab(4)),
+            "goto_tab_5" => Ok(Self::GotoTab(5)),
+            "goto_tab_6" => Ok(Self::GotoTab(6)),
+            "goto_tab_7" => Ok(Self::GotoTab(7)),
+            "goto_tab_8" => Ok(Self::GotoTab(8)),
+            "goto_tab_9" => Ok(Self::GotoTab(9)),
             _ => bail!(format!("Command not recognized: \"{value}\"")),
         }
     }

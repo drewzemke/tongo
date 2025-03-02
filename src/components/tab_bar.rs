@@ -94,6 +94,20 @@ impl Component for TabBar {
         vec![
             CommandGroup::new(vec![Command::NewTab], "new tab"),
             CommandGroup::new(vec![Command::NextTab, Command::PreviousTab], "change tab"),
+            CommandGroup::new(
+                vec![
+                    Command::GotoTab(1),
+                    Command::GotoTab(2),
+                    Command::GotoTab(3),
+                    Command::GotoTab(4),
+                    Command::GotoTab(5),
+                    Command::GotoTab(6),
+                    Command::GotoTab(7),
+                    Command::GotoTab(8),
+                    Command::GotoTab(9),
+                ],
+                "goto tab",
+            ),
         ]
     }
 
@@ -113,6 +127,16 @@ impl Component for TabBar {
                 }
                 Command::PreviousTab => {
                     self.prev_tab();
+                    self.scroll_to_current_tab();
+                    return vec![Event::TabChanged];
+                }
+                Command::GotoTab(num) => {
+                    let new_idx = num - 1;
+                    if new_idx >= self.tabs.len() {
+                        return vec![];
+                    }
+
+                    self.current_tab_idx = new_idx;
                     self.scroll_to_current_tab();
                     return vec![Event::TabChanged];
                 }
@@ -214,9 +238,11 @@ mod tests {
     fn cycle_through_tabs() {
         let mut test = ComponentTestHarness::new(TabBar::new());
 
-        // starting with one tab
-        assert_eq!(test.component().current_tab_idx(), 0);
+        // create two additional tabs
+        test.given_command(Command::NewTab);
+        test.given_command(Command::NewTab);
 
+        // we start on tab 3 since we just created the third tab
         // moving forward should wrap around to the beginning
         test.given_command(Command::NextTab);
         test.expect_event(|e| matches!(e, Event::TabChanged));
@@ -225,6 +251,29 @@ mod tests {
         // moving backward should wrap around to the end
         test.given_command(Command::PreviousTab);
         test.expect_event(|e| matches!(e, Event::TabChanged));
+        assert_eq!(test.component().current_tab_idx(), 2);
+    }
+
+    #[test]
+    fn goto_tab() {
+        let mut test = ComponentTestHarness::new(TabBar::new());
+
+        // create two additional tabs
+        test.given_command(Command::NewTab);
+        test.given_command(Command::NewTab);
+        test.given_command(Command::NewTab);
+
+        // we start on tab 4 since we just created the third tab
+        test.given_command(Command::GotoTab(1));
+        test.expect_event(|e| matches!(e, Event::TabChanged));
         assert_eq!(test.component().current_tab_idx(), 0);
+
+        test.given_command(Command::GotoTab(3));
+        test.expect_event(|e| matches!(e, Event::TabChanged));
+        assert_eq!(test.component().current_tab_idx(), 2);
+
+        // a command to goto a nonexistent tab should do nothing
+        test.given_command(Command::GotoTab(8));
+        assert_eq!(test.component().current_tab_idx(), 2);
     }
 }

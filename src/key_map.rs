@@ -74,6 +74,15 @@ impl Default for KeyMap {
             // TODO: make these "tab" and "shift+tab" once modifiers are a thing
             (Command::NextTab, KeyCode::Char(']')),
             (Command::PreviousTab, KeyCode::Char('[')),
+            (Command::GotoTab(1), KeyCode::Char('1')),
+            (Command::GotoTab(2), KeyCode::Char('2')),
+            (Command::GotoTab(3), KeyCode::Char('3')),
+            (Command::GotoTab(4), KeyCode::Char('4')),
+            (Command::GotoTab(5), KeyCode::Char('5')),
+            (Command::GotoTab(6), KeyCode::Char('6')),
+            (Command::GotoTab(7), KeyCode::Char('7')),
+            (Command::GotoTab(8), KeyCode::Char('8')),
+            (Command::GotoTab(9), KeyCode::Char('9')),
         ]
         .into();
 

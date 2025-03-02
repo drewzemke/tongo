@@ -243,11 +243,7 @@ impl Component for App<'_> {
         let mut out = if self.raw_mode {
             vec![]
         } else {
-            vec![
-                CommandGroup::new(vec![Command::Quit], "quit"),
-                CommandGroup::new(vec![Command::NewTab], "new tab"),
-                CommandGroup::new(vec![Command::NextTab, Command::PreviousTab], "change tab"),
-            ]
+            vec![CommandGroup::new(vec![Command::Quit], "quit")]
         };
 
         // add commands from tab bar
@@ -276,7 +272,7 @@ impl Component for App<'_> {
                         .tab_bar
                         .handle_command(&ComponentCommand::Command(command.clone()));
                 }
-                Command::NextTab | Command::PreviousTab => {
+                Command::NextTab | Command::PreviousTab | Command::GotoTab(_) => {
                     return self
                         .tab_bar
                         .handle_command(&ComponentCommand::Command(command.clone()))
