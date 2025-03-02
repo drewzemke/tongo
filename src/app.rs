@@ -1,6 +1,7 @@
 use crate::{
     components::{
         tab::{PersistedTab, Tab},
+        tab_bar::TabBar,
         Component, ComponentCommand,
     },
     connection::{Connection, ConnectionManager},
@@ -26,7 +27,7 @@ use std::{
 #[derive(Debug)]
 pub struct App<'a> {
     tabs: Vec<Tab<'a>>,
-    current_tab_idx: usize,
+    tab_bar: TabBar,
 
     // shared data
     cursor_pos: Rc<Cell<(u16, u16)>>,
@@ -47,7 +48,7 @@ impl Default for App<'_> {
         let storage = Rc::new(FileStorage::default());
         Self {
             tabs: vec![Tab::default()],
-            current_tab_idx: 0,
+            tab_bar: TabBar::default(),
             cursor_pos: Rc::new(Cell::new((0, 0))),
             connection_manager: ConnectionManager::new(vec![], storage.clone()),
             storage,
@@ -83,9 +84,11 @@ impl App<'_> {
             cursor_pos.clone(),
         );
 
+        let tab_bar = TabBar::new();
+
         Self {
             tabs: vec![tab],
-            current_tab_idx: 0,
+            tab_bar,
 
             raw_mode: false,
 
@@ -107,6 +110,10 @@ impl App<'_> {
             self.key_map.clone(),
             self.cursor_pos.clone(),
         )
+    }
+
+    fn current_tab_idx(&self) -> usize {
+        self.tab_bar.current_tab_idx()
     }
 
     pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
@@ -243,7 +250,10 @@ impl Component for App<'_> {
             ]
         };
 
-        if let Some(tab) = &mut self.tabs.get(self.current_tab_idx) {
+        // add commands from tab bar
+        out.append(&mut self.tab_bar.commands());
+
+        if let Some(tab) = &mut self.tabs.get(self.current_tab_idx()) {
             out.append(&mut tab.commands());
         }
 
@@ -262,23 +272,21 @@ impl Component for App<'_> {
                 Command::NewTab => {
                     let tab = self.create_tab();
                     self.tabs.push(tab);
-                    self.current_tab_idx = self.tabs.len() - 1;
-                    return vec![Event::TabCreated];
+                    return self
+                        .tab_bar
+                        .handle_command(&ComponentCommand::Command(command.clone()));
                 }
-                Command::NextTab => {
-                    self.current_tab_idx = (self.current_tab_idx + 1) % self.tabs.len();
-                    return vec![Event::TabChanged];
-                }
-                Command::PreviousTab => {
-                    self.current_tab_idx =
-                        (self.current_tab_idx + self.tabs.len() - 1) % self.tabs.len();
-                    return vec![Event::TabChanged];
+                Command::NextTab | Command::PreviousTab => {
+                    return self
+                        .tab_bar
+                        .handle_command(&ComponentCommand::Command(command.clone()))
                 }
                 _ => {}
             }
         }
 
-        if let Some(tab) = &mut self.tabs.get_mut(self.current_tab_idx) {
+        let index = self.current_tab_idx();
+        if let Some(tab) = &mut self.tabs.get_mut(index) {
             tab.handle_command(command)
         } else {
             // this shouldn't happen, right?
@@ -302,7 +310,14 @@ impl Component for App<'_> {
         }
 
         // all tabs receive every event
-        for tab in &mut self.tabs {
+        // FIXME: this doesn't work, need to tag some events with tab id or something
+        // so tabs don't react to event in other tabs
+        // for tab in &mut self.tabs {
+        //     out.append(&mut tab.handle_event(event));
+        // }
+
+        let index = self.current_tab_idx();
+        if let Some(tab) = &mut self.tabs.get_mut(index) {
             out.append(&mut tab.handle_event(event));
         }
 
@@ -310,7 +325,8 @@ impl Component for App<'_> {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        if let Some(tab) = &mut self.tabs.get_mut(self.current_tab_idx) {
+        let index = self.current_tab_idx();
+        if let Some(tab) = &mut self.tabs.get_mut(index) {
             tab.render(frame, area);
         }
 
@@ -343,7 +359,7 @@ impl PersistedComponent for App<'_> {
         let tabs = self.tabs.iter().map(Tab::persist).collect();
         PersistedApp {
             tabs,
-            current_tab: self.current_tab_idx,
+            current_tab: self.current_tab_idx(),
         }
     }
 
@@ -356,6 +372,6 @@ impl PersistedComponent for App<'_> {
             self.tabs.push(tab);
         }
 
-        self.current_tab_idx = storage.current_tab;
+        self.tab_bar.set_current_tab(storage.current_tab);
     }
 }

@@ -13,6 +13,7 @@ pub mod list;
 pub mod primary_screen;
 pub mod status_bar;
 pub mod tab;
+pub mod tab_bar;
 
 // FIXME: crappy name
 pub enum ComponentCommand {
