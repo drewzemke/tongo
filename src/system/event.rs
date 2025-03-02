@@ -70,4 +70,5 @@ pub enum Event {
 
     TabCreated,
     TabChanged,
+    TabClosed,
 }

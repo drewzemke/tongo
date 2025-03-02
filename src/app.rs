@@ -268,26 +268,24 @@ impl Component for App<'_> {
                 Command::NewTab => {
                     let tab = self.create_tab();
                     self.tabs.push(tab);
-                    return self
-                        .tab_bar
-                        .handle_command(&ComponentCommand::Command(command.clone()));
                 }
-                Command::NextTab | Command::PreviousTab | Command::GotoTab(_) => {
-                    return self
-                        .tab_bar
-                        .handle_command(&ComponentCommand::Command(command.clone()))
+                Command::CloseTab => {
+                    if self.tabs.len() > 1 {
+                        self.tabs.remove(self.tab_bar.current_tab_idx());
+                    }
                 }
                 _ => {}
             }
         }
 
+        // the tab bar sees every command (although it only handles a few of them)
+        let mut out = self.tab_bar.handle_command(command);
+
         let index = self.current_tab_idx();
         if let Some(tab) = &mut self.tabs.get_mut(index) {
-            tab.handle_command(command)
-        } else {
-            // this shouldn't happen, right?
-            vec![]
+            out.append(&mut tab.handle_command(command));
         }
+        out
     }
 
     fn handle_event(&mut self, event: &Event) -> Vec<Event> {

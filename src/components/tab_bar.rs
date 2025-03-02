@@ -94,6 +94,7 @@ impl Component for TabBar {
         vec![
             CommandGroup::new(vec![Command::NewTab], "new tab"),
             CommandGroup::new(vec![Command::NextTab, Command::PreviousTab], "change tab"),
+            CommandGroup::new(vec![Command::CloseTab], "close tab"),
             CommandGroup::new(
                 vec![
                     Command::GotoTab(1),
@@ -129,6 +130,18 @@ impl Component for TabBar {
                     self.prev_tab();
                     self.scroll_to_current_tab();
                     return vec![Event::TabChanged];
+                }
+                Command::CloseTab => {
+                    // do nothing if this is the last tab
+                    if self.tabs.len() == 1 {
+                        return vec![];
+                    }
+
+                    let next_tab_idx = self.current_tab_idx.saturating_sub(1);
+                    self.tabs.remove(self.current_tab_idx);
+                    self.current_tab_idx = next_tab_idx;
+
+                    return vec![Event::TabClosed, Event::TabChanged];
                 }
                 Command::GotoTab(num) => {
                     let new_idx = num - 1;
@@ -275,5 +288,36 @@ mod tests {
         // a command to goto a nonexistent tab should do nothing
         test.given_command(Command::GotoTab(8));
         assert_eq!(test.component().current_tab_idx(), 2);
+    }
+
+    #[test]
+    fn close_tabs() {
+        let mut test = ComponentTestHarness::new(TabBar::new());
+
+        // create three additional tabs
+        test.given_command(Command::NewTab);
+        test.given_command(Command::NewTab);
+        test.given_command(Command::NewTab);
+
+        // we should now be on the last tab (index 3)
+        assert_eq!(test.component().current_tab_idx(), 3);
+
+        // close current tab, should move to previous tab
+        test.given_command(Command::CloseTab);
+        test.expect_event(|e| matches!(e, Event::TabClosed));
+        assert_eq!(test.component().current_tab_idx(), 2);
+
+        // close tab when on first tab, should move to next tab
+        test.given_command(Command::GotoTab(1));
+        test.expect_event(|e| matches!(e, Event::TabChanged));
+        test.given_command(Command::CloseTab);
+        test.expect_event(|e| matches!(e, Event::TabClosed));
+        assert_eq!(test.component().current_tab_idx(), 0);
+
+        // cannot close last remaining tab
+        test.given_command(Command::CloseTab);
+        test.given_command(Command::CloseTab);
+        test.given_command(Command::CloseTab);
+        assert_eq!(test.component().current_tab_idx(), 0);
     }
 }

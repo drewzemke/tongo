@@ -41,6 +41,7 @@ pub enum Command {
     NextTab,
     PreviousTab,
     GotoTab(usize),
+    CloseTab,
 }
 
 impl Command {
@@ -82,6 +83,7 @@ impl Command {
             "new_tab" => Ok(Self::NewTab),
             "next_tab" => Ok(Self::NextTab),
             "previous_tab" => Ok(Self::PreviousTab),
+            "close_tab" => Ok(Self::CloseTab),
 
             "goto_tab_1" => Ok(Self::GotoTab(1)),
             "goto_tab_2" => Ok(Self::GotoTab(2)),
