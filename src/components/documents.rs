@@ -37,14 +37,16 @@ pub struct Documents<'a> {
 
 impl<'a> Clone for Documents<'a> {
     fn clone(&self) -> Self {
-        Self {
+        let mut documents = Self {
             focus: self.focus.clone(),
             state: TreeState::default(),
             items: self.items.clone(),
             documents: self.documents.clone(),
             page: self.page.clone(),
             count: self.count.clone(),
-        }
+        };
+        documents.reset_state();
+        documents
     }
 }
 
@@ -56,6 +58,20 @@ impl Documents<'_> {
         }
     }
 
+    fn reset_state(&mut self) {
+        // reset state to have all top-level documents expanded
+        let mut state = TreeState::default();
+        for item in &self.items {
+            state.open(vec![item.identifier().clone()]);
+        }
+        self.state = state;
+
+        if let Some(first_item) = self.items.first() {
+            // try to select the first thing
+            self.state.select(vec![first_item.identifier().clone()]);
+        }
+    }
+
     fn set_docs(&mut self, docs: &Vec<Bson>, reset_state: bool) {
         self.documents.clone_from(docs);
 
@@ -64,23 +80,11 @@ impl Documents<'_> {
             .filter_map(|bson| bson.as_document().map(top_level_document))
             .collect();
 
-        if reset_state {
-            // reset state to have all top-level documents expanded
-            let mut state = TreeState::default();
-            for item in &items {
-                state.open(vec![item.identifier().clone()]);
-            }
-            self.state = state;
-        }
-
-        if self.state.selected().is_empty() {
-            if let Some(first_item) = items.first() {
-                // try to select the first thing
-                self.state.select(vec![first_item.identifier().clone()]);
-            }
-        }
-
         self.items = items;
+
+        if reset_state {
+            self.reset_state();
+        }
     }
 
     fn selected_doc_as_bson(&self) -> Option<&Bson> {
@@ -375,7 +379,7 @@ mod tests {
 
         test.given_event(Event::DocumentsUpdated {
             docs,
-            reset_state: false,
+            reset_state: true,
         });
 
         assert_eq!(
