@@ -28,6 +28,7 @@ enum Operation {
     QueryCollections,
     QueryDatabases,
     Count,
+    DropCollection(String),
 }
 
 #[derive(Debug)]
@@ -210,7 +211,23 @@ impl Client {
 
         self.exec(async move {
             coll.delete_one(filter).await?;
-            Ok(Event::DeleteConfirmed)
+            Ok(Event::DocDeleteConfirmed)
+        });
+
+        Some(())
+    }
+
+    fn drop_coll(&self, coll_name: String) -> Option<()> {
+        let db = self.get_database()?;
+        let coll = db.collection::<Document>(&coll_name);
+        let dropping_selected_coll = self
+            .coll
+            .as_ref()
+            .is_some_and(|coll| coll.name == *coll_name);
+
+        self.exec(async move {
+            coll.drop().await?;
+            Ok(Event::CollectionDropConfirmed(dropping_selected_coll))
         });
 
         Some(())
@@ -227,6 +244,7 @@ impl Client {
                 Operation::QueryCollections => self.query_collections(),
                 Operation::QueryDatabases => self.query_dbs(),
                 Operation::Count => self.count(),
+                Operation::DropCollection(coll_name) => self.drop_coll(coll_name.clone()),
             };
         }
         self.queued_ops = HashSet::default();
@@ -269,6 +287,9 @@ impl Component for Client {
                 self.queue(Operation::Query(true));
                 self.queue(Operation::Count);
             }
+            Event::CollectionDropped(coll) => {
+                self.queue(Operation::DropCollection(coll.name.clone()));
+            }
             Event::DocumentPageChanged(page) => {
                 self.page = *page;
                 self.queue(Operation::Query(true));
@@ -300,9 +321,15 @@ impl Component for Client {
                     ));
                 }
             }
-            Event::RefreshRequested | Event::InsertConfirmed | Event::DeleteConfirmed => {
+            Event::RefreshRequested | Event::InsertConfirmed | Event::DocDeleteConfirmed => {
                 self.queue(Operation::Count);
                 self.queue(Operation::Query(false));
+            }
+            Event::CollectionDropConfirmed(dropped_selected) => {
+                if *dropped_selected {
+                    self.coll = None;
+                }
+                self.queue(Operation::QueryCollections);
             }
             _ => (),
         }

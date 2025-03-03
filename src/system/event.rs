@@ -30,8 +30,16 @@ pub enum Event {
     CollectionsUpdated(Vec<CollectionSpecification>),
     CollectionHighlighted(CollectionSpecification),
     CollectionSelected(CollectionSpecification),
+    CollectionDropped(CollectionSpecification),
 
-    DocumentsUpdated { docs: Vec<Bson>, reset_state: bool },
+    /// carries a flag that indicates whether the dropped
+    /// collection was the currently-selected one
+    CollectionDropConfirmed(bool),
+
+    DocumentsUpdated {
+        docs: Vec<Bson>,
+        reset_state: bool,
+    },
     CountUpdated(u64),
     DocumentPageChanged(usize),
     DocFilterUpdated(Document),
@@ -43,7 +51,7 @@ pub enum Event {
     DocumentCreated(Document),
     InsertConfirmed,
     DocumentDeleted(Document),
-    DeleteConfirmed,
+    DocDeleteConfirmed,
     RefreshRequested,
 
     // TODO: sort these out better

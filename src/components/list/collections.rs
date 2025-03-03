@@ -1,6 +1,9 @@
 use super::InnerList;
 use crate::{
-    components::{primary_screen::PrimScrFocus, tab::TabFocus, Component, ComponentCommand},
+    components::{
+        confirm_modal::ConfirmKind, primary_screen::PrimScrFocus, tab::TabFocus, Component,
+        ComponentCommand,
+    },
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
@@ -58,6 +61,7 @@ impl Component for Collections {
     fn commands(&self) -> Vec<CommandGroup> {
         let mut out = InnerList::base_commands();
         out.push(CommandGroup::new(vec![Command::Confirm], "select"));
+        out.push(CommandGroup::new(vec![Command::Delete], "drop"));
         out
     }
 
@@ -66,11 +70,19 @@ impl Component for Collections {
         let ComponentCommand::Command(command) = command else {
             return vec![];
         };
-        if matches!(command, Command::Confirm) {
-            if let Some(coll) = self.get_selected() {
-                out.push(Event::DocumentPageChanged(0));
-                out.push(Event::CollectionSelected(coll.clone()));
+        match command {
+            Command::Confirm => {
+                if let Some(coll) = self.get_selected() {
+                    out.push(Event::DocumentPageChanged(0));
+                    out.push(Event::CollectionSelected(coll.clone()));
+                }
             }
+            Command::Delete => {
+                if self.get_selected().is_some() {
+                    out.push(Event::ConfirmationRequested(ConfirmKind::DropCollection));
+                }
+            }
+            _ => {}
         }
         out
     }
@@ -93,6 +105,13 @@ impl Component for Collections {
                         // try to select the first thing
                         self.list.state.select(Some(0));
                         out.push(Event::CollectionHighlighted(first_coll.clone()));
+                    }
+                }
+            }
+            Event::ConfirmationYes(Command::Delete) => {
+                if self.is_focused() {
+                    if let Some(coll) = self.get_selected() {
+                        return vec![Event::CollectionDropped(coll.clone())];
                     }
                 }
             }

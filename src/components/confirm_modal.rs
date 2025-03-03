@@ -19,6 +19,7 @@ const CONFIRM_MODAL_HEIGHT: u16 = 3;
 pub enum ConfirmKind {
     DeleteConnection,
     DeleteDoc,
+    DropCollection,
 }
 
 impl ConfirmKind {
@@ -59,7 +60,12 @@ impl ConfirmModal {
                 "Confirm Delete",
                 "Are you sure you want to delete this document? This cannot be undone.",
             )),
-            _ => None,
+            Some(ConfirmKind::DropCollection) => Some((
+                "Confirm Drop",
+                "Are you sure you want to drop this collection? This cannot be undone.",
+            )),
+
+            None => None,
         }
     }
 }
@@ -86,7 +92,7 @@ impl Component for ConfirmModal {
         .split(area);
         let layout = Layout::horizontal(vec![
             Constraint::Fill(1),
-            Constraint::Length(CONFIRM_MODAL_WIDTH + 4),
+            Constraint::Length(CONFIRM_MODAL_WIDTH + 6),
             Constraint::Fill(1),
         ])
         .split(layout[1]);
@@ -98,7 +104,7 @@ impl Component for ConfirmModal {
         );
 
         frame.render_widget(Clear, layout[1]);
-        frame.render_widget(content, layout[1].inner(Margin::new(1, 1)));
+        frame.render_widget(content, layout[1].inner(Margin::new(2, 1)));
     }
 
     fn commands(&self) -> Vec<CommandGroup> {

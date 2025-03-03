@@ -293,6 +293,12 @@ impl Component for Documents<'_> {
             Event::DocumentPageChanged(page) => {
                 self.page = *page;
             }
+            Event::CollectionDropConfirmed(dropped_selected) => {
+                if *dropped_selected {
+                    self.documents = vec![];
+                    self.items = vec![];
+                }
+            }
 
             _ => (),
         }
