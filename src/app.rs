@@ -1,5 +1,6 @@
 use crate::{
     components::{
+        status_bar::StatusBar,
         tab::{PersistedTab, Tab},
         tab_bar::{PersistedTabBar, TabBar},
         Component, ComponentCommand,
@@ -26,8 +27,10 @@ use std::{
 
 #[derive(Debug)]
 pub struct App<'a> {
+    //components
     tabs: Vec<Tab<'a>>,
     tab_bar: TabBar,
+    status_bar: StatusBar,
 
     // shared data
     cursor_pos: Rc<Cell<(u16, u16)>>,
@@ -49,6 +52,7 @@ impl Default for App<'_> {
         Self {
             tabs: vec![Tab::default()],
             tab_bar: TabBar::default(),
+            status_bar: StatusBar::default(),
             cursor_pos: Rc::new(Cell::new((0, 0))),
             connection_manager: ConnectionManager::new(vec![], storage.clone()),
             storage,
@@ -80,15 +84,16 @@ impl App<'_> {
         let tab = Tab::new(
             selected_connection.clone(),
             connection_manager.clone(),
-            key_map.clone(),
             cursor_pos.clone(),
         );
 
         let tab_bar = TabBar::new();
+        let status_bar = StatusBar::new(key_map.clone());
 
         Self {
             tabs: vec![tab],
             tab_bar,
+            status_bar,
 
             raw_mode: false,
 
@@ -107,7 +112,6 @@ impl App<'_> {
         Tab::new(
             None,
             self.connection_manager.clone(),
-            self.key_map.clone(),
             self.cursor_pos.clone(),
         )
     }
@@ -246,7 +250,7 @@ impl Component for App<'_> {
             vec![CommandGroup::new(vec![Command::Quit], "quit")]
         };
 
-        // add commands from tab bar
+        out.append(&mut self.status_bar.commands());
         out.append(&mut self.tab_bar.commands());
 
         if let Some(tab) = &mut self.tabs.get(self.current_tab_idx()) {
@@ -310,15 +314,26 @@ impl Component for App<'_> {
             out.append(&mut tab.handle_event(event));
         }
 
+        out.append(&mut self.status_bar.handle_event(event));
+
         out
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
+        // split off bottom line(s) for the status bar
+        let frame_layout = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Fill(1), Constraint::Length(1)])
+            .split(area);
+        let main_area = frame_layout[0];
+        let status_bar_area = frame_layout[1];
+
+        // split off top line for the tab bar
         let main_area = if self.tab_bar.num_tabs() > 1 {
             let layout = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Length(1), Constraint::Fill(1)])
-                .split(area);
+                .split(main_area);
             let tab_area = layout[0].inner(Margin {
                 horizontal: 1,
                 vertical: 0,
@@ -329,10 +344,16 @@ impl Component for App<'_> {
             area
         };
 
+        // render current tab
         let index = self.current_tab_idx();
         if let Some(tab) = &mut self.tabs.get_mut(index) {
             tab.render(frame, main_area);
         }
+
+        // render status bar
+        // TODO: avoid a second call to `commands()` here?
+        self.status_bar.commands = self.commands();
+        self.status_bar.render(frame, status_bar_area);
 
         // show the cursor if we're editing something
         if self.raw_mode {

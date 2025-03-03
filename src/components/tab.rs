@@ -5,18 +5,13 @@ use crate::{
         connection_screen::{ConnScrFocus, ConnectionScreen, PersistedConnectionScreen},
         list::connections::Connections,
         primary_screen::{PersistedPrimaryScreen, PrimScrFocus, PrimaryScreen},
-        status_bar::StatusBar,
         Component, ComponentCommand,
     },
     connection::{Connection, ConnectionManager},
-    key_map::KeyMap,
     persistence::PersistedComponent,
     system::{command::CommandGroup, event::Event},
 };
-use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
-    Frame,
-};
+use ratatui::{layout::Rect, Frame};
 use serde::{Deserialize, Serialize};
 use std::{
     cell::{Cell, RefCell},
@@ -43,7 +38,6 @@ pub struct Tab<'a> {
     client: Client,
     conn_screen: ConnectionScreen,
     primary_screen: PrimaryScreen<'a>,
-    status_bar: StatusBar,
     confirm_modal: ConfirmModal,
 
     // used when displaying the confirm modal or while the app is unfocused
@@ -57,7 +51,6 @@ impl Default for Tab<'_> {
             client: Client::default(),
             conn_screen: ConnectionScreen::default(),
             primary_screen: PrimaryScreen::default(),
-            status_bar: StatusBar::default(),
             confirm_modal: ConfirmModal::default(),
             focus: Rc::new(RefCell::new(TabFocus::default())),
             background_focus: None,
@@ -72,7 +65,6 @@ impl Tab<'_> {
     pub fn new(
         selected_connection: Option<Connection>,
         connection_manager: ConnectionManager,
-        key_map: Rc<KeyMap>,
         cursor_pos: Rc<Cell<(u16, u16)>>,
     ) -> Tab<'static> {
         let client = Client::default();
@@ -86,8 +78,6 @@ impl Tab<'_> {
 
         // initialize shared data
         let focus = Rc::new(RefCell::new(initial_focus));
-
-        let status_bar = StatusBar::new(key_map.clone());
 
         let confirm_modal = ConfirmModal::new(focus.clone());
 
@@ -104,7 +94,6 @@ impl Tab<'_> {
         Tab {
             client,
 
-            status_bar,
             primary_screen,
             conn_screen,
             confirm_modal,
@@ -125,7 +114,6 @@ impl Component for Tab<'_> {
         let mut out = vec![];
 
         out.append(&mut self.client.commands());
-        out.append(&mut self.status_bar.commands());
 
         match *self.focus.borrow() {
             TabFocus::ConnScr(_) => out.append(&mut self.conn_screen.commands()),
@@ -167,37 +155,24 @@ impl Component for Tab<'_> {
         out.append(&mut self.client.handle_event(event));
         out.append(&mut self.conn_screen.handle_event(event));
         out.append(&mut self.primary_screen.handle_event(event));
-        out.append(&mut self.status_bar.handle_event(event));
         out
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        let frame_layout = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Percentage(100), Constraint::Length(1)])
-            .split(area);
-        let content = frame_layout[0];
-        let btm_line = frame_layout[1];
-
         // render a screen based on current focus
         match &*self.focus.borrow() {
-            TabFocus::PrimScr(..) => self.primary_screen.render(frame, content),
-            TabFocus::ConnScr(..) => self.conn_screen.render(frame, content),
+            TabFocus::PrimScr(..) => self.primary_screen.render(frame, area),
+            TabFocus::ConnScr(..) => self.conn_screen.render(frame, area),
             TabFocus::ConfModal => {
                 match self.background_focus {
-                    Some(TabFocus::PrimScr(..)) => self.primary_screen.render(frame, content),
-                    Some(TabFocus::ConnScr(..)) => self.conn_screen.render(frame, content),
+                    Some(TabFocus::PrimScr(..)) => self.primary_screen.render(frame, area),
+                    Some(TabFocus::ConnScr(..)) => self.conn_screen.render(frame, area),
                     _ => {}
                 }
-                self.confirm_modal.render(frame, content);
+                self.confirm_modal.render(frame, area);
             }
             TabFocus::NotFocused => {}
         }
-
-        // status bar
-        // TODO: avoid a second call to `commands()` here?
-        self.status_bar.commands = self.commands();
-        self.status_bar.render(frame, btm_line);
     }
 
     /// Not used.
