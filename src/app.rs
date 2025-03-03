@@ -305,13 +305,6 @@ impl Component for App<'_> {
 
         out.append(&mut self.tab_bar.handle_event(event));
 
-        // all tabs receive every event
-        // FIXME: this doesn't work, need to tag some events with tab id or something
-        // so tabs don't react to event in other tabs
-        // for tab in &mut self.tabs {
-        //     out.append(&mut tab.handle_event(event));
-        // }
-
         let index = self.current_tab_idx();
         if let Some(tab) = &mut self.tabs.get_mut(index) {
             out.append(&mut tab.handle_event(event));
@@ -326,7 +319,11 @@ impl Component for App<'_> {
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Length(1), Constraint::Fill(1)])
                 .split(area);
-            self.tab_bar.render(frame, layout[0]);
+            let tab_area = layout[0].inner(Margin {
+                horizontal: 1,
+                vertical: 0,
+            });
+            self.tab_bar.render(frame, tab_area);
             layout[1]
         } else {
             area

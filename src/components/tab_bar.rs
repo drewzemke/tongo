@@ -90,21 +90,17 @@ impl TabBar {
         let left_char_pos = self
             .tab_names()
             .take(current_tab_idx)
-            .map(|s| s.len() + TAB_NAME_SPACING)
+            .map(|s| s.chars().count() + TAB_NAME_SPACING)
             .sum::<usize>() as u16;
 
-        let right_char_pos = left_char_pos
-            + self
-                .tab_names()
-                .nth(current_tab_idx)
-                .unwrap_or_default()
-                .len() as u16;
+        let current_tab_name = self.tab_names().nth(current_tab_idx).unwrap_or_default();
+        let right_char_pos = left_char_pos + current_tab_name.chars().count() as u16;
 
         let visible_width = self.visible_width.unwrap_or_default();
 
         let mut offset = self.scroll_state.offset().x;
         // make sure the right side of the name is visible
-        offset = offset.max(right_char_pos.saturating_sub(visible_width) + 2);
+        offset = offset.max(right_char_pos.saturating_sub(visible_width));
         // make sure the left side of the name is visible
         offset = offset.min(left_char_pos);
 
@@ -171,6 +167,7 @@ impl Component for TabBar {
                     let next_tab_idx = self.current_tab_idx.saturating_sub(1);
                     self.tabs.remove(self.current_tab_idx);
                     self.current_tab_idx = next_tab_idx;
+                    self.scroll_to_current_tab();
 
                     return vec![Event::TabClosed, Event::TabChanged];
                 }
@@ -201,13 +198,16 @@ impl Component for TabBar {
                 current_tab.connection_name = Some(conn.name.clone());
                 current_tab.db_name = None;
                 current_tab.coll_name = None;
+                self.scroll_to_current_tab();
             }
             Event::DatabaseSelected(db) => {
                 current_tab.db_name = Some(db.name.clone());
                 current_tab.coll_name = None;
+                self.scroll_to_current_tab();
             }
             Event::CollectionSelected(coll) => {
                 current_tab.coll_name = Some(coll.name.clone());
+                self.scroll_to_current_tab();
             }
             _ => {}
         }
@@ -232,7 +232,9 @@ impl Component for TabBar {
         let tabs = Tabs::new(tab_names)
             .style(Style::default().gray())
             .highlight_style(Style::default().green())
-            .divider(symbols::border::PLAIN.vertical_left)
+            // remove padding (but add spaces to divider) to get better control over margins and scrolling
+            .padding("", "")
+            .divider(format!(" {} ", symbols::border::PLAIN.vertical_left))
             .select(self.current_tab_idx);
         scroll_view.render_widget(tabs, scroll_view.buf().area);
 
