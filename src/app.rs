@@ -340,10 +340,7 @@ impl Component for App<'_> {
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Length(1), Constraint::Fill(1)])
                 .split(main_area);
-            let tab_area = layout[0].inner(Margin {
-                horizontal: 1,
-                vertical: 0,
-            });
+            let tab_area = layout[0].inner(Margin::new(1, 0));
             self.tab_bar.render(frame, tab_area);
             layout[1]
         } else {

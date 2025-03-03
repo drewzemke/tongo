@@ -12,6 +12,9 @@ use ratatui::{
 };
 use std::{cell::RefCell, rc::Rc};
 
+const CONFIRM_MODAL_WIDTH: u16 = 40;
+const CONFIRM_MODAL_HEIGHT: u16 = 3;
+
 #[derive(Debug, Default, Clone)]
 pub struct ConfirmModal {
     focus: Rc<RefCell<TabFocus>>,
@@ -34,7 +37,7 @@ impl ConfirmModal {
         match self.command {
             Some(Command::Delete) => Some((
                 "Confirm Delete",
-                "Are you sure you want to delete this connection?",
+                "Are you sure you want to delete this connection? This cannot be undone.",
             )),
             Some(Command::DeleteDoc) => Some((
                 "Confirm Delete",
@@ -59,14 +62,18 @@ impl Component for ConfirmModal {
             return;
         };
 
-        let layout = Layout::default()
-            .constraints(vec![
-                Constraint::Fill(1),
-                Constraint::Length(5),
-                Constraint::Fill(1),
-            ])
-            .horizontal_margin(5)
-            .split(area);
+        let layout = Layout::vertical(vec![
+            Constraint::Fill(1),
+            Constraint::Length(CONFIRM_MODAL_HEIGHT + 4),
+            Constraint::Fill(1),
+        ])
+        .split(area);
+        let layout = Layout::horizontal(vec![
+            Constraint::Fill(1),
+            Constraint::Length(CONFIRM_MODAL_WIDTH + 4),
+            Constraint::Fill(1),
+        ])
+        .split(layout[1]);
 
         let content = Paragraph::new(message).wrap(Wrap { trim: true }).block(
             Block::bordered()
@@ -75,7 +82,7 @@ impl Component for ConfirmModal {
         );
 
         frame.render_widget(Clear, layout[1]);
-        frame.render_widget(content, layout[1]);
+        frame.render_widget(content, layout[1].inner(Margin::new(1, 1)));
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
