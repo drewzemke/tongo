@@ -121,6 +121,7 @@ impl Component for TabBar {
         vec![
             CommandGroup::new(vec![Command::NewTab], "new tab"),
             CommandGroup::new(vec![Command::NextTab, Command::PreviousTab], "change tab"),
+            CommandGroup::new(vec![Command::DuplicateTab], "duplicate tab"),
             CommandGroup::new(vec![Command::CloseTab], "close tab"),
             CommandGroup::new(
                 vec![
@@ -146,7 +147,7 @@ impl Component for TabBar {
                     self.tabs.push(TabSpec::default());
                     self.current_tab_idx = self.tabs.len() - 1;
                     self.scroll_to_current_tab();
-                    return vec![Event::TabCreated];
+                    return vec![Event::TabCreated, Event::TabChanged];
                 }
                 Command::NextTab => {
                     self.next_tab();
@@ -170,6 +171,17 @@ impl Component for TabBar {
                     self.scroll_to_current_tab();
 
                     return vec![Event::TabClosed, Event::TabChanged];
+                }
+                Command::DuplicateTab => {
+                    let Some(current_tab) = self.tabs.get_mut(self.current_tab_idx) else {
+                        return vec![];
+                    };
+
+                    let new_tab = current_tab.clone();
+                    self.tabs.push(new_tab);
+                    self.current_tab_idx = self.tabs.len() - 1;
+                    self.scroll_to_current_tab();
+                    return vec![Event::TabCreated, Event::TabChanged];
                 }
                 Command::GotoTab(num) => {
                     let new_idx = num - 1;
@@ -461,5 +473,31 @@ mod tests {
 
         // the original tab should not have a different name
         assert_eq!(test.component().tabs[0].name(), String::from("New Tab"));
+    }
+
+    #[test]
+    fn duplicate_tab() {
+        let mut test = ComponentTestHarness::new(TabBar::new());
+
+        // select a connection, collection, and db
+        test.given_event(Event::ConnectionSelected(Connection::new(
+            String::from("Conn"),
+            String::from("url"),
+        )));
+        test.given_event(Event::DatabaseSelected(get_dummy_database()));
+        test.given_event(Event::CollectionSelected(get_dummy_collection()));
+        assert_eq!(
+            test.component().tabs[0].name(),
+            String::from("Conn‣test_db‣test_collection")
+        );
+
+        // duplicate the tab
+        test.given_command(Command::DuplicateTab);
+        assert_eq!(test.component().current_tab_idx, 1);
+        assert_eq!(
+            test.component().tabs[1].name(),
+            String::from("Conn‣test_db‣test_collection")
+        );
+        test.expect_event(|e| matches!(e, Event::TabCreated));
     }
 }

@@ -71,10 +71,10 @@ impl Default for KeyMap {
             (Command::DeleteDoc, KeyCode::Char('D')),
             (Command::Yank, KeyCode::Char('y')),
             (Command::NewTab, KeyCode::Char('T')),
-            // TODO: make these "tab" and "shift+tab" once modifiers are a thing
-            (Command::NextTab, KeyCode::Char(']')),
+            (Command::NextTab, KeyCode::Char(']')), // TODO: make these "tab" and "shift+tab" once modifiers are a thing
             (Command::PreviousTab, KeyCode::Char('[')),
             (Command::CloseTab, KeyCode::Char('X')),
+            (Command::DuplicateTab, KeyCode::Char('S')), // ctrl+shift T or something?
             (Command::GotoTab(1), KeyCode::Char('1')),
             (Command::GotoTab(2), KeyCode::Char('2')),
             (Command::GotoTab(3), KeyCode::Char('3')),

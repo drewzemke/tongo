@@ -41,6 +41,7 @@
 # next_tab = "]"
 # previous_tab = "["
 # close_tab = "X"
+# duplicate_tab = "S"
 
 # goto_tab_1 = "1"
 # goto_tab_2 = "2"

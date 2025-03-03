@@ -273,6 +273,12 @@ impl Component for App<'_> {
                     let tab = self.create_tab();
                     self.tabs.push(tab);
                 }
+                Command::DuplicateTab => {
+                    if let Some(current_tab) = self.tabs.get(self.tab_bar.current_tab_idx()) {
+                        let new_tab = current_tab.clone();
+                        self.tabs.push(new_tab);
+                    }
+                }
                 Command::CloseTab => {
                     if self.tabs.len() > 1 {
                         self.tabs.remove(self.tab_bar.current_tab_idx());
