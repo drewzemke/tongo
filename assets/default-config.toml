@@ -15,7 +15,7 @@
 # focus_left = "H"
 # focus_right = "L"
 
-# create_new = "N"
+# create_new = "A"
 # edit = "E"
 # confirm = "enter"
 # reset = "R"
@@ -31,10 +31,7 @@
 # back = "esc"
 # quit = "q"
 
-# insert_doc = "I"
-# edit_doc = "E"
 # duplicate_doc = "C"
-# delete_doc = "D"
 # yank = "y"
 
 # new_tab = "T"

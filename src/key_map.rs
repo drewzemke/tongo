@@ -52,7 +52,7 @@ impl Default for KeyMap {
             (Command::FocusDown, KeyCode::Char('J')),
             (Command::FocusLeft, KeyCode::Char('H')),
             (Command::FocusRight, KeyCode::Char('L')),
-            (Command::CreateNew, KeyCode::Char('N')),
+            (Command::CreateNew, KeyCode::Char('A')),
             (Command::Edit, KeyCode::Char('E')),
             (Command::Confirm, KeyCode::Enter),
             (Command::Reset, KeyCode::Char('R')),
@@ -65,10 +65,7 @@ impl Default for KeyMap {
             (Command::Delete, KeyCode::Char('D')),
             (Command::Back, KeyCode::Esc),
             (Command::Quit, KeyCode::Char('q')),
-            (Command::InsertDoc, KeyCode::Char('I')),
-            (Command::EditDoc, KeyCode::Char('E')),
             (Command::DuplicateDoc, KeyCode::Char('C')),
-            (Command::DeleteDoc, KeyCode::Char('D')),
             (Command::Yank, KeyCode::Char('y')),
             (Command::NewTab, KeyCode::Char('T')),
             (Command::NextTab, KeyCode::Char(']')), // TODO: make these "tab" and "shift+tab" once modifiers are a thing
@@ -233,6 +230,17 @@ mod tests {
         let key_map_res = KeyMap::try_from_config(&config);
 
         assert!(key_map_res.is_ok());
+        let key_map = key_map_res.unwrap();
+
+        // make sure the loaded config matches the actual default keymap
+        let default_key_map = KeyMap::default();
+        for key in default_key_map.map.values() {
+            assert_eq!(
+                key_map.command_for_key_unfiltered(*key),
+                default_key_map.command_for_key_unfiltered(*key),
+                "default keymap and default config file disagree for key '{key}'"
+            );
+        }
     }
 
     #[test]

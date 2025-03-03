@@ -28,13 +28,7 @@ pub enum Command {
     Back,
     Quit,
 
-    // TODO: merge with `CreatNew`
-    InsertDoc,
-    // TODO: merge with `Edit`
-    EditDoc,
     DuplicateDoc,
-    // TODO: merge with `Delete`
-    DeleteDoc,
     Yank,
 
     NewTab,
@@ -75,10 +69,7 @@ impl Command {
             "back" => Ok(Self::Back),
             "quit" => Ok(Self::Quit),
 
-            "insert_doc" => Ok(Self::InsertDoc),
-            "edit_doc" => Ok(Self::EditDoc),
             "duplicate_doc" => Ok(Self::DuplicateDoc),
-            "delete_doc" => Ok(Self::DeleteDoc),
             "yank" => Ok(Self::Yank),
 
             "new_tab" => Ok(Self::NewTab),

@@ -156,10 +156,10 @@ impl Component for Documents<'_> {
             ),
             CommandGroup::new(vec![Command::Refresh], "refresh"),
             CommandGroup::new(vec![Command::Yank], "yank selected"),
-            CommandGroup::new(vec![Command::EditDoc], "edit doc"),
-            CommandGroup::new(vec![Command::InsertDoc], "insert doc"),
+            CommandGroup::new(vec![Command::Edit], "edit doc"),
+            CommandGroup::new(vec![Command::CreateNew], "insert doc"),
             CommandGroup::new(vec![Command::DuplicateDoc], "duplicate doc"),
-            CommandGroup::new(vec![Command::DeleteDoc], "delete doc"),
+            CommandGroup::new(vec![Command::Delete], "delete doc"),
         ]
     }
 
@@ -223,7 +223,7 @@ impl Component for Documents<'_> {
             Command::Refresh => {
                 out.push(Event::RefreshRequested);
             }
-            Command::EditDoc => {
+            Command::Edit => {
                 let Some(doc) = self.selected_doc() else {
                     return out;
                 };
@@ -234,7 +234,7 @@ impl Component for Documents<'_> {
                     Err(err) => out.push(Event::ErrorOccurred(err.to_string())),
                 }
             }
-            Command::InsertDoc => {
+            Command::CreateNew => {
                 let doc = doc! { "_id" : ObjectId::new() };
 
                 out.push(Event::ReturnedFromAltScreen);
@@ -258,7 +258,7 @@ impl Component for Documents<'_> {
                     Err(err) => out.push(Event::ErrorOccurred(err.to_string())),
                 }
             }
-            Command::DeleteDoc => {
+            Command::Delete => {
                 out.push(Event::ConfirmationRequested(ConfirmKind::DeleteDoc));
             }
             Command::Yank => {
@@ -283,7 +283,7 @@ impl Component for Documents<'_> {
             Event::CountUpdated(count) => {
                 self.count = *count;
             }
-            Event::ConfirmationYes(Command::DeleteDoc) => {
+            Event::ConfirmationYes(Command::Delete) => {
                 if self.is_focused() {
                     if let Some(doc) = self.selected_doc() {
                         return vec![Event::DocumentDeleted(doc.clone())];

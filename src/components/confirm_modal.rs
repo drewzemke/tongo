@@ -23,10 +23,11 @@ pub enum ConfirmKind {
 
 impl ConfirmKind {
     fn command(&self) -> Command {
-        match self {
-            Self::DeleteConnection => Command::Delete,
-            Self::DeleteDoc => Command::DeleteDoc,
-        }
+        // match self {
+        //     Self::DeleteConnection => Command::Delete,
+        //     Self::DeleteDoc => Command::DeleteDoc,
+        // }
+        Command::Delete
     }
 }
 
