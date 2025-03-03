@@ -344,7 +344,7 @@ impl Component for App<'_> {
             self.tab_bar.render(frame, tab_area);
             layout[1]
         } else {
-            area
+            main_area
         };
 
         // render current tab
