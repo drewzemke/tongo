@@ -6,6 +6,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0](https://github.com/drewzemke/tongo/compare/v0.12.3...v0.13.0) - 2025-03-03
+
+### Added
+
+- *(collections)* ability to drop collections
+- *(tabs)* ability to duplicate the current tab
+- *(tabs)* tab names update to reflect current db and collection
+- *(tabs)* tab names show connection names
+- *(tabs)* close tabs
+- *(tabs)* jump to tab by number
+- *(tabs)* persist `TabBar`'s state
+- *(tabs)* scroll tab bar to keep current tab visible
+- *(tabs)* show tabs at top of window
+- *(tabs)* add start of a tab bar -- not visible but manages tab state
+- *(tabs)* create a new tabs and switch between them
+- *(tabs)* convert `App.tab` into `App.tabs` (a list of tabs)
+
+### Fixed
+
+- *(app)* render content in the correct container when no tabs are visible
+- *(confirm-modal)* constrain width independent of screen size
+- *(documents)* setup default state correctly when cloning `Documents` component
+- *(tabs)* resolve some scrolling issues in `TabBar`
+
+### Other
+
+- *(commands)* [**breaking**] merge some commands
+- *(confirm-modal)* introduce new enum to distinguish between confirmations
+- *(project)* add license
+- *(components)* add `Clone` implementations for most components
+- *(status-bar)* move `StatusBar` to be a child component of `App` rather than `Tab`
+- *(tabs)* use `get` to access tabs
+- *(connections)* introduce `ConnectionsManager` to managed shared connection state
+- *(tabs)* split a `Tab` component out of app that holds all of the main components
+
 ## [0.12.3](https://github.com/drewzemke/tongo/compare/v0.12.2...v0.12.3) - 2025-02-24
 
 ### Fixed
