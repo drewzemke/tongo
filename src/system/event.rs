@@ -1,12 +1,10 @@
+use super::command::Command;
+use crate::{components::confirm_modal::ConfirmKind, connection::Connection};
 use mongodb::{
     bson::{Bson, Document},
     results::{CollectionSpecification, DatabaseSpecification},
     Client as MongoClient,
 };
-
-use crate::connection::Connection;
-
-use super::command::Command;
 
 #[derive(Debug, Clone, strum_macros::Display)]
 pub enum Event {
@@ -60,7 +58,7 @@ pub enum Event {
     ReturnedFromAltScreen,
     ScreenResized,
 
-    ConfirmationRequested(Command),
+    ConfirmationRequested(ConfirmKind),
     // TODO: Better names
     ConfirmationYes(Command),
     ConfirmationNo,

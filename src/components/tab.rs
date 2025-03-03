@@ -143,9 +143,9 @@ impl Component for Tab<'_> {
             Event::ConnectionCreated(..) | Event::ConnectionSelected(..) => {
                 self.primary_screen.focus();
             }
-            Event::ConfirmationRequested(command) => {
+            Event::ConfirmationRequested(confirm_kind) => {
                 self.background_focus = Some(self.focus.borrow().clone());
-                self.confirm_modal.show_with(*command);
+                self.confirm_modal.show_with(*confirm_kind);
             }
             Event::ConfirmationYes(..) | Event::ConfirmationNo => {
                 *self.focus.borrow_mut() = self.background_focus.take().unwrap_or_default();

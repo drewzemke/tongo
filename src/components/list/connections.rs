@@ -5,7 +5,10 @@ use std::{
 
 use super::InnerList;
 use crate::{
-    components::{connection_screen::ConnScrFocus, tab::TabFocus, Component, ComponentCommand},
+    components::{
+        confirm_modal::ConfirmKind, connection_screen::ConnScrFocus, tab::TabFocus, Component,
+        ComponentCommand,
+    },
     connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
     system::{
@@ -103,7 +106,7 @@ impl Component for Connections {
                 }
             }
             Command::Delete => {
-                out.push(Event::ConfirmationRequested(*command));
+                out.push(Event::ConfirmationRequested(ConfirmKind::DeleteConnection));
             }
             _ => {}
         }

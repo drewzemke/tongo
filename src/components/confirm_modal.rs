@@ -15,10 +15,25 @@ use std::{cell::RefCell, rc::Rc};
 const CONFIRM_MODAL_WIDTH: u16 = 40;
 const CONFIRM_MODAL_HEIGHT: u16 = 3;
 
+#[derive(Debug, Clone, Copy)]
+pub enum ConfirmKind {
+    DeleteConnection,
+    DeleteDoc,
+}
+
+impl ConfirmKind {
+    fn command(&self) -> Command {
+        match self {
+            Self::DeleteConnection => Command::Delete,
+            Self::DeleteDoc => Command::DeleteDoc,
+        }
+    }
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct ConfirmModal {
     focus: Rc<RefCell<TabFocus>>,
-    command: Option<Command>,
+    kind: Option<ConfirmKind>,
 }
 impl ConfirmModal {
     pub fn new(focus: Rc<RefCell<TabFocus>>) -> Self {
@@ -28,18 +43,18 @@ impl ConfirmModal {
         }
     }
 
-    pub fn show_with(&mut self, command: Command) {
-        self.command = Some(command);
+    pub fn show_with(&mut self, kind: ConfirmKind) {
+        self.kind = Some(kind);
         self.focus();
     }
 
     const fn text_content(&self) -> Option<(&'static str, &'static str)> {
-        match self.command {
-            Some(Command::Delete) => Some((
+        match self.kind {
+            Some(ConfirmKind::DeleteConnection) => Some((
                 "Confirm Delete",
                 "Are you sure you want to delete this connection? This cannot be undone.",
             )),
-            Some(Command::DeleteDoc) => Some((
+            Some(ConfirmKind::DeleteDoc) => Some((
                 "Confirm Delete",
                 "Are you sure you want to delete this document? This cannot be undone.",
             )),
@@ -96,13 +111,13 @@ impl Component for ConfirmModal {
         let ComponentCommand::Command(command) = command else {
             return vec![];
         };
-        let Some(stored_command) = self.command else {
+        let Some(confirm_kind) = &self.kind else {
             return vec![];
         };
 
         let mut out = vec![];
         match command {
-            Command::Confirm => out.push(Event::ConfirmationYes(stored_command)),
+            Command::Confirm => out.push(Event::ConfirmationYes(confirm_kind.command())),
             Command::Back => out.push(Event::ConfirmationNo),
             _ => {}
         }

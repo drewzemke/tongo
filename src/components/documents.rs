@@ -1,4 +1,4 @@
-use super::{primary_screen::PrimScrFocus, tab::TabFocus, Component};
+use super::{confirm_modal::ConfirmKind, primary_screen::PrimScrFocus, tab::TabFocus, Component};
 use crate::{
     client::PAGE_SIZE,
     components::ComponentCommand,
@@ -259,7 +259,7 @@ impl Component for Documents<'_> {
                 }
             }
             Command::DeleteDoc => {
-                out.push(Event::ConfirmationRequested(Command::DeleteDoc));
+                out.push(Event::ConfirmationRequested(ConfirmKind::DeleteDoc));
             }
             Command::Yank => {
                 if let Some(bson) = self.selected_bson() {
