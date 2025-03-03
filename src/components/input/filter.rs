@@ -19,7 +19,7 @@ use std::{
     rc::Rc,
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct FilterInput {
     focus: Rc<RefCell<TabFocus>>,
     input: InnerInput<FilterInputFormatter>,
@@ -157,7 +157,7 @@ impl PersistedComponent for FilterInput {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 struct FilterInputFormatter {
     labeler: JsonLabeler,
     text: Text<'static>,

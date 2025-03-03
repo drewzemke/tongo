@@ -12,7 +12,7 @@ use ratatui::{
 };
 use std::{cell::RefCell, rc::Rc};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ConfirmModal {
     focus: Rc<RefCell<TabFocus>>,
     command: Option<Command>,

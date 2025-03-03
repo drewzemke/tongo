@@ -16,7 +16,7 @@ use ratatui::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Databases {
     focus: Rc<RefCell<TabFocus>>,
     items: Vec<DatabaseSpecification>,

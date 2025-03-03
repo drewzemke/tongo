@@ -13,7 +13,7 @@ use std::{
     rc::Rc,
 };
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct ConnStrInput {
     focus: Rc<RefCell<TabFocus>>,
     input: InnerInput<DefaultFormatter>,

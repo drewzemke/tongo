@@ -16,7 +16,7 @@ use crate::{
 use ratatui::{prelude::*, widgets::ListItem};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Connections {
     pub focus: Rc<RefCell<TabFocus>>,
     pub connection_manager: ConnectionManager,

@@ -15,7 +15,7 @@ pub mod collections;
 pub mod connections;
 pub mod databases;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct InnerList {
     title: &'static str,
     pub state: ListState,

@@ -28,7 +28,7 @@ pub enum ConnScrFocus {
     StringIn,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct ConnectionScreen {
     focus: Rc<RefCell<TabFocus>>,
     pub connection_manager: ConnectionManager,

@@ -21,7 +21,7 @@ pub enum JsonLabel {
     Error,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct JsonLabeler {
     syntax_set: SyntaxSet,
     syntax: SyntaxReference,

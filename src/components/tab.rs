@@ -32,7 +32,7 @@ impl Default for TabFocus {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Tab<'a> {
     // components
     client: Client,

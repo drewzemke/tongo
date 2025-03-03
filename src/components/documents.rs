@@ -35,6 +35,19 @@ pub struct Documents<'a> {
     count: u64,
 }
 
+impl<'a> Clone for Documents<'a> {
+    fn clone(&self) -> Self {
+        Self {
+            focus: self.focus.clone(),
+            state: TreeState::default(),
+            items: self.items.clone(),
+            documents: self.documents.clone(),
+            page: self.page.clone(),
+            count: self.count.clone(),
+        }
+    }
+}
+
 impl Documents<'_> {
     pub fn new(focus: Rc<RefCell<TabFocus>>) -> Self {
         Self {

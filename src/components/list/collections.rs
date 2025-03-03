@@ -12,7 +12,7 @@ use ratatui::{prelude::*, widgets::ListItem};
 use serde::{Deserialize, Serialize};
 use std::{cell::RefCell, rc::Rc};
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct Collections {
     focus: Rc<RefCell<TabFocus>>,
     pub items: Vec<CollectionSpecification>,

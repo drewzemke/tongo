@@ -11,7 +11,7 @@ pub mod conn_name_input;
 pub mod conn_str_input;
 pub mod filter;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct InnerInput<T: Default + std::fmt::Debug> {
     state: TuiInput,
     formatter: T,
@@ -111,7 +111,7 @@ pub trait InputFormatter {
     fn get_formatted(&self) -> Text;
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct DefaultFormatter {
     text: Text<'static>,
 }

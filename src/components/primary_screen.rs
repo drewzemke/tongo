@@ -33,7 +33,7 @@ pub enum PrimScrFocus {
     FilterIn,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone)]
 pub struct PrimaryScreen<'a> {
     focus: Rc<RefCell<TabFocus>>,
     db_list: Databases,

@@ -55,13 +55,26 @@ impl Default for Client {
             mongo_client: None,
             db: None,
             coll: None,
-
             filter: Document::default(),
             page: 0,
-
             response_send,
             response_recv,
+            queued_ops: HashSet::default(),
+        }
+    }
+}
 
+impl Clone for Client {
+    fn clone(&self) -> Self {
+        let (response_send, response_recv) = mpsc::channel::<Event>();
+        Self {
+            mongo_client: self.mongo_client.clone(),
+            db: self.db.clone(),
+            coll: self.coll.clone(),
+            filter: self.filter.clone(),
+            page: self.page.clone(),
+            response_send,
+            response_recv,
             queued_ops: HashSet::default(),
         }
     }
