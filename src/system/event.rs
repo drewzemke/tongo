@@ -1,5 +1,8 @@
 use super::command::Command;
-use crate::{components::confirm_modal::ConfirmKind, connection::Connection};
+use crate::{
+    components::{confirm_modal::ConfirmKind, input::input_modal::InputKind},
+    connection::Connection,
+};
 use mongodb::{
     bson::{Bson, Document},
     results::{CollectionSpecification, DatabaseSpecification},
@@ -65,6 +68,10 @@ pub enum Event {
 
     ReturnedFromAltScreen,
     ScreenResized,
+
+    InputRequested(InputKind),
+    InputConfirmed(InputKind, String),
+    InputCanceled,
 
     ConfirmationRequested(ConfirmKind),
     // TODO: Better names

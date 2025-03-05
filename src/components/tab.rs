@@ -18,11 +18,14 @@ use std::{
     rc::Rc,
 };
 
+use super::input::input_modal::InputModal;
+
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TabFocus {
     ConnScr(ConnScrFocus),
     PrimScr(PrimScrFocus),
     ConfModal,
+    InputModal,
     NotFocused,
 }
 
@@ -39,6 +42,7 @@ pub struct Tab<'a> {
     conn_screen: ConnectionScreen,
     primary_screen: PrimaryScreen<'a>,
     confirm_modal: ConfirmModal,
+    input_modal: InputModal,
 
     // used when displaying the confirm modal or while the app is unfocused
     focus: Rc<RefCell<TabFocus>>,
@@ -52,6 +56,7 @@ impl Default for Tab<'_> {
             conn_screen: ConnectionScreen::default(),
             primary_screen: PrimaryScreen::default(),
             confirm_modal: ConfirmModal::default(),
+            input_modal: InputModal::default(),
             focus: Rc::new(RefCell::new(TabFocus::default())),
             background_focus: None,
         }
@@ -80,6 +85,7 @@ impl Tab<'_> {
         let focus = Rc::new(RefCell::new(initial_focus));
 
         let confirm_modal = ConfirmModal::new(focus.clone());
+        let input_modal = InputModal::new(focus.clone(), cursor_pos.clone());
 
         let primary_screen = PrimaryScreen::new(focus.clone(), cursor_pos.clone());
 
@@ -97,6 +103,7 @@ impl Tab<'_> {
             primary_screen,
             conn_screen,
             confirm_modal,
+            input_modal,
 
             focus,
 
@@ -119,6 +126,7 @@ impl Component for Tab<'_> {
             TabFocus::ConnScr(_) => out.append(&mut self.conn_screen.commands()),
             TabFocus::PrimScr(_) => out.append(&mut self.primary_screen.commands()),
             TabFocus::ConfModal => out.append(&mut self.confirm_modal.commands()),
+            TabFocus::InputModal => out.append(&mut self.input_modal.commands()),
             TabFocus::NotFocused => {}
         }
         out
@@ -133,6 +141,7 @@ impl Component for Tab<'_> {
             TabFocus::ConnScr(_) => self.conn_screen.handle_command(command),
             TabFocus::PrimScr(_) => self.primary_screen.handle_command(command),
             TabFocus::ConfModal => self.confirm_modal.handle_command(command),
+            TabFocus::InputModal => self.input_modal.handle_command(command),
             TabFocus::NotFocused => vec![],
         }
     }
@@ -147,7 +156,15 @@ impl Component for Tab<'_> {
                 self.background_focus = Some(self.focus.borrow().clone());
                 self.confirm_modal.show_with(*confirm_kind);
             }
-            Event::ConfirmationYes(..) | Event::ConfirmationNo => {
+            Event::InputRequested(input_kind) => {
+                self.background_focus = Some(self.focus.borrow().clone());
+                self.input_modal.show_with(*input_kind);
+                out.push(Event::RawModeEntered);
+            }
+            Event::ConfirmationYes(..)
+            | Event::ConfirmationNo
+            | Event::InputConfirmed(..)
+            | Event::InputCanceled => {
                 *self.focus.borrow_mut() = self.background_focus.take().unwrap_or_default();
             }
             _ => {}
@@ -170,6 +187,14 @@ impl Component for Tab<'_> {
                     _ => {}
                 }
                 self.confirm_modal.render(frame, area);
+            }
+            TabFocus::InputModal => {
+                match self.background_focus {
+                    Some(TabFocus::PrimScr(..)) => self.primary_screen.render(frame, area),
+                    Some(TabFocus::ConnScr(..)) => self.conn_screen.render(frame, area),
+                    _ => {}
+                }
+                self.input_modal.render(frame, area);
             }
             TabFocus::NotFocused => {}
         }
@@ -206,7 +231,7 @@ impl PersistedComponent for Tab<'_> {
                 };
                 TabFocus::PrimScr(ps_focus)
             }
-            TabFocus::ConfModal | TabFocus::NotFocused => {
+            TabFocus::ConfModal | TabFocus::InputModal | TabFocus::NotFocused => {
                 self.background_focus.clone().unwrap_or_default()
             }
         };

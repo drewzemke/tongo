@@ -10,6 +10,7 @@ use tui_input::{backend::crossterm::EventHandler, Input as TuiInput};
 pub mod conn_name_input;
 pub mod conn_str_input;
 pub mod filter;
+pub mod input_modal;
 
 #[derive(Debug, Default, Clone)]
 pub struct InnerInput<T: Default + std::fmt::Debug> {
@@ -32,6 +33,10 @@ where
             cursor_pos,
             ..Default::default()
         }
+    }
+
+    pub fn set_title(&mut self, title: &'static str) {
+        self.title = title;
     }
 
     pub const fn start_editing(&mut self) {

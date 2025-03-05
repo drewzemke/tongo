@@ -1,8 +1,8 @@
 use super::InnerList;
 use crate::{
     components::{
-        confirm_modal::ConfirmKind, primary_screen::PrimScrFocus, tab::TabFocus, Component,
-        ComponentCommand,
+        confirm_modal::ConfirmKind, input::input_modal::InputKind, primary_screen::PrimScrFocus,
+        tab::TabFocus, Component, ComponentCommand,
     },
     persistence::PersistedComponent,
     system::{
@@ -61,6 +61,10 @@ impl Component for Collections {
     fn commands(&self) -> Vec<CommandGroup> {
         let mut out = InnerList::base_commands();
         out.push(CommandGroup::new(vec![Command::Confirm], "select"));
+        out.push(CommandGroup::new(
+            vec![Command::CreateNew],
+            "new collection",
+        ));
         out.push(CommandGroup::new(vec![Command::Delete], "drop"));
         out
     }
@@ -77,6 +81,7 @@ impl Component for Collections {
                     out.push(Event::CollectionSelected(coll.clone()));
                 }
             }
+            Command::CreateNew => out.push(Event::InputRequested(InputKind::CollectionName)),
             Command::Delete => {
                 if self.get_selected().is_some() {
                     out.push(Event::ConfirmationRequested(ConfirmKind::DropCollection));
@@ -157,7 +162,7 @@ impl PersistedComponent for Collections {
 mod tests {
 
     use super::*;
-    use crate::testing::ComponentTestHarness;
+    use crate::{components::input::input_modal::InputKind, testing::ComponentTestHarness};
     use serde_json::json;
 
     fn get_dummy_collection() -> CollectionSpecification {
@@ -181,6 +186,19 @@ mod tests {
         test.given_event(Event::CollectionsUpdated(vec![coll_spec]));
 
         assert_eq!(test.component().list.state.selected(), Some(0));
+    }
+
+    #[test]
+    fn create_collection() {
+        let coll_spec = get_dummy_collection();
+        let component = Collections {
+            items: vec![coll_spec],
+            ..Default::default()
+        };
+        let mut test = ComponentTestHarness::new(component);
+
+        test.given_command(Command::CreateNew);
+        test.expect_event(|e| matches!(e, Event::InputRequested(InputKind::CollectionName)));
     }
 
     #[test]
