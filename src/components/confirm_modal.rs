@@ -27,6 +27,7 @@ impl ConfirmKind {
         // match self {
         //     Self::DeleteConnection => Command::Delete,
         //     Self::DeleteDoc => Command::DeleteDoc,
+        //     Self::DropConnection => Command::DeleteDoc,
         // }
         Command::Delete
     }

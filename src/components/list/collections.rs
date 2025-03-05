@@ -184,6 +184,22 @@ mod tests {
     }
 
     #[test]
+    fn drop_collection() {
+        let coll_spec = get_dummy_collection();
+        let component = Collections {
+            items: vec![coll_spec],
+            ..Default::default()
+        };
+        let mut test = ComponentTestHarness::new(component);
+
+        test.given_command(Command::NavDown);
+        test.given_command(Command::Delete);
+        test.expect_event(|e| {
+            matches!(e, Event::ConfirmationRequested(ConfirmKind::DropCollection))
+        });
+    }
+
+    #[test]
     fn persisting_and_hydrate() {
         let coll_spec = get_dummy_collection();
         let mut component = Collections {
