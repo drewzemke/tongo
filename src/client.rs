@@ -30,6 +30,8 @@ enum Operation {
     Count,
     CreateCollection(String),
     DropCollection(String),
+    CreateDatabase(String),
+    DropDatabase(String),
 }
 
 #[derive(Debug)]
@@ -245,6 +247,34 @@ impl Client {
         Some(())
     }
 
+    fn drop_db(&self, db_name: String) -> Option<()> {
+        let db = self.get_database()?;
+        let dropping_selected_db = self.db.as_ref().is_some_and(|db| db.name == *db_name);
+
+        self.exec(async move {
+            db.drop().await?;
+            Ok(Event::DatabaseDropConfirmed(dropping_selected_db))
+        });
+
+        Some(())
+    }
+
+    fn create_db(&self, db_name: String) -> Option<()> {
+        let client = self.mongo_client.clone()?;
+        let db = client.database(&db_name);
+
+        self.exec(async move {
+            // HACK: the only way to create a db on the server is to create a collection
+            // (or do something else that creates data). We could fix this by, instead
+            // of doing this operation, just add a dummy list item for the database
+            // and then it can chill there until a collection is added
+            db.create_collection("coll").await?;
+            Ok(Event::DatabaseCreationConfirmed)
+        });
+
+        Some(())
+    }
+
     fn queue(&mut self, op: Operation) {
         self.queued_ops.insert(op);
     }
@@ -258,6 +288,8 @@ impl Client {
                 Operation::Count => self.count(),
                 Operation::CreateCollection(coll_name) => self.create_coll(coll_name.clone()),
                 Operation::DropCollection(coll_name) => self.drop_coll(coll_name.clone()),
+                Operation::CreateDatabase(db_name) => self.create_db(db_name.clone()),
+                Operation::DropDatabase(db_name) => self.drop_db(db_name.clone()),
             };
         }
         self.queued_ops = HashSet::default();
@@ -291,6 +323,9 @@ impl Component for Client {
             Event::DatabaseHighlighted(db) => {
                 self.db = Some(db.clone());
                 self.queue(Operation::QueryCollections);
+            }
+            Event::DatabaseDropped(db) => {
+                self.queue(Operation::DropDatabase(db.name.clone()));
             }
             Event::CollectionHighlighted(coll) => {
                 self.coll = Some(coll.clone());
@@ -349,6 +384,19 @@ impl Component for Client {
             }
             Event::InputConfirmed(InputKind::NewCollectionName, coll_name) => {
                 self.queue(Operation::CreateCollection(coll_name.to_string()))
+            }
+            Event::DatabaseDropConfirmed(dropped_selected) => {
+                if *dropped_selected {
+                    self.db = None;
+                    self.coll = None;
+                }
+                self.queue(Operation::QueryDatabases);
+            }
+            Event::DatabaseCreationConfirmed => {
+                self.queue(Operation::QueryDatabases);
+            }
+            Event::InputConfirmed(InputKind::NewDatabaseName, coll_name) => {
+                self.queue(Operation::CreateDatabase(coll_name.to_string()))
             }
             _ => (),
         }

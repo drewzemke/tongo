@@ -11,6 +11,8 @@ use mongodb::{
 
 #[derive(Debug, Clone, strum_macros::Display)]
 pub enum Event {
+    /// Emitted every event loop iteration to give components (eg. client)
+    /// an opportunity to check for and process async process results
     Tick,
 
     ListSelectionChanged,
@@ -29,6 +31,7 @@ pub enum Event {
     DatabasesUpdated(Vec<DatabaseSpecification>),
     DatabaseHighlighted(DatabaseSpecification),
     DatabaseSelected(DatabaseSpecification),
+    DatabaseDropped(DatabaseSpecification),
 
     CollectionsUpdated(Vec<CollectionSpecification>),
     CollectionHighlighted(CollectionSpecification),
@@ -39,6 +42,8 @@ pub enum Event {
     /// collection was the currently-selected one
     CollectionDropConfirmed(bool),
     CollectionCreationConfirmed,
+    DatabaseDropConfirmed(bool),
+    DatabaseCreationConfirmed,
 
     DocumentsUpdated {
         docs: Vec<Bson>,

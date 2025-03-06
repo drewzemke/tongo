@@ -93,6 +93,10 @@ impl Component for InputModal {
                 CommandGroup::new(vec![Command::Confirm], "create collection"),
                 CommandGroup::new(vec![Command::Back], "cancel"),
             ],
+            Some(InputKind::NewDatabaseName) => vec![
+                CommandGroup::new(vec![Command::Confirm], "create database"),
+                CommandGroup::new(vec![Command::Back], "cancel"),
+            ],
             _ => vec![],
         }
     }

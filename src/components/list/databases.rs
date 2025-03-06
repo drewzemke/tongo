@@ -2,7 +2,10 @@ use std::{cell::RefCell, rc::Rc};
 
 use super::InnerList;
 use crate::{
-    components::{primary_screen::PrimScrFocus, tab::TabFocus, Component, ComponentCommand},
+    components::{
+        confirm_modal::ConfirmKind, input::input_modal::InputKind, primary_screen::PrimScrFocus,
+        tab::TabFocus, Component, ComponentCommand,
+    },
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
@@ -58,6 +61,8 @@ impl Component for Databases {
     fn commands(&self) -> Vec<CommandGroup> {
         let mut out = InnerList::base_commands();
         out.push(CommandGroup::new(vec![Command::Confirm], "select"));
+        out.push(CommandGroup::new(vec![Command::CreateNew], "new database"));
+        out.push(CommandGroup::new(vec![Command::Delete], "drop"));
         out
     }
 
@@ -66,10 +71,20 @@ impl Component for Databases {
         let ComponentCommand::Command(command) = command else {
             return vec![];
         };
-        if matches!(command, Command::Confirm) {
-            if let Some(db) = self.get_selected() {
-                out.push(Event::DatabaseSelected(db.clone()));
+        if matches!(command, Command::Confirm) {}
+        match command {
+            Command::Confirm => {
+                if let Some(db) = self.get_selected() {
+                    out.push(Event::DatabaseSelected(db.clone()));
+                }
             }
+            Command::CreateNew => out.push(Event::InputRequested(InputKind::NewDatabaseName)),
+            Command::Delete => {
+                if self.get_selected().is_some() {
+                    out.push(Event::ConfirmationRequested(ConfirmKind::DropDatabase));
+                }
+            }
+            _ => {}
         }
         out
     }
@@ -92,6 +107,13 @@ impl Component for Databases {
                         // try to select the first thing
                         self.list.state.select(Some(0));
                         out.push(Event::DatabaseHighlighted(first_db.clone()));
+                    }
+                }
+            }
+            Event::ConfirmationYes(Command::Delete) => {
+                if self.is_focused() {
+                    if let Some(db) = self.get_selected() {
+                        return vec![Event::DatabaseDropped(db.clone())];
                     }
                 }
             }
@@ -137,7 +159,10 @@ impl PersistedComponent for Databases {
 mod tests {
 
     use super::*;
-    use crate::testing::ComponentTestHarness;
+    use crate::{
+        components::{confirm_modal::ConfirmKind, input::input_modal::InputKind},
+        testing::ComponentTestHarness,
+    };
     use serde_json::json;
 
     fn get_dummy_database() -> DatabaseSpecification {
@@ -159,6 +184,33 @@ mod tests {
         test.given_event(Event::DatabasesUpdated(vec![db_spec]));
 
         assert_eq!(test.component().list.state.selected(), Some(0));
+    }
+
+    #[test]
+    fn create_database() {
+        let db_spec = get_dummy_database();
+        let component = Databases {
+            items: vec![db_spec],
+            ..Default::default()
+        };
+        let mut test = ComponentTestHarness::new(component);
+
+        test.given_command(Command::CreateNew);
+        test.expect_event(|e| matches!(e, Event::InputRequested(InputKind::NewDatabaseName)));
+    }
+
+    #[test]
+    fn drop_database() {
+        let db_spec = get_dummy_database();
+        let component = Databases {
+            items: vec![db_spec],
+            ..Default::default()
+        };
+        let mut test = ComponentTestHarness::new(component);
+
+        test.given_command(Command::NavDown);
+        test.given_command(Command::Delete);
+        test.expect_event(|e| matches!(e, Event::ConfirmationRequested(ConfirmKind::DropDatabase)));
     }
 
     #[test]

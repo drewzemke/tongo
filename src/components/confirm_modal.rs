@@ -20,6 +20,7 @@ pub enum ConfirmKind {
     DeleteConnection,
     DeleteDoc,
     DropCollection,
+    DropDatabase,
 }
 
 impl ConfirmKind {
@@ -28,6 +29,7 @@ impl ConfirmKind {
         //     Self::DeleteConnection => Command::Delete,
         //     Self::DeleteDoc => Command::DeleteDoc,
         //     Self::DropConnection => Command::DeleteDoc,
+        //     Self::DropDatabase => Command::DeleteDoc,
         // }
         Command::Delete
     }
@@ -64,6 +66,10 @@ impl ConfirmModal {
             Some(ConfirmKind::DropCollection) => Some((
                 "Confirm Drop",
                 "Are you sure you want to drop this collection? This cannot be undone.",
+            )),
+            Some(ConfirmKind::DropDatabase) => Some((
+                "Confirm Drop",
+                "Are you sure? If you drop the database in tongo, you drop it in real life.",
             )),
 
             None => None,
