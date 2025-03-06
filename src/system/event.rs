@@ -20,10 +20,10 @@ pub enum Event {
     StatusMessageCleared,
 
     ConnectionSelected(Connection),
-    NewConnectionStarted,
-    EditConnectionStarted(Connection),
-    ConnectionCreated(Connection),
-    ConnectionEdited(Connection),
+    NewConnectionStarted,              // message
+    EditConnectionStarted(Connection), // message
+    ConnectionCreated(Connection),     // message
+    ConnectionEdited(Connection),      // message
     ConnectionDeleted,
 
     ClientCreated(MongoClient),
@@ -31,12 +31,12 @@ pub enum Event {
     DatabasesUpdated(Vec<DatabaseSpecification>),
     DatabaseHighlighted(DatabaseSpecification),
     DatabaseSelected(DatabaseSpecification),
-    DatabaseDropped(DatabaseSpecification),
+    DatabaseDropped(DatabaseSpecification), // message
 
     CollectionsUpdated(Vec<CollectionSpecification>),
     CollectionHighlighted(CollectionSpecification),
     CollectionSelected(CollectionSpecification),
-    CollectionDropped(CollectionSpecification),
+    CollectionDropped(CollectionSpecification), // message
 
     /// carries a flag that indicates whether the dropped
     /// collection was the currently-selected one
@@ -55,21 +55,21 @@ pub enum Event {
     DataSentToClipboard,
     ErrorOccurred(String),
 
-    DocumentEdited(Document),
+    DocumentEdited(Document), // message
     UpdateConfirmed,
-    DocumentCreated(Document),
+    DocumentCreated(Document), // message
     InsertConfirmed,
-    DocumentDeleted(Document),
+    DocumentDeleted(Document), // message
     DocDeleteConfirmed,
-    RefreshRequested,
+    RefreshRequested, // message
 
     // TODO: sort these out better
-    FocusedForward,
-    FocusedBackward,
+    FocusedForward,  // message
+    FocusedBackward, // message
     FocusedChanged,
 
-    RawModeEntered,
-    RawModeExited,
+    RawModeEntered, // message
+    RawModeExited,  // message
     InputKeyPressed,
 
     ReturnedFromAltScreen,
@@ -79,7 +79,7 @@ pub enum Event {
     InputConfirmed(InputKind, String),
     InputCanceled,
 
-    ConfirmationRequested(ConfirmKind),
+    ConfirmationRequested(ConfirmKind), // message
     // TODO: Better names
     ConfirmationYes(Command),
     ConfirmationNo,
