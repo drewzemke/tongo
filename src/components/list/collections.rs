@@ -81,7 +81,7 @@ impl Component for Collections {
                     out.push(Event::CollectionSelected(coll.clone()));
                 }
             }
-            Command::CreateNew => out.push(Event::InputRequested(InputKind::CollectionName)),
+            Command::CreateNew => out.push(Event::InputRequested(InputKind::NewCollectionName)),
             Command::Delete => {
                 if self.get_selected().is_some() {
                     out.push(Event::ConfirmationRequested(ConfirmKind::DropCollection));
@@ -198,7 +198,7 @@ mod tests {
         let mut test = ComponentTestHarness::new(component);
 
         test.given_command(Command::CreateNew);
-        test.expect_event(|e| matches!(e, Event::InputRequested(InputKind::CollectionName)));
+        test.expect_event(|e| matches!(e, Event::InputRequested(InputKind::NewCollectionName)));
     }
 
     #[test]

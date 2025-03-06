@@ -1,5 +1,5 @@
 use crate::{
-    components::{Component, ComponentCommand},
+    components::{input::input_modal::InputKind, Component, ComponentCommand},
     persistence::PersistedComponent,
     system::{command::CommandGroup, event::Event},
 };
@@ -28,6 +28,7 @@ enum Operation {
     QueryCollections,
     QueryDatabases,
     Count,
+    CreateCollection(String),
     DropCollection(String),
 }
 
@@ -233,6 +234,17 @@ impl Client {
         Some(())
     }
 
+    fn create_coll(&self, coll_name: String) -> Option<()> {
+        let db = self.get_database()?;
+
+        self.exec(async move {
+            db.create_collection(coll_name).await?;
+            Ok(Event::CollectionCreationConfirmed)
+        });
+
+        Some(())
+    }
+
     fn queue(&mut self, op: Operation) {
         self.queued_ops.insert(op);
     }
@@ -244,6 +256,7 @@ impl Client {
                 Operation::QueryCollections => self.query_collections(),
                 Operation::QueryDatabases => self.query_dbs(),
                 Operation::Count => self.count(),
+                Operation::CreateCollection(coll_name) => self.create_coll(coll_name.clone()),
                 Operation::DropCollection(coll_name) => self.drop_coll(coll_name.clone()),
             };
         }
@@ -330,6 +343,12 @@ impl Component for Client {
                     self.coll = None;
                 }
                 self.queue(Operation::QueryCollections);
+            }
+            Event::CollectionCreationConfirmed => {
+                self.queue(Operation::QueryCollections);
+            }
+            Event::InputConfirmed(InputKind::NewCollectionName, coll_name) => {
+                self.queue(Operation::CreateCollection(coll_name.to_string()))
             }
             _ => (),
         }

@@ -18,15 +18,15 @@ const INPUT_MODAL_HEIGHT: u16 = 1;
 
 #[derive(Debug, Clone, Copy)]
 pub enum InputKind {
-    CollectionName,
-    DatabaseName,
+    NewCollectionName,
+    NewDatabaseName,
 }
 
 impl InputKind {
     fn modal_title(&self) -> &'static str {
         match self {
-            InputKind::CollectionName => "New Connection's Name",
-            InputKind::DatabaseName => "New Database's Name",
+            InputKind::NewCollectionName => "New Connection's Name",
+            InputKind::NewDatabaseName => "New Database's Name",
         }
     }
 }
@@ -89,7 +89,7 @@ impl Component for InputModal {
 
     fn commands(&self) -> Vec<CommandGroup> {
         match self.kind {
-            Some(InputKind::CollectionName) => vec![
+            Some(InputKind::NewCollectionName) => vec![
                 CommandGroup::new(vec![Command::Confirm], "create collection"),
                 CommandGroup::new(vec![Command::Back], "cancel"),
             ],
@@ -132,13 +132,13 @@ mod tests {
         let mut test = ComponentTestHarness::new(InputModal::default());
 
         test.component_mut().input.start_editing();
-        test.component_mut().show_with(InputKind::CollectionName);
+        test.component_mut().show_with(InputKind::NewCollectionName);
 
         test.given_string("text!");
         test.given_command(Command::Confirm);
 
         test.expect_event(|e| {
-            matches!(e, Event::InputConfirmed(InputKind::CollectionName, s) if *s == "text!".to_string())
+            matches!(e, Event::InputConfirmed(InputKind::NewCollectionName, s) if *s == "text!".to_string())
         });
         test.expect_event(|e| matches!(e, Event::RawModeExited));
         assert_eq!(test.component_mut().input.value(), "");
@@ -149,7 +149,7 @@ mod tests {
         let mut test = ComponentTestHarness::new(InputModal::default());
 
         test.component_mut().input.start_editing();
-        test.component_mut().show_with(InputKind::CollectionName);
+        test.component_mut().show_with(InputKind::NewCollectionName);
 
         test.given_string("text!");
         test.given_command(Command::Back);

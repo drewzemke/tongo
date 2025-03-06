@@ -38,6 +38,7 @@ pub enum Event {
     /// carries a flag that indicates whether the dropped
     /// collection was the currently-selected one
     CollectionDropConfirmed(bool),
+    CollectionCreationConfirmed,
 
     DocumentsUpdated {
         docs: Vec<Bson>,

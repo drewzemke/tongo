@@ -152,6 +152,9 @@ impl Component for StatusBar {
             Event::DocDeleteConfirmed => {
                 self.message = Some(Message::success("Document deleted."));
             }
+            Event::CollectionCreationConfirmed => {
+                self.message = Some(Message::success("Collection created."));
+            }
             Event::CollectionDropConfirmed(_) => {
                 self.message = Some(Message::success("Collection dropped."));
             }
