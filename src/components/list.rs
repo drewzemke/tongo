@@ -3,6 +3,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
+        Signal,
     },
 };
 use ratatui::{
@@ -36,7 +37,7 @@ impl InnerList {
         )]
     }
 
-    fn handle_base_command(&mut self, command: &ComponentCommand, num_items: usize) -> Vec<Event> {
+    fn handle_base_command(&mut self, command: &ComponentCommand, num_items: usize) -> Vec<Signal> {
         let mut out = vec![];
         if let ComponentCommand::Command(command) = command {
             match command {
@@ -47,7 +48,7 @@ impl InnerList {
                     } else {
                         self.state.select_previous();
                     }
-                    out.push(Event::ListSelectionChanged);
+                    out.push(Event::ListSelectionChanged.into());
                 }
                 Command::NavDown => {
                     // jump to the top if we're at the bottom
@@ -56,7 +57,7 @@ impl InnerList {
                     } else {
                         self.state.select_next();
                     }
-                    out.push(Event::ListSelectionChanged);
+                    out.push(Event::ListSelectionChanged.into());
                 }
                 _ => {}
             }

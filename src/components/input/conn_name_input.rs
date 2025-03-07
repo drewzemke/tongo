@@ -6,6 +6,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
+        Signal,
     },
 };
 use std::{
@@ -54,14 +55,16 @@ impl Component for ConnNameInput {
         ]
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
         match command {
             ComponentCommand::RawEvent(event) => self.input.handle_raw_event(event),
             ComponentCommand::Command(command) => {
                 if self.input.is_editing() {
                     match command {
-                        Command::Confirm => vec![Event::FocusedForward],
-                        Command::Back => vec![Event::FocusedBackward, Event::RawModeExited],
+                        Command::Confirm => vec![Event::FocusedForward.into()],
+                        Command::Back => {
+                            vec![Event::FocusedBackward.into(), Event::RawModeExited.into()]
+                        }
                         _ => vec![],
                     }
 
@@ -73,7 +76,7 @@ impl Component for ConnNameInput {
         }
     }
 
-    fn handle_event(&mut self, event: &Event) -> Vec<Event> {
+    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         match event {
             Event::ConnectionCreated(..) => self.input.set_value(""),
             Event::EditConnectionStarted(conn) => self.input.set_value(&conn.name),

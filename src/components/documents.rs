@@ -6,6 +6,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
+        Signal,
     },
     utils::{
         clipboard::send_bson_to_clipboard,
@@ -163,7 +164,7 @@ impl Component for Documents<'_> {
         ]
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
         let ComponentCommand::Command(command) = command else {
             return vec![];
         };
@@ -172,27 +173,27 @@ impl Component for Documents<'_> {
         match command {
             Command::NavLeft => {
                 if self.state.key_left() {
-                    out.push(Event::ListSelectionChanged);
+                    out.push(Event::ListSelectionChanged.into());
                 }
             }
             Command::NavUp => {
                 if self.state.key_up() {
-                    out.push(Event::ListSelectionChanged);
+                    out.push(Event::ListSelectionChanged.into());
                 }
             }
             Command::NavDown => {
                 if self.state.key_down() {
-                    out.push(Event::ListSelectionChanged);
+                    out.push(Event::ListSelectionChanged.into());
                 }
             }
             Command::NavRight => {
                 if self.state.key_right() {
-                    out.push(Event::ListSelectionChanged);
+                    out.push(Event::ListSelectionChanged.into());
                 }
             }
             Command::ExpandCollapse => {
                 if self.state.toggle_selected() {
-                    out.push(Event::ListSelectionChanged);
+                    out.push(Event::ListSelectionChanged.into());
                 }
             }
             Command::NextPage => {
@@ -201,47 +202,47 @@ impl Component for Documents<'_> {
                 #[expect(clippy::cast_possible_truncation)]
                 if end < self.count as usize {
                     self.page += 1;
-                    out.push(Event::DocumentPageChanged(self.page));
+                    out.push(Event::DocumentPageChanged(self.page).into());
                 }
             }
             Command::PreviousPage => {
                 if self.page > 0 {
                     self.page -= 1;
-                    out.push(Event::DocumentPageChanged(self.page));
+                    out.push(Event::DocumentPageChanged(self.page).into());
                 }
             }
             Command::FirstPage => {
                 self.page = 0;
-                out.push(Event::DocumentPageChanged(self.page));
+                out.push(Event::DocumentPageChanged(self.page).into());
             }
             Command::LastPage => {
                 #[expect(clippy::cast_possible_truncation)]
                 let last_page = (self.count as usize).div_ceil(PAGE_SIZE) - 1;
                 self.page = last_page;
-                out.push(Event::DocumentPageChanged(self.page));
+                out.push(Event::DocumentPageChanged(self.page).into());
             }
             Command::Refresh => {
-                out.push(Event::RefreshRequested);
+                out.push(Event::RefreshRequested.into());
             }
             Command::Edit => {
                 let Some(doc) = self.selected_doc() else {
                     return out;
                 };
 
-                out.push(Event::ReturnedFromAltScreen);
+                out.push(Event::ReturnedFromAltScreen.into());
                 match edit_doc(doc.clone()) {
-                    Ok(new_doc) => out.push(Event::DocumentEdited(new_doc)),
-                    Err(err) => out.push(Event::ErrorOccurred(err.to_string())),
+                    Ok(new_doc) => out.push(Event::DocumentEdited(new_doc).into()),
+                    Err(err) => out.push(Event::ErrorOccurred(err.to_string()).into()),
                 }
             }
             Command::CreateNew => {
                 let doc = doc! { "_id" : ObjectId::new() };
 
-                out.push(Event::ReturnedFromAltScreen);
+                out.push(Event::ReturnedFromAltScreen.into());
 
                 match edit_doc(doc) {
-                    Ok(new_doc) => out.push(Event::DocumentCreated(new_doc)),
-                    Err(err) => out.push(Event::ErrorOccurred(err.to_string())),
+                    Ok(new_doc) => out.push(Event::DocumentCreated(new_doc).into()),
+                    Err(err) => out.push(Event::ErrorOccurred(err.to_string()).into()),
                 }
             }
             Command::DuplicateDoc => {
@@ -252,19 +253,19 @@ impl Component for Documents<'_> {
                 let mut duplicated_doc = doc.clone();
                 let _ = duplicated_doc.insert("_id", ObjectId::new());
 
-                out.push(Event::ReturnedFromAltScreen);
+                out.push(Event::ReturnedFromAltScreen.into());
                 match edit_doc(duplicated_doc) {
-                    Ok(new_doc) => out.push(Event::DocumentCreated(new_doc)),
-                    Err(err) => out.push(Event::ErrorOccurred(err.to_string())),
+                    Ok(new_doc) => out.push(Event::DocumentCreated(new_doc).into()),
+                    Err(err) => out.push(Event::ErrorOccurred(err.to_string()).into()),
                 }
             }
             Command::Delete => {
-                out.push(Event::ConfirmationRequested(ConfirmKind::DeleteDoc));
+                out.push(Event::ConfirmationRequested(ConfirmKind::DeleteDoc).into());
             }
             Command::Yank => {
                 if let Some(bson) = self.selected_bson() {
                     if send_bson_to_clipboard(bson).is_ok() {
-                        out.push(Event::DataSentToClipboard);
+                        out.push(Event::DataSentToClipboard.into());
                     }
                 }
             }
@@ -273,12 +274,12 @@ impl Component for Documents<'_> {
         out
     }
 
-    fn handle_event(&mut self, event: &Event) -> Vec<Event> {
+    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         let mut out = vec![];
         match event {
             Event::DocumentsUpdated { docs, reset_state } => {
                 self.set_docs(docs, *reset_state);
-                out.push(Event::ListSelectionChanged);
+                out.push(Event::ListSelectionChanged.into());
             }
             Event::CountUpdated(count) => {
                 self.count = *count;
@@ -286,7 +287,7 @@ impl Component for Documents<'_> {
             Event::ConfirmationYes(Command::Delete) => {
                 if self.is_focused() {
                     if let Some(doc) = self.selected_doc() {
-                        return vec![Event::DocumentDeleted(doc.clone())];
+                        return vec![Event::DocumentDeleted(doc.clone()).into()];
                     }
                 }
             }

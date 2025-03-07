@@ -11,6 +11,8 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
+        message::{Action, Message, Target},
+        Signal,
     },
     utils::storage::{FileStorage, Storage},
 };
@@ -132,17 +134,17 @@ impl App<'_> {
 
             // if a key is presssed, process it and send it through the system.
             // if no key is pressed, process a `tick` event and send it
-            let events = if crossterm::event::poll(timeout)? {
+            let signals = if crossterm::event::poll(timeout)? {
                 let event = crossterm::event::read()?;
                 self.handle_terminal_event(&event)
             } else {
-                vec![Event::Tick]
+                vec![Event::Tick.into()]
             };
 
-            // process events
-            let should_render = self.process_events(events);
+            // process events and messages
+            let should_render = self.process_signals(signals);
 
-            // once all the events are processed for this loop, tell the client to execute
+            // once all the signals are processed for this loop, tell the client to execute
             // any operations it decided to do during event processing loop
             for tab in &mut self.tabs {
                 tab.exec_queued_ops();
@@ -168,30 +170,34 @@ impl App<'_> {
     }
 
     #[tracing::instrument(skip(self))]
-    fn process_events(&mut self, events: Vec<Event>) -> bool {
+    fn process_signals(&mut self, signals: Vec<Signal>) -> bool {
         let mut should_render = false;
-        let mut events_deque = VecDeque::from(events);
+        let mut signals_deque = VecDeque::from(signals);
 
-        while let Some(event) = events_deque.pop_front() {
-            let is_nontrivial_event = !matches!(event, Event::Tick);
+        while let Some(signal) = signals_deque.pop_front() {
+            let is_nontrivial_event = !matches!(signal, Signal::Event(Event::Tick));
 
             // set the render flag to true if we get an event that isn't `Event::Tick`
             should_render = should_render || is_nontrivial_event;
 
             if is_nontrivial_event {
-                tracing::debug!("Processing event {event}");
+                tracing::debug!("Processing event {signal}");
             }
 
-            let new_events = self.handle_event(&event);
-            for new_event in new_events {
-                events_deque.push_back(new_event);
+            let new_signals = match signal {
+                Signal::Event(event) => self.handle_event(&event),
+                Signal::Message(message) => self.handle_message(&message),
+            };
+
+            for new_signal in new_signals {
+                signals_deque.push_back(new_signal);
             }
         }
 
         should_render
     }
 
-    fn handle_terminal_event(&mut self, event: &CrosstermEvent) -> Vec<Event> {
+    fn handle_terminal_event(&mut self, event: &CrosstermEvent) -> Vec<Signal> {
         // NOTE: for now we only deal with key events
         if let CrosstermEvent::Key(key) = event {
             // always quit on Control-C
@@ -227,10 +233,10 @@ impl App<'_> {
         match event {
             CrosstermEvent::Resize(..) => {
                 // returning a nontrivial event triggers a redraw
-                vec![Event::ScreenResized]
+                vec![Event::ScreenResized.into()]
             }
-            CrosstermEvent::FocusGained => vec![Event::AppFocusGained],
-            CrosstermEvent::FocusLost => vec![Event::AppFocusLost],
+            CrosstermEvent::FocusGained => vec![Event::AppFocusGained.into()],
+            CrosstermEvent::FocusLost => vec![Event::AppFocusLost.into()],
             _ => vec![],
         }
     }
@@ -261,7 +267,7 @@ impl Component for App<'_> {
     }
 
     #[must_use]
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
         if let ComponentCommand::Command(command) = command {
             match command {
                 Command::Quit => {
@@ -298,7 +304,7 @@ impl Component for App<'_> {
         out
     }
 
-    fn handle_event(&mut self, event: &Event) -> Vec<Event> {
+    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         let mut out = vec![];
         match event {
             Event::RawModeEntered => {
@@ -316,13 +322,30 @@ impl Component for App<'_> {
         out.append(&mut self.tab_bar.handle_event(event));
 
         let index = self.current_tab_idx();
-        if let Some(tab) = &mut self.tabs.get_mut(index) {
+        if let Some(tab) = self.tabs.get_mut(index) {
             out.append(&mut tab.handle_event(event));
         }
 
         out.append(&mut self.status_bar.handle_event(event));
 
         out
+    }
+
+    fn handle_message(&mut self, message: &Message) -> Vec<Signal> {
+        match message.target() {
+            Target::App => match message.action() {
+                Action::EnterRawMode => self.raw_mode = true,
+                Action::ExitRawMode => self.raw_mode = false,
+            },
+            Target::Tab => {
+                let index = self.current_tab_idx();
+                if let Some(tab) = self.tabs.get_mut(index) {
+                    return tab.handle_message(message);
+                }
+            }
+        }
+
+        return vec![];
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {

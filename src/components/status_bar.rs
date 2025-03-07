@@ -3,11 +3,10 @@ use std::{
     time::{Duration, Instant},
 };
 
-use super::ComponentCommand;
 use crate::{
     components::Component,
     key_map::KeyMap,
-    system::{command::CommandGroup, event::Event},
+    system::{command::CommandGroup, event::Event, Signal},
 };
 use ratatui::{
     prelude::*,
@@ -133,11 +132,7 @@ impl Component for StatusBar {
         vec![]
     }
 
-    fn handle_command(&mut self, _command: &ComponentCommand) -> Vec<Event> {
-        vec![]
-    }
-
-    fn handle_event(&mut self, event: &Event) -> Vec<Event> {
+    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         // handle the event
         match event {
             Event::ErrorOccurred(error) => {
@@ -171,7 +166,7 @@ impl Component for StatusBar {
              }| start.elapsed() >= *duration,
         ) {
             self.message = None;
-            return vec![Event::StatusMessageCleared];
+            return vec![Event::StatusMessageCleared.into()];
         }
 
         vec![]

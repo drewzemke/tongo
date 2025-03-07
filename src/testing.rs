@@ -1,7 +1,7 @@
 use crate::{
     components::{Component, ComponentCommand},
     key_map::key_code_from_str,
-    system::{command::Command, event::Event},
+    system::{command::Command, event::Event, message::Message, Signal},
 };
 use crossterm::event::KeyCode;
 use crossterm::event::{Event as CrosstermEvent, KeyEvent, KeyModifiers};
@@ -12,6 +12,7 @@ pub mod mock_storage;
 pub struct ComponentTestHarness<C: Component> {
     component: C,
     events: Vec<Event>,
+    messages: Vec<Message>,
 }
 
 impl<C: Component> ComponentTestHarness<C> {
@@ -19,6 +20,7 @@ impl<C: Component> ComponentTestHarness<C> {
         Self {
             component,
             events: Vec::new(),
+            messages: Vec::new(),
         }
     }
 
@@ -31,18 +33,18 @@ impl<C: Component> ComponentTestHarness<C> {
     }
 
     pub fn given_command(&mut self, command: Command) {
-        let events = self
+        let signals = self
             .component
             .handle_command(&ComponentCommand::Command(command));
-        self.process_events(events);
+        self.process_signals(signals);
     }
 
     pub fn given_key(&mut self, string: &str) {
         let key_code = key_code_from_str(string).expect("key codes in tests should be correct");
         let ct_event = CrosstermEvent::Key(KeyEvent::new(key_code, KeyModifiers::empty()));
         let command = ComponentCommand::RawEvent(ct_event);
-        let events = self.component.handle_command(&command);
-        self.process_events(events);
+        let signals = self.component.handle_command(&command);
+        self.process_signals(signals);
     }
 
     pub fn given_string(&mut self, string: &str) {
@@ -50,24 +52,30 @@ impl<C: Component> ComponentTestHarness<C> {
             let ct_event =
                 CrosstermEvent::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::empty()));
             let command = ComponentCommand::RawEvent(ct_event);
-            let events = self.component.handle_command(&command);
-            self.process_events(events);
+            let signals = self.component.handle_command(&command);
+            self.process_signals(signals);
         }
     }
 
     pub fn given_event(&mut self, event: Event) {
-        self.process_events(vec![event]);
+        self.process_signals(vec![event.into()]);
     }
 
-    fn process_events(&mut self, events: Vec<Event>) {
-        let mut events_deque = VecDeque::from(events);
+    fn process_signals(&mut self, signals: Vec<Signal>) {
+        let mut signals_deque = VecDeque::from(signals);
 
-        while let Some(event) = events_deque.pop_front() {
-            let new_events = self.component.handle_event(&event);
+        while let Some(signal) = signals_deque.pop_front() {
+            let new_signals = match &signal {
+                Signal::Event(event) => self.component.handle_event(event),
+                Signal::Message(message) => self.component.handle_message(message),
+            };
 
-            events_deque.append(&mut new_events.into());
+            signals_deque.append(&mut new_signals.into());
 
-            self.events.push(event);
+            match signal {
+                Signal::Event(event) => self.events.push(event),
+                Signal::Message(message) => self.messages.push(message),
+            }
         }
     }
 

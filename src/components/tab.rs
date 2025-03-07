@@ -9,7 +9,7 @@ use crate::{
     },
     connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
-    system::{command::CommandGroup, event::Event},
+    system::{command::CommandGroup, event::Event, Signal},
 };
 use ratatui::{layout::Rect, Frame};
 use serde::{Deserialize, Serialize};
@@ -133,7 +133,7 @@ impl Component for Tab<'_> {
     }
 
     #[must_use]
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
         // HACK: need to clone here to avoid borrow error with the focus `RefCell`
         // TODO: refactor to use `Cell` instead of `RefCell`, since AppFocus is Copy
         let app_focus = self.focus.borrow().clone();
@@ -146,7 +146,7 @@ impl Component for Tab<'_> {
         }
     }
 
-    fn handle_event(&mut self, event: &Event) -> Vec<Event> {
+    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         let mut out = vec![];
         match event {
             Event::ConnectionCreated(..) | Event::ConnectionSelected(..) => {
@@ -159,7 +159,7 @@ impl Component for Tab<'_> {
             Event::InputRequested(input_kind) => {
                 self.background_focus = Some(self.focus.borrow().clone());
                 self.input_modal.show_with(*input_kind);
-                out.push(Event::RawModeEntered);
+                out.push(Event::RawModeEntered.into());
             }
             Event::ConfirmationYes(..)
             | Event::ConfirmationNo

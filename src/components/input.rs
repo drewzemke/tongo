@@ -1,4 +1,4 @@
-use crate::system::event::Event;
+use crate::system::{event::Event, Signal};
 use crossterm::event::Event as CrosstermEvent;
 use ratatui::{
     prelude::*,
@@ -60,11 +60,11 @@ where
         self.formatter.on_change(value);
     }
 
-    fn handle_raw_event(&mut self, event: &CrosstermEvent) -> Vec<Event> {
+    fn handle_raw_event(&mut self, event: &CrosstermEvent) -> Vec<Signal> {
         if self.is_editing() {
             self.state.handle_event(event);
             self.formatter.on_change(self.state.value());
-            vec![Event::InputKeyPressed]
+            vec![Event::InputKeyPressed.into()]
         } else {
             vec![]
         }

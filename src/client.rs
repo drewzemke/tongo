@@ -1,7 +1,7 @@
 use crate::{
-    components::{input::input_modal::InputKind, Component, ComponentCommand},
+    components::{input::input_modal::InputKind, Component},
     persistence::PersistedComponent,
-    system::{command::CommandGroup, event::Event},
+    system::{event::Event, Signal},
 };
 use anyhow::Result;
 use futures::{Future, TryStreamExt};
@@ -297,7 +297,7 @@ impl Client {
 }
 
 impl Component for Client {
-    fn handle_event(&mut self, event: &Event) -> Vec<Event> {
+    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         // check for completed async operations
         let mut out = vec![];
         while let Ok(content) = self.response_recv.try_recv() {
@@ -401,12 +401,7 @@ impl Component for Client {
             _ => (),
         }
 
-        out
-    }
-
-    /// Not used
-    fn handle_command(&mut self, _command: &ComponentCommand) -> Vec<Event> {
-        vec![]
+        out.into_iter().map(Signal::from).collect()
     }
 
     /// Not used
@@ -415,11 +410,6 @@ impl Component for Client {
     /// Not used
     fn is_focused(&self) -> bool {
         false
-    }
-
-    /// Not used
-    fn commands(&self) -> Vec<CommandGroup> {
-        vec![]
     }
 
     /// Not used

@@ -20,3 +20,24 @@ pub mod event;
 /// message to the root component (`App`), the client, the status bar, the tab
 /// bar, or any other component within the currently-visible tab.
 pub mod message;
+
+/// A utility enum that is the union of the event and message type, since a
+/// component may return either when handling a command, event, or message,
+/// and both are used for communication between components.
+#[derive(Debug, Clone, strum_macros::Display)]
+pub enum Signal {
+    Event(event::Event),
+    Message(message::Message),
+}
+
+impl From<event::Event> for Signal {
+    fn from(e: event::Event) -> Self {
+        Self::Event(e)
+    }
+}
+
+impl From<message::Message> for Signal {
+    fn from(m: message::Message) -> Self {
+        Self::Message(m)
+    }
+}

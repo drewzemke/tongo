@@ -3,6 +3,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
+        Signal,
     },
 };
 use ratatui::{prelude::*, widgets::Clear};
@@ -101,7 +102,7 @@ impl Component for InputModal {
         }
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
         match command {
             ComponentCommand::RawEvent(event) => self.input.handle_raw_event(event),
             ComponentCommand::Command(command) => match command {
@@ -112,13 +113,14 @@ impl Component for InputModal {
                         Event::InputConfirmed(
                             self.kind.expect("input should not be shown without a kind"),
                             value,
-                        ),
-                        Event::RawModeExited,
+                        )
+                        .into(),
+                        Event::RawModeExited.into(),
                     ]
                 }
                 Command::Back => {
                     self.input.set_value("");
-                    vec![Event::InputCanceled, Event::RawModeExited]
+                    vec![Event::InputCanceled.into(), Event::RawModeExited.into()]
                 }
                 _ => vec![],
             },

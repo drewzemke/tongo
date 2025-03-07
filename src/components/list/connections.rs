@@ -14,6 +14,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
+        Signal,
     },
 };
 use ratatui::{prelude::*, widgets::ListItem};
@@ -84,7 +85,7 @@ impl Component for Connections {
         out
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
         let mut out = self
             .list
             .handle_base_command(command, self.connection_manager.connections().len());
@@ -94,26 +95,26 @@ impl Component for Connections {
         match command {
             Command::Confirm => {
                 if let Some(conn) = self.get_selected_conn() {
-                    out.push(Event::ConnectionSelected(conn.clone()));
+                    out.push(Event::ConnectionSelected(conn.clone()).into());
                 }
             }
             Command::CreateNew => {
-                out.push(Event::NewConnectionStarted);
+                out.push(Event::NewConnectionStarted.into());
             }
             Command::Edit => {
                 if let Some(conn) = self.get_selected_conn() {
-                    out.push(Event::EditConnectionStarted(conn.clone()));
+                    out.push(Event::EditConnectionStarted(conn.clone()).into());
                 }
             }
             Command::Delete => {
-                out.push(Event::ConfirmationRequested(ConfirmKind::DeleteConnection));
+                out.push(Event::ConfirmationRequested(ConfirmKind::DeleteConnection).into());
             }
             _ => {}
         }
         out
     }
 
-    fn handle_event(&mut self, event: &Event) -> Vec<Event> {
+    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         let mut out = vec![];
 
         // only process the confirmation if this component is focused
@@ -123,11 +124,14 @@ impl Component for Connections {
             };
 
             if let Ok(_) = self.connection_manager.delete_connection(index_to_delete) {
-                out.push(Event::ConnectionDeleted);
+                out.push(Event::ConnectionDeleted.into());
             } else {
-                out.push(Event::ErrorOccurred(
-                    "An error occurred while saving connection preferences".to_string(),
-                ));
+                out.push(
+                    Event::ErrorOccurred(
+                        "An error occurred while saving connection preferences".to_string(),
+                    )
+                    .into(),
+                );
             }
         }
         out

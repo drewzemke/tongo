@@ -10,6 +10,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
+        Signal,
     },
 };
 use mongodb::results::DatabaseSpecification;
@@ -66,7 +67,7 @@ impl Component for Databases {
         out
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
         let mut out = self.list.handle_base_command(command, self.items.len());
         let ComponentCommand::Command(command) = command else {
             return vec![];
@@ -75,13 +76,15 @@ impl Component for Databases {
         match command {
             Command::Confirm => {
                 if let Some(db) = self.get_selected() {
-                    out.push(Event::DatabaseSelected(db.clone()));
+                    out.push(Event::DatabaseSelected(db.clone()).into());
                 }
             }
-            Command::CreateNew => out.push(Event::InputRequested(InputKind::NewDatabaseName)),
+            Command::CreateNew => {
+                out.push(Event::InputRequested(InputKind::NewDatabaseName).into())
+            }
             Command::Delete => {
                 if self.get_selected().is_some() {
-                    out.push(Event::ConfirmationRequested(ConfirmKind::DropDatabase));
+                    out.push(Event::ConfirmationRequested(ConfirmKind::DropDatabase).into());
                 }
             }
             _ => {}
@@ -89,13 +92,13 @@ impl Component for Databases {
         out
     }
 
-    fn handle_event(&mut self, event: &Event) -> Vec<Event> {
+    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         let mut out = vec![];
         match event {
             Event::ListSelectionChanged => {
                 if self.is_focused() {
                     if let Some(db) = self.get_selected() {
-                        out.push(Event::DatabaseHighlighted(db.clone()));
+                        out.push(Event::DatabaseHighlighted(db.clone()).into());
                     }
                 }
             }
@@ -106,14 +109,14 @@ impl Component for Databases {
                     if let Some(first_db) = dbs.first() {
                         // try to select the first thing
                         self.list.state.select(Some(0));
-                        out.push(Event::DatabaseHighlighted(first_db.clone()));
+                        out.push(Event::DatabaseHighlighted(first_db.clone()).into());
                     }
                 }
             }
             Event::ConfirmationYes(Command::Delete) => {
                 if self.is_focused() {
                     if let Some(db) = self.get_selected() {
-                        return vec![Event::DatabaseDropped(db.clone())];
+                        return vec![Event::DatabaseDropped(db.clone()).into()];
                     }
                 }
             }

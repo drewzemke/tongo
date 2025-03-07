@@ -4,6 +4,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
+        Signal,
     },
 };
 use ratatui::{
@@ -121,7 +122,7 @@ impl Component for ConfirmModal {
         ]
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
         let ComponentCommand::Command(command) = command else {
             return vec![];
         };
@@ -131,8 +132,8 @@ impl Component for ConfirmModal {
 
         let mut out = vec![];
         match command {
-            Command::Confirm => out.push(Event::ConfirmationYes(confirm_kind.command())),
-            Command::Back => out.push(Event::ConfirmationNo),
+            Command::Confirm => out.push(Event::ConfirmationYes(confirm_kind.command()).into()),
+            Command::Back => out.push(Event::ConfirmationNo.into()),
             _ => {}
         }
         out

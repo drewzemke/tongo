@@ -7,7 +7,7 @@ use super::{
 use crate::{
     connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
-    system::{command::CommandGroup, event::Event},
+    system::{command::CommandGroup, event::Event, Signal},
     utils::storage::FileStorage,
 };
 use ratatui::{
@@ -100,7 +100,7 @@ impl Component for ConnectionScreen {
         }
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
         match self.internal_focus() {
             Some(ConnScrFocus::ConnList) => self.conn_list.handle_command(command),
             Some(ConnScrFocus::NameIn) => self.conn_name_input.handle_command(command),
@@ -109,19 +109,19 @@ impl Component for ConnectionScreen {
         }
     }
 
-    fn handle_event(&mut self, event: &Event) -> Vec<Event> {
+    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         let mut out = vec![];
         match event {
             Event::NewConnectionStarted => {
                 self.conn_name_input.focus();
                 self.conn_name_input.start_editing();
-                out.push(Event::RawModeEntered);
+                out.push(Event::RawModeEntered.into());
             }
             Event::EditConnectionStarted(conn) => {
                 self.conn_name_input.focus();
                 self.conn_name_input.start_editing();
                 self.editing = Some(conn.clone());
-                out.push(Event::RawModeEntered);
+                out.push(Event::RawModeEntered.into());
             }
             Event::FocusedForward => match self.internal_focus() {
                 Some(ConnScrFocus::NameIn) => {
@@ -133,13 +133,13 @@ impl Component for ConnectionScreen {
                     if let Some(mut editing_conn) = self.editing.take() {
                         editing_conn.name = self.conn_name_input.value().to_string();
                         editing_conn.connection_str = self.conn_str_input.value().to_string();
-                        out.push(Event::ConnectionEdited(editing_conn));
+                        out.push(Event::ConnectionEdited(editing_conn).into());
                     } else {
                         let conn = Connection::new(
                             self.conn_name_input.value().to_string(),
                             self.conn_str_input.value().to_string(),
                         );
-                        out.push(Event::ConnectionCreated(conn));
+                        out.push(Event::ConnectionCreated(conn).into());
                     };
                 }
                 Some(ConnScrFocus::ConnList) | None => {}
@@ -160,18 +160,20 @@ impl Component for ConnectionScreen {
                 self.connection_manager
                     .add_connection(conn.clone())
                     .unwrap_or_else(|_| {
-                        out.push(Event::ErrorOccurred(
-                            "Could not save updated connections.".to_string(),
-                        ));
+                        out.push(
+                            Event::ErrorOccurred("Could not save updated connections.".to_string())
+                                .into(),
+                        );
                     });
             }
             Event::ConnectionEdited(conn) => {
                 self.connection_manager
                     .update_connection(conn)
                     .unwrap_or_else(|_| {
-                        out.push(Event::ErrorOccurred(
-                            "Could not save updated connections.".to_string(),
-                        ));
+                        out.push(
+                            Event::ErrorOccurred("Could not save updated connections.".to_string())
+                                .into(),
+                        );
                     });
 
                 self.conn_list.focus();

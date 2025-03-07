@@ -5,6 +5,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
+        Signal,
     },
     utils::json_labeler::{JsonLabel, JsonLabeler},
 };
@@ -77,7 +78,7 @@ impl Component for FilterInput {
         }
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Event> {
+    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
         if self.input.is_editing() {
             match command {
                 ComponentCommand::RawEvent(event) => self.input.handle_raw_event(event),
@@ -86,17 +87,17 @@ impl Component for FilterInput {
                         if let Some(doc) = self.get_filter_doc() {
                             self.input.stop_editing();
                             vec![
-                                Event::DocumentPageChanged(0),
-                                Event::DocFilterUpdated(doc),
-                                Event::RawModeExited,
+                                Event::DocumentPageChanged(0).into(),
+                                Event::DocFilterUpdated(doc).into(),
+                                Event::RawModeExited.into(),
                             ]
                         } else {
-                            vec![Event::ErrorOccurred("Invalid filter.".to_string())]
+                            vec![Event::ErrorOccurred("Invalid filter.".to_string()).into()]
                         }
                     }
                     Command::Back => {
                         self.stop_editing();
-                        vec![Event::RawModeExited]
+                        vec![Event::RawModeExited.into()]
                     }
                     _ => vec![],
                 },
@@ -105,21 +106,17 @@ impl Component for FilterInput {
             match command {
                 Command::Confirm => {
                     self.start_editing();
-                    vec![Event::RawModeEntered]
+                    vec![Event::RawModeEntered.into()]
                 }
                 Command::Reset => {
                     self.input.set_value(DEFAULT_FILTER);
-                    vec![Event::DocFilterUpdated(Document::default())]
+                    vec![Event::DocFilterUpdated(Document::default()).into()]
                 }
                 _ => vec![],
             }
         } else {
             vec![]
         }
-    }
-
-    fn handle_event(&mut self, _event: &Event) -> Vec<Event> {
-        vec![]
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
