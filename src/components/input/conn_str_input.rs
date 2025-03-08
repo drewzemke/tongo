@@ -6,7 +6,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
-        message::{AppAction, Message},
+        message::{ConnScreenAction, Message},
         Signal,
     },
 };
@@ -63,12 +63,11 @@ impl Component for ConnStrInput {
                 if self.input.is_editing() {
                     match command {
                         Command::Confirm => {
-                            vec![
-                                Event::FocusedForward.into(),
-                                Message::to_app(AppAction::ExitRawMode).into(),
-                            ]
+                            vec![Message::to_conn_scr(ConnScreenAction::FinishEditingConn).into()]
                         }
-                        Command::Back => vec![Event::FocusedBackward.into()],
+                        Command::Back => {
+                            vec![Message::to_conn_scr(ConnScreenAction::FocusConnNameInput).into()]
+                        }
                         _ => vec![],
                     }
 

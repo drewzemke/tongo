@@ -6,7 +6,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
-        message::{ClientAction, Message},
+        message::{ClientAction, Message, TabAction},
         Signal,
     },
     utils::{
@@ -267,7 +267,9 @@ impl Component for Documents<'_> {
                 }
             }
             Command::Delete => {
-                out.push(Event::ConfirmationRequested(ConfirmKind::DeleteDoc).into());
+                out.push(
+                    Message::to_tab(TabAction::RequestConfirmation(ConfirmKind::DeleteDoc)).into(),
+                );
             }
             Command::Yank => {
                 if let Some(bson) = self.selected_bson() {

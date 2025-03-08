@@ -24,10 +24,19 @@ pub mod message;
 /// A utility enum that is the union of the event and message type, since a
 /// component may return either when handling a command, event, or message,
 /// and both are used for communication between components.
-#[derive(Debug, Clone, strum_macros::Display)]
+#[derive(Debug, Clone)]
 pub enum Signal {
     Event(event::Event),
     Message(message::Message),
+}
+
+impl std::fmt::Display for Signal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Signal::Event(event) => write!(f, "{event}"),
+            Signal::Message(message) => write!(f, "{message}"),
+        }
+    }
 }
 
 impl From<event::Event> for Signal {

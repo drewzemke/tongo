@@ -8,7 +8,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
-        message::{ClientAction, Message},
+        message::{ClientAction, Message, TabAction},
         Signal,
     },
 };
@@ -88,7 +88,12 @@ impl Component for Collections {
             }
             Command::Delete => {
                 if self.get_selected().is_some() {
-                    out.push(Event::ConfirmationRequested(ConfirmKind::DropCollection).into());
+                    out.push(
+                        Message::to_tab(TabAction::RequestConfirmation(
+                            ConfirmKind::DropCollection,
+                        ))
+                        .into(),
+                    );
                 }
             }
             _ => {}
@@ -219,8 +224,11 @@ mod tests {
 
         test.given_command(Command::NavDown);
         test.given_command(Command::Delete);
-        test.expect_event(|e| {
-            matches!(e, Event::ConfirmationRequested(ConfirmKind::DropCollection))
+        test.expect_message(|m| {
+            matches!(
+                m.read_as_tab(),
+                Some(TabAction::RequestConfirmation(ConfirmKind::DropCollection))
+            )
         });
     }
 

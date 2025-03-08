@@ -1,8 +1,5 @@
 use super::command::Command;
-use crate::{
-    components::{confirm_modal::ConfirmKind, input::input_modal::InputKind},
-    connection::Connection,
-};
+use crate::{components::input::input_modal::InputKind, connection::Connection};
 use mongodb::{
     bson::{Bson, Document},
     results::{CollectionSpecification, DatabaseSpecification},
@@ -21,9 +18,8 @@ pub enum Event {
 
     ConnectionCreated(Connection),
     ConnectionSelected(Connection),
-    NewConnectionStarted,              // message for conn scr
-    EditConnectionStarted(Connection), // message for conn scr
-    ConnectionEdited(Connection),      // message for conn scr
+    EditConnectionStarted(Connection),
+    ConnectionUpdated(Connection),
     ConnectionDeleted,
 
     ClientCreated(MongoClient),
@@ -57,9 +53,6 @@ pub enum Event {
     DocInsertConfirmed,
     DocDeleteConfirmed,
 
-    // TODO: sort these out better
-    FocusedForward,  // message for ... it depends!
-    FocusedBackward, // message for ... it depends!
     FocusedChanged,
 
     InputKeyPressed,
@@ -71,7 +64,6 @@ pub enum Event {
     InputConfirmed(InputKind, String),
     InputCanceled,
 
-    ConfirmationRequested(ConfirmKind), // message for tab
     // TODO: Better names
     ConfirmationYes(Command),
     ConfirmationNo,

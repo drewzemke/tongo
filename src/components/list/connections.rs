@@ -14,7 +14,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
-        message::{ClientAction, Message},
+        message::{ClientAction, ConnScreenAction, Message, TabAction},
         Signal,
     },
 };
@@ -101,15 +101,23 @@ impl Component for Connections {
                 }
             }
             Command::CreateNew => {
-                out.push(Event::NewConnectionStarted.into());
+                out.push(Message::to_conn_scr(ConnScreenAction::StartNewConn).into());
             }
             Command::Edit => {
                 if let Some(conn) = self.get_selected_conn() {
-                    out.push(Event::EditConnectionStarted(conn.clone()).into());
+                    out.push(
+                        Message::to_conn_scr(ConnScreenAction::StartEditingConn(conn.clone()))
+                            .into(),
+                    );
                 }
             }
             Command::Delete => {
-                out.push(Event::ConfirmationRequested(ConfirmKind::DeleteConnection).into());
+                out.push(
+                    Message::to_tab(TabAction::RequestConfirmation(
+                        ConfirmKind::DeleteConnection,
+                    ))
+                    .into(),
+                );
             }
             _ => {}
         }

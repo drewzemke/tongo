@@ -10,7 +10,7 @@ use crate::{
     system::{
         command::CommandGroup,
         event::Event,
-        message::{AppAction, ClientAction, Message},
+        message::{AppAction, ClientAction, ConnScreenAction, Message},
         Signal,
     },
     utils::storage::FileStorage,
@@ -40,7 +40,7 @@ pub struct ConnectionScreen {
     conn_list: Connections,
     conn_name_input: ConnNameInput,
     conn_str_input: ConnStrInput,
-    editing: Option<Connection>,
+    editing_conn: Option<Connection>,
 }
 
 impl Default for ConnectionScreen {
@@ -61,7 +61,7 @@ impl Default for ConnectionScreen {
             conn_list,
             conn_name_input,
             conn_str_input,
-            editing: None,
+            editing_conn: None,
         }
     }
 }
@@ -82,7 +82,7 @@ impl ConnectionScreen {
             conn_name_input,
             conn_str_input,
             connection_manager,
-            editing: None,
+            editing_conn: None,
         }
     }
 
@@ -117,51 +117,6 @@ impl Component for ConnectionScreen {
     fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         let mut out = vec![];
         match event {
-            Event::NewConnectionStarted => {
-                self.conn_name_input.focus();
-                self.conn_name_input.start_editing();
-                out.push(Message::to_app(AppAction::EnterRawMode).into());
-            }
-            Event::EditConnectionStarted(conn) => {
-                self.conn_name_input.focus();
-                self.conn_name_input.start_editing();
-                self.editing = Some(conn.clone());
-                out.push(Message::to_app(AppAction::EnterRawMode).into());
-            }
-            Event::FocusedForward => match self.internal_focus() {
-                Some(ConnScrFocus::NameIn) => {
-                    self.conn_name_input.stop_editing();
-                    self.conn_str_input.focus();
-                    self.conn_str_input.start_editing();
-                }
-                Some(ConnScrFocus::StringIn) => {
-                    if let Some(mut editing_conn) = self.editing.take() {
-                        editing_conn.name = self.conn_name_input.value().to_string();
-                        editing_conn.connection_str = self.conn_str_input.value().to_string();
-                        out.push(Event::ConnectionEdited(editing_conn).into());
-                    } else {
-                        let conn = Connection::new(
-                            self.conn_name_input.value().to_string(),
-                            self.conn_str_input.value().to_string(),
-                        );
-                        out.push(Event::ConnectionCreated(conn.clone()).into());
-                        out.push(Message::to_client(ClientAction::Connect(conn)).into());
-                    };
-                }
-                Some(ConnScrFocus::ConnList) | None => {}
-            },
-            Event::FocusedBackward => match self.internal_focus() {
-                Some(ConnScrFocus::NameIn) => {
-                    self.conn_list.focus();
-                    self.conn_name_input.stop_editing();
-                }
-                Some(ConnScrFocus::StringIn) => {
-                    self.conn_name_input.focus();
-                    self.conn_name_input.start_editing();
-                    self.conn_str_input.stop_editing();
-                }
-                Some(ConnScrFocus::ConnList) | None => {}
-            },
             Event::ConnectionCreated(conn) => {
                 self.connection_manager
                     .add_connection(conn.clone())
@@ -172,23 +127,77 @@ impl Component for ConnectionScreen {
                         );
                     });
             }
-            Event::ConnectionEdited(conn) => {
-                self.connection_manager
-                    .update_connection(conn)
-                    .unwrap_or_else(|_| {
-                        out.push(
-                            Event::ErrorOccurred("Could not save updated connections.".to_string())
-                                .into(),
-                        );
-                    });
-
-                self.conn_list.focus();
-            }
             _ => {}
         }
         out.append(&mut self.conn_list.handle_event(event));
         out.append(&mut self.conn_name_input.handle_event(event));
         out.append(&mut self.conn_str_input.handle_event(event));
+        out
+    }
+
+    fn handle_message(&mut self, message: &Message) -> Vec<Signal> {
+        let mut out = vec![];
+
+        match message.read_as_conn_scr() {
+            Some(ConnScreenAction::StartNewConn) => {
+                self.conn_name_input.focus();
+                self.conn_name_input.start_editing();
+                out.push(Message::to_app(AppAction::EnterRawMode).into());
+            }
+            Some(ConnScreenAction::StartEditingConn(conn)) => {
+                self.conn_name_input.focus();
+                self.conn_name_input.start_editing();
+                self.editing_conn = Some(conn.clone());
+                out.push(Message::to_app(AppAction::EnterRawMode).into());
+                out.push(Event::EditConnectionStarted(conn.clone()).into());
+            }
+            Some(ConnScreenAction::FocusConnNameInput) => {
+                self.conn_name_input.focus();
+                self.conn_name_input.start_editing();
+                self.conn_str_input.stop_editing();
+            }
+            Some(ConnScreenAction::FocusConnStrInput) => {
+                self.conn_name_input.stop_editing();
+                self.conn_str_input.focus();
+                self.conn_str_input.start_editing();
+            }
+            Some(ConnScreenAction::FinishEditingConn) => {
+                if let Some(mut editing_conn) = self.editing_conn.take() {
+                    editing_conn.name = self.conn_name_input.value().to_string();
+                    editing_conn.connection_str = self.conn_str_input.value().to_string();
+
+                    // update the connection in storage
+                    self.connection_manager
+                        .update_connection(&editing_conn)
+                        .unwrap_or_else(|_| {
+                            out.push(
+                                Event::ErrorOccurred(
+                                    "Could not save updated connections.".to_string(),
+                                )
+                                .into(),
+                            );
+                        });
+
+                    self.conn_list.focus();
+                    out.push(Event::ConnectionUpdated(editing_conn).into());
+                } else {
+                    let conn = Connection::new(
+                        self.conn_name_input.value().to_string(),
+                        self.conn_str_input.value().to_string(),
+                    );
+                    out.push(Event::ConnectionCreated(conn.clone()).into());
+                    out.push(Message::to_client(ClientAction::Connect(conn)).into());
+                };
+                out.push(Message::to_app(AppAction::ExitRawMode).into());
+            }
+            Some(ConnScreenAction::CancelEditingConn) => {
+                self.conn_name_input.stop_editing();
+                self.conn_list.focus();
+                out.push(Message::to_app(AppAction::ExitRawMode).into());
+            }
+            None => {}
+        }
+
         out
     }
 
@@ -326,7 +335,7 @@ mod tests {
         test.given_command(Command::Confirm);
 
         test.expect_event(
-            |e| matches!(e, Event::ConnectionEdited(c) if c.connection_str == "new_url" && c.id() == connection.id()),
+            |e| matches!(e, Event::ConnectionUpdated(c) if c.connection_str == "new_url" && c.id() == connection.id()),
         );
     }
 }

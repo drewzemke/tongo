@@ -12,7 +12,7 @@ use crate::{
     system::{
         command::CommandGroup,
         event::Event,
-        message::{AppAction, Message},
+        message::{AppAction, Message, TabAction},
         Signal,
     },
 };
@@ -157,10 +157,6 @@ impl Component for Tab<'_> {
             Event::ConnectionCreated(..) | Event::ConnectionSelected(..) => {
                 self.primary_screen.focus();
             }
-            Event::ConfirmationRequested(confirm_kind) => {
-                self.background_focus = Some(self.focus.borrow().clone());
-                self.confirm_modal.show_with(*confirm_kind);
-            }
             Event::InputRequested(input_kind) => {
                 self.background_focus = Some(self.focus.borrow().clone());
                 self.input_modal.show_with(*input_kind);
@@ -178,6 +174,23 @@ impl Component for Tab<'_> {
         out.append(&mut self.conn_screen.handle_event(event));
         out.append(&mut self.primary_screen.handle_event(event));
         out
+    }
+
+    fn handle_message(&mut self, message: &Message) -> Vec<Signal> {
+        if message.read_as_client().is_some() {
+            self.client.handle_message(message)
+        } else if message.read_as_conn_scr().is_some() {
+            self.conn_screen.handle_message(message)
+        } else {
+            match message.read_as_tab() {
+                Some(TabAction::RequestConfirmation(kind)) => {
+                    self.background_focus = Some(self.focus.borrow().clone());
+                    self.confirm_modal.show_with(*kind);
+                }
+                _ => {}
+            };
+            vec![]
+        }
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
@@ -203,10 +216,6 @@ impl Component for Tab<'_> {
             }
             TabFocus::NotFocused => {}
         }
-    }
-
-    fn handle_message(&mut self, message: &Message) -> Vec<Signal> {
-        self.client.handle_message(message)
     }
 
     /// Not used.

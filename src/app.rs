@@ -181,7 +181,7 @@ impl App<'_> {
             should_render = should_render || is_nontrivial_event;
 
             if is_nontrivial_event {
-                tracing::debug!("Processing event {signal}");
+                tracing::debug!("Processing signal {signal}");
             }
 
             let new_signals = match signal {

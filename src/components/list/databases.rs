@@ -10,7 +10,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
-        message::{ClientAction, Message},
+        message::{ClientAction, Message, TabAction},
         Signal,
     },
 };
@@ -85,7 +85,10 @@ impl Component for Databases {
             }
             Command::Delete => {
                 if self.get_selected().is_some() {
-                    out.push(Event::ConfirmationRequested(ConfirmKind::DropDatabase).into());
+                    out.push(
+                        Message::to_tab(TabAction::RequestConfirmation(ConfirmKind::DropDatabase))
+                            .into(),
+                    );
                 }
             }
             _ => {}
@@ -216,7 +219,12 @@ mod tests {
 
         test.given_command(Command::NavDown);
         test.given_command(Command::Delete);
-        test.expect_event(|e| matches!(e, Event::ConfirmationRequested(ConfirmKind::DropDatabase)));
+        test.expect_message(|m| {
+            matches!(
+                m.read_as_tab(),
+                Some(TabAction::RequestConfirmation(ConfirmKind::DropDatabase))
+            )
+        });
     }
 
     #[test]
