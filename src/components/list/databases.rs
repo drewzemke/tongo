@@ -10,7 +10,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
-        message::{Action, Message, Target},
+        message::{ClientAction, Message},
         Signal,
     },
 };
@@ -117,11 +117,9 @@ impl Component for Databases {
             Event::ConfirmationYes(Command::Delete) => {
                 if self.is_focused() {
                     if let Some(db) = self.get_selected() {
-                        return vec![Message::new(
-                            Action::DropDatabase(db.clone()),
-                            Target::Client,
-                        )
-                        .into()];
+                        return vec![
+                            Message::to_client(ClientAction::DropDatabase(db.clone())).into()
+                        ];
                     }
                 }
             }

@@ -6,7 +6,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
-        message::{Action, Message, Target},
+        message::{ClientAction, Message},
         Signal,
     },
     utils::{
@@ -223,7 +223,7 @@ impl Component for Documents<'_> {
                 out.push(Event::DocumentPageChanged(self.page).into());
             }
             Command::Refresh => {
-                out.push(Message::new(Action::RefreshQueries, Target::Client).into());
+                out.push(Message::to_client(ClientAction::RefreshQueries).into());
             }
             Command::Edit => {
                 let Some(doc) = self.selected_doc() else {
@@ -233,7 +233,7 @@ impl Component for Documents<'_> {
                 out.push(Event::ReturnedFromAltScreen.into());
                 match edit_doc(doc.clone()) {
                     Ok(new_doc) => {
-                        out.push(Message::new(Action::UpdateDoc(new_doc), Target::Client).into())
+                        out.push(Message::to_client(ClientAction::UpdateDoc(new_doc)).into());
                     }
                     Err(err) => out.push(Event::ErrorOccurred(err.to_string()).into()),
                 }
@@ -245,7 +245,7 @@ impl Component for Documents<'_> {
 
                 match edit_doc(doc) {
                     Ok(new_doc) => {
-                        out.push(Message::new(Action::InsertDoc(new_doc), Target::Client).into())
+                        out.push(Message::to_client(ClientAction::InsertDoc(new_doc)).into());
                     }
                     Err(err) => out.push(Event::ErrorOccurred(err.to_string()).into()),
                 }
@@ -261,7 +261,7 @@ impl Component for Documents<'_> {
                 out.push(Event::ReturnedFromAltScreen.into());
                 match edit_doc(duplicated_doc) {
                     Ok(new_doc) => {
-                        out.push(Message::new(Action::InsertDoc(new_doc), Target::Client).into())
+                        out.push(Message::to_client(ClientAction::InsertDoc(new_doc)).into());
                     }
                     Err(err) => out.push(Event::ErrorOccurred(err.to_string()).into()),
                 }
@@ -295,7 +295,7 @@ impl Component for Documents<'_> {
                 if self.is_focused() {
                     if let Some(doc) = self.selected_doc() {
                         return vec![
-                            Message::new(Action::DeleteDoc(doc.clone()), Target::Client).into()
+                            Message::to_client(ClientAction::DeleteDoc(doc.clone())).into()
                         ];
                     }
                 }

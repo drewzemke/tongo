@@ -3,7 +3,7 @@ use crate::{
     persistence::PersistedComponent,
     system::{
         event::Event,
-        message::{Action, Message, Target},
+        message::{ClientAction, Message},
         Signal,
     },
 };
@@ -382,21 +382,17 @@ impl Component for Client {
     }
 
     fn handle_message(&mut self, message: &Message) -> Vec<Signal> {
-        if *message.target() != Target::Client {
-            return vec![];
-        }
-
         let mut out = vec![];
 
-        match message.action() {
-            Action::Connect(conn) => self.connect(conn.connection_str.clone()),
-            Action::DropDatabase(db) => {
+        match message.read_as_client() {
+            Some(ClientAction::Connect(conn)) => self.connect(conn.connection_str.clone()),
+            Some(ClientAction::DropDatabase(db)) => {
                 self.queue(Operation::DropDatabase(db.name.clone()));
             }
-            Action::DropCollection(db) => {
+            Some(ClientAction::DropCollection(db)) => {
                 self.queue(Operation::DropCollection(db.name.clone()));
             }
-            Action::UpdateDoc(doc) => {
+            Some(ClientAction::UpdateDoc(doc)) => {
                 if let Some(id) = doc.get("_id") {
                     self.update_doc(doc! { "_id": id }, doc.clone());
                 } else {
@@ -405,10 +401,10 @@ impl Component for Client {
                     ));
                 }
             }
-            Action::InsertDoc(doc) => {
+            Some(ClientAction::InsertDoc(doc)) => {
                 self.insert_doc(doc.clone());
             }
-            Action::DeleteDoc(doc) => {
+            Some(ClientAction::DeleteDoc(doc)) => {
                 if let Some(id) = doc.get("_id") {
                     self.delete_doc(doc! { "_id": id });
                 } else {
@@ -417,11 +413,11 @@ impl Component for Client {
                     ));
                 }
             }
-            Action::RefreshQueries => {
+            Some(ClientAction::RefreshQueries) => {
                 self.queue(Operation::Count);
                 self.queue(Operation::Query(false));
             }
-            _ => {}
+            None => {}
         }
 
         out.into_iter().map(Signal::from).collect()

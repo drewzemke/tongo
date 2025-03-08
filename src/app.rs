@@ -11,7 +11,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
-        message::{Action, Message, Target},
+        message::{AppAction, Message},
         Signal,
     },
     utils::storage::{FileStorage, Storage},
@@ -326,12 +326,9 @@ impl Component for App<'_> {
     }
 
     fn handle_message(&mut self, message: &Message) -> Vec<Signal> {
-        match message.target() {
-            Target::App => match message.action() {
-                Action::EnterRawMode => self.raw_mode = true,
-                Action::ExitRawMode => self.raw_mode = false,
-                _ => {}
-            },
+        match message.read_as_app() {
+            Some(AppAction::EnterRawMode) => self.raw_mode = true,
+            Some(AppAction::ExitRawMode) => self.raw_mode = false,
             _ => {
                 let index = self.current_tab_idx();
                 if let Some(tab) = self.tabs.get_mut(index) {

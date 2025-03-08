@@ -5,7 +5,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
-        message::{Action, Message, Target},
+        message::{AppAction, Message},
         Signal,
     },
     utils::json_labeler::{JsonLabel, JsonLabeler},
@@ -90,7 +90,7 @@ impl Component for FilterInput {
                             vec![
                                 Event::DocumentPageChanged(0).into(),
                                 Event::DocFilterUpdated(doc).into(),
-                                Message::new(Action::ExitRawMode, Target::App).into(),
+                                Message::to_app(AppAction::ExitRawMode).into(),
                             ]
                         } else {
                             vec![Event::ErrorOccurred("Invalid filter.".to_string()).into()]
@@ -98,7 +98,7 @@ impl Component for FilterInput {
                     }
                     Command::Back => {
                         self.stop_editing();
-                        vec![Message::new(Action::ExitRawMode, Target::App).into()]
+                        vec![Message::to_app(AppAction::ExitRawMode).into()]
                     }
                     _ => vec![],
                 },
@@ -107,7 +107,7 @@ impl Component for FilterInput {
             match command {
                 Command::Confirm => {
                     self.start_editing();
-                    vec![Message::new(Action::EnterRawMode, Target::App).into()]
+                    vec![Message::to_app(AppAction::EnterRawMode).into()]
                 }
                 Command::Reset => {
                     self.input.set_value(DEFAULT_FILTER);

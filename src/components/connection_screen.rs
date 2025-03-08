@@ -10,7 +10,7 @@ use crate::{
     system::{
         command::CommandGroup,
         event::Event,
-        message::{Action, Message, Target},
+        message::{AppAction, ClientAction, Message},
         Signal,
     },
     utils::storage::FileStorage,
@@ -120,13 +120,13 @@ impl Component for ConnectionScreen {
             Event::NewConnectionStarted => {
                 self.conn_name_input.focus();
                 self.conn_name_input.start_editing();
-                out.push(Message::new(Action::EnterRawMode, Target::App).into());
+                out.push(Message::to_app(AppAction::EnterRawMode).into());
             }
             Event::EditConnectionStarted(conn) => {
                 self.conn_name_input.focus();
                 self.conn_name_input.start_editing();
                 self.editing = Some(conn.clone());
-                out.push(Message::new(Action::EnterRawMode, Target::App).into());
+                out.push(Message::to_app(AppAction::EnterRawMode).into());
             }
             Event::FocusedForward => match self.internal_focus() {
                 Some(ConnScrFocus::NameIn) => {
@@ -145,7 +145,7 @@ impl Component for ConnectionScreen {
                             self.conn_str_input.value().to_string(),
                         );
                         out.push(Event::ConnectionCreated(conn.clone()).into());
-                        out.push(Message::new(Action::Connect(conn), Target::Client).into());
+                        out.push(Message::to_client(ClientAction::Connect(conn)).into());
                     };
                 }
                 Some(ConnScrFocus::ConnList) | None => {}
@@ -294,7 +294,12 @@ mod tests {
         test.given_command(Command::Confirm);
 
         test.expect_event(|e| matches!(e, Event::ConnectionCreated(c) if c.name == "local"));
-        test.expect_message(|m| matches!(m.action(), Action::Connect(c) if c.name == "local"));
+        test.expect_message(|m| {
+            matches!(
+                m.read_as_client(),
+                Some(ClientAction::Connect(c)) if c.name == "local"
+            )
+        });
     }
 
     #[test]

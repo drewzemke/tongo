@@ -14,7 +14,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
-        message::{Action, Message, Target},
+        message::{ClientAction, Message},
         Signal,
     },
 };
@@ -97,7 +97,7 @@ impl Component for Connections {
             Command::Confirm => {
                 if let Some(conn) = self.get_selected_conn() {
                     out.push(Event::ConnectionSelected(conn.clone()).into());
-                    out.push(Message::new(Action::Connect(conn.clone()), Target::Client).into());
+                    out.push(Message::to_client(ClientAction::Connect(conn.clone())).into());
                 }
             }
             Command::CreateNew => {

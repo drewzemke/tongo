@@ -3,7 +3,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
-        message::{Action, Message, Target},
+        message::{AppAction, Message},
         Signal,
     },
 };
@@ -116,14 +116,14 @@ impl Component for InputModal {
                             value,
                         )
                         .into(),
-                        Message::new(Action::ExitRawMode, Target::App).into(),
+                        Message::to_app(AppAction::ExitRawMode).into(),
                     ]
                 }
                 Command::Back => {
                     self.input.set_value("");
                     vec![
                         Event::InputCanceled.into(),
-                        Message::new(Action::ExitRawMode, Target::App).into(),
+                        Message::to_app(AppAction::ExitRawMode).into(),
                     ]
                 }
                 _ => vec![],
@@ -150,7 +150,7 @@ mod tests {
         test.expect_event(|e| {
             matches!(e, Event::InputConfirmed(InputKind::NewCollectionName, s) if *s == "text!".to_string())
         });
-        test.expect_message(|m| matches!(m.action(), Action::ExitRawMode));
+        test.expect_message(|m| matches!(m.read_as_app(), Some(AppAction::ExitRawMode)));
         assert_eq!(test.component_mut().input.value(), "");
     }
 
@@ -165,7 +165,7 @@ mod tests {
         test.given_command(Command::Back);
 
         test.expect_event(|e| matches!(e, Event::InputCanceled));
-        test.expect_message(|m| matches!(m.action(), Action::ExitRawMode));
+        test.expect_message(|m| matches!(m.read_as_app(), Some(AppAction::ExitRawMode)));
         assert_eq!(test.component_mut().input.value(), "");
     }
 }

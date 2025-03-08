@@ -6,7 +6,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
-        message::{Action, Message, Target},
+        message::{AppAction, Message},
         Signal,
     },
 };
@@ -66,13 +66,11 @@ impl Component for ConnNameInput {
                         Command::Back => {
                             vec![
                                 Event::FocusedBackward.into(),
-                                Message::new(Action::ExitRawMode, Target::App).into(),
+                                Message::to_app(AppAction::ExitRawMode).into(),
                             ]
                         }
                         _ => vec![],
                     }
-
-                    // see confirm and back events in previous version
                 } else {
                     vec![]
                 }
