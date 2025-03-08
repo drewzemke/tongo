@@ -110,14 +110,6 @@ impl TabBar {
 }
 
 impl Component for TabBar {
-    fn focus(&self) {
-        // do nothing
-    }
-
-    fn is_focused(&self) -> bool {
-        false
-    }
-
     fn commands(&self) -> Vec<CommandGroup> {
         vec![
             CommandGroup::new(vec![Command::NewTab], "new tab"),

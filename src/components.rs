@@ -43,12 +43,11 @@ pub trait Component {
         vec![]
     }
 
-    // TODO: default impl
     fn render(&mut self, _frame: &mut Frame, _area: Rect) {}
 
-    // TODO: default impl
-    fn focus(&self);
+    fn focus(&self) {}
 
-    // TODO: default impl
-    fn is_focused(&self) -> bool;
+    fn is_focused(&self) -> bool {
+        false
+    }
 }

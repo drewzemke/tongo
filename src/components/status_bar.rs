@@ -82,12 +82,6 @@ impl StatusBar {
 }
 
 impl Component for StatusBar {
-    fn focus(&self) {}
-
-    fn is_focused(&self) -> bool {
-        false
-    }
-
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         let content = self.message.as_ref().map_or_else(
             || {

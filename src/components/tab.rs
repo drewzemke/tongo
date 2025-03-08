@@ -217,14 +217,6 @@ impl Component for Tab<'_> {
             TabFocus::NotFocused => {}
         }
     }
-
-    /// Not used.
-    fn focus(&self) {}
-
-    /// Not used.
-    fn is_focused(&self) -> bool {
-        true
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

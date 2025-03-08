@@ -422,17 +422,6 @@ impl Component for Client {
 
         out.into_iter().map(Signal::from).collect()
     }
-
-    /// Not used
-    fn focus(&self) {}
-
-    /// Not used
-    fn is_focused(&self) -> bool {
-        false
-    }
-
-    /// Not used
-    fn render(&mut self, _frame: &mut Frame, _area: Rect) {}
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

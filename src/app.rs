@@ -379,14 +379,6 @@ impl Component for App<'_> {
             frame.set_cursor_position((x, y));
         }
     }
-
-    /// Not used.
-    fn focus(&self) {}
-
-    /// Not used.
-    fn is_focused(&self) -> bool {
-        true
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
