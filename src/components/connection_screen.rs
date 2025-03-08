@@ -144,7 +144,8 @@ impl Component for ConnectionScreen {
                             self.conn_name_input.value().to_string(),
                             self.conn_str_input.value().to_string(),
                         );
-                        out.push(Event::ConnectionCreated(conn).into());
+                        out.push(Event::ConnectionCreated(conn.clone()).into());
+                        out.push(Message::new(Action::Connect(conn), Target::Client).into());
                     };
                 }
                 Some(ConnScrFocus::ConnList) | None => {}
@@ -293,6 +294,7 @@ mod tests {
         test.given_command(Command::Confirm);
 
         test.expect_event(|e| matches!(e, Event::ConnectionCreated(c) if c.name == "local"));
+        test.expect_message(|m| matches!(m.action(), Action::Connect(c) if c.name == "local"));
     }
 
     #[test]

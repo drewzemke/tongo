@@ -150,7 +150,7 @@ mod tests {
         test.expect_event(|e| {
             matches!(e, Event::InputConfirmed(InputKind::NewCollectionName, s) if *s == "text!".to_string())
         });
-        test.expect_message(|m| *m.action() == Action::ExitRawMode);
+        test.expect_message(|m| matches!(m.action(), Action::ExitRawMode));
         assert_eq!(test.component_mut().input.value(), "");
     }
 
@@ -165,7 +165,7 @@ mod tests {
         test.given_command(Command::Back);
 
         test.expect_event(|e| matches!(e, Event::InputCanceled));
-        test.expect_message(|m| *m.action() == Action::ExitRawMode);
+        test.expect_message(|m| matches!(m.action(), Action::ExitRawMode));
         assert_eq!(test.component_mut().input.value(), "");
     }
 }

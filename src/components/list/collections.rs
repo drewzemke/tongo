@@ -8,6 +8,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
+        message::{Action, Message, Target},
         Signal,
     },
 };
@@ -119,7 +120,11 @@ impl Component for Collections {
             Event::ConfirmationYes(Command::Delete) => {
                 if self.is_focused() {
                     if let Some(coll) = self.get_selected() {
-                        return vec![Event::CollectionDropped(coll.clone()).into()];
+                        return vec![Message::new(
+                            Action::DropCollection(coll.clone()),
+                            Target::Client,
+                        )
+                        .into()];
                     }
                 }
             }

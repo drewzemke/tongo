@@ -1,7 +1,11 @@
 use crate::{
     components::{input::input_modal::InputKind, Component},
     persistence::PersistedComponent,
-    system::{event::Event, Signal},
+    system::{
+        event::Event,
+        message::{Action, Message, Target},
+        Signal,
+    },
 };
 use anyhow::Result;
 use futures::{Future, TryStreamExt};
@@ -108,7 +112,7 @@ impl Client {
         });
     }
 
-    pub fn set_conn_str(&self, url: String) {
+    pub fn connect(&self, url: String) {
         self.exec(async move {
             let options = ClientOptions::parse(url).await?;
             let client = MongoClient::with_options(options)?;
@@ -191,7 +195,7 @@ impl Client {
 
         self.exec(async move {
             coll.insert_one(doc).await?;
-            Ok(Event::InsertConfirmed)
+            Ok(Event::DocInsertConfirmed)
         });
 
         Some(())
@@ -203,7 +207,7 @@ impl Client {
 
         self.exec(async move {
             coll.update_one(filter, update).await?;
-            Ok(Event::UpdateConfirmed)
+            Ok(Event::DocUpdateConfirmed)
         });
 
         Some(())
@@ -306,8 +310,8 @@ impl Component for Client {
 
         // handle the event as normal
         match event {
-            Event::ConnectionCreated(conn) | Event::ConnectionSelected(conn) => {
-                self.set_conn_str(conn.connection_str.clone());
+            Event::ConnectionSelected(conn) => {
+                self.connect(conn.connection_str.clone());
             }
             Event::ClientCreated(client) => {
                 self.mongo_client = Some(client.clone());
@@ -324,9 +328,6 @@ impl Component for Client {
                 self.db = Some(db.clone());
                 self.queue(Operation::QueryCollections);
             }
-            Event::DatabaseDropped(db) => {
-                self.queue(Operation::DropDatabase(db.name.clone()));
-            }
             Event::CollectionHighlighted(coll) => {
                 self.coll = Some(coll.clone());
             }
@@ -334,9 +335,6 @@ impl Component for Client {
                 self.coll = Some(coll.clone());
                 self.queue(Operation::Query(true));
                 self.queue(Operation::Count);
-            }
-            Event::CollectionDropped(coll) => {
-                self.queue(Operation::DropCollection(coll.name.clone()));
             }
             Event::DocumentPageChanged(page) => {
                 self.page = *page;
@@ -347,29 +345,8 @@ impl Component for Client {
                 self.queue(Operation::Query(true));
                 self.queue(Operation::Count);
             }
-            Event::DocumentEdited(doc) => {
-                if let Some(id) = doc.get("_id") {
-                    self.update_doc(doc! { "_id": id }, doc.clone());
-                } else {
-                    out.push(Event::ErrorOccurred(
-                        "Document does not have an `_id` field.".to_string(),
-                    ));
-                }
-            }
-            Event::UpdateConfirmed => self.queue(Operation::Query(false)),
-            Event::DocumentCreated(doc) => {
-                self.insert_doc(doc.clone());
-            }
-            Event::DocumentDeleted(doc) => {
-                if let Some(id) = doc.get("_id") {
-                    self.delete_doc(doc! { "_id": id });
-                } else {
-                    out.push(Event::ErrorOccurred(
-                        "Document does not have an `_id` field.".to_string(),
-                    ));
-                }
-            }
-            Event::RefreshRequested | Event::InsertConfirmed | Event::DocDeleteConfirmed => {
+            Event::DocUpdateConfirmed => self.queue(Operation::Query(false)),
+            Event::DocInsertConfirmed | Event::DocDeleteConfirmed => {
                 self.queue(Operation::Count);
                 self.queue(Operation::Query(false));
             }
@@ -399,6 +376,52 @@ impl Component for Client {
                 self.queue(Operation::CreateDatabase(coll_name.to_string()))
             }
             _ => (),
+        }
+
+        out.into_iter().map(Signal::from).collect()
+    }
+
+    fn handle_message(&mut self, message: &Message) -> Vec<Signal> {
+        if *message.target() != Target::Client {
+            return vec![];
+        }
+
+        let mut out = vec![];
+
+        match message.action() {
+            Action::Connect(conn) => self.connect(conn.connection_str.clone()),
+            Action::DropDatabase(db) => {
+                self.queue(Operation::DropDatabase(db.name.clone()));
+            }
+            Action::DropCollection(db) => {
+                self.queue(Operation::DropCollection(db.name.clone()));
+            }
+            Action::UpdateDoc(doc) => {
+                if let Some(id) = doc.get("_id") {
+                    self.update_doc(doc! { "_id": id }, doc.clone());
+                } else {
+                    out.push(Event::ErrorOccurred(
+                        "Document does not have an `_id` field.".to_string(),
+                    ));
+                }
+            }
+            Action::InsertDoc(doc) => {
+                self.insert_doc(doc.clone());
+            }
+            Action::DeleteDoc(doc) => {
+                if let Some(id) = doc.get("_id") {
+                    self.delete_doc(doc! { "_id": id });
+                } else {
+                    out.push(Event::ErrorOccurred(
+                        "Document does not have an `_id` field.".to_string(),
+                    ));
+                }
+            }
+            Action::RefreshQueries => {
+                self.queue(Operation::Count);
+                self.queue(Operation::Query(false));
+            }
+            _ => {}
         }
 
         out.into_iter().map(Signal::from).collect()

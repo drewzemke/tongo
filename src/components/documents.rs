@@ -6,6 +6,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
+        message::{Action, Message, Target},
         Signal,
     },
     utils::{
@@ -222,7 +223,7 @@ impl Component for Documents<'_> {
                 out.push(Event::DocumentPageChanged(self.page).into());
             }
             Command::Refresh => {
-                out.push(Event::RefreshRequested.into());
+                out.push(Message::new(Action::RefreshQueries, Target::Client).into());
             }
             Command::Edit => {
                 let Some(doc) = self.selected_doc() else {
@@ -231,7 +232,9 @@ impl Component for Documents<'_> {
 
                 out.push(Event::ReturnedFromAltScreen.into());
                 match edit_doc(doc.clone()) {
-                    Ok(new_doc) => out.push(Event::DocumentEdited(new_doc).into()),
+                    Ok(new_doc) => {
+                        out.push(Message::new(Action::UpdateDoc(new_doc), Target::Client).into())
+                    }
                     Err(err) => out.push(Event::ErrorOccurred(err.to_string()).into()),
                 }
             }
@@ -241,7 +244,9 @@ impl Component for Documents<'_> {
                 out.push(Event::ReturnedFromAltScreen.into());
 
                 match edit_doc(doc) {
-                    Ok(new_doc) => out.push(Event::DocumentCreated(new_doc).into()),
+                    Ok(new_doc) => {
+                        out.push(Message::new(Action::InsertDoc(new_doc), Target::Client).into())
+                    }
                     Err(err) => out.push(Event::ErrorOccurred(err.to_string()).into()),
                 }
             }
@@ -255,7 +260,9 @@ impl Component for Documents<'_> {
 
                 out.push(Event::ReturnedFromAltScreen.into());
                 match edit_doc(duplicated_doc) {
-                    Ok(new_doc) => out.push(Event::DocumentCreated(new_doc).into()),
+                    Ok(new_doc) => {
+                        out.push(Message::new(Action::InsertDoc(new_doc), Target::Client).into())
+                    }
                     Err(err) => out.push(Event::ErrorOccurred(err.to_string()).into()),
                 }
             }
@@ -287,7 +294,9 @@ impl Component for Documents<'_> {
             Event::ConfirmationYes(Command::Delete) => {
                 if self.is_focused() {
                     if let Some(doc) = self.selected_doc() {
-                        return vec![Event::DocumentDeleted(doc.clone()).into()];
+                        return vec![
+                            Message::new(Action::DeleteDoc(doc.clone()), Target::Client).into()
+                        ];
                     }
                 }
             }

@@ -80,7 +80,7 @@ impl Tab<'_> {
         let client = Client::default();
 
         let initial_focus = if let Some(conn) = selected_connection {
-            client.set_conn_str(conn.connection_str);
+            client.connect(conn.connection_str);
             TabFocus::PrimScr(PrimScrFocus::DbList)
         } else {
             TabFocus::ConnScr(ConnScrFocus::ConnList)
@@ -205,6 +205,10 @@ impl Component for Tab<'_> {
         }
     }
 
+    fn handle_message(&mut self, message: &Message) -> Vec<Signal> {
+        self.client.handle_message(message)
+    }
+
     /// Not used.
     fn focus(&self) {}
 
@@ -256,7 +260,7 @@ impl PersistedComponent for Tab<'_> {
 
         self.client.hydrate(storage.client);
         if let Some(conn) = storage.conn_screen.conn_list.selected_conn {
-            self.client.set_conn_str(conn.connection_str);
+            self.client.connect(conn.connection_str);
         }
     }
 }

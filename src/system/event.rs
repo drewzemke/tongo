@@ -19,11 +19,11 @@ pub enum Event {
 
     StatusMessageCleared,
 
-    ConnectionSelected(Connection), // sometimes a message for client
-    NewConnectionStarted,           // message for conn scr
+    ConnectionCreated(Connection),
+    ConnectionSelected(Connection),
+    NewConnectionStarted,              // message for conn scr
     EditConnectionStarted(Connection), // message for conn scr
-    ConnectionCreated(Connection),  // message for client
-    ConnectionEdited(Connection),   // message for conn scr
+    ConnectionEdited(Connection),      // message for conn scr
     ConnectionDeleted,
 
     ClientCreated(MongoClient),
@@ -31,12 +31,10 @@ pub enum Event {
     DatabasesUpdated(Vec<DatabaseSpecification>),
     DatabaseHighlighted(DatabaseSpecification),
     DatabaseSelected(DatabaseSpecification),
-    DatabaseDropped(DatabaseSpecification), // message for client
 
     CollectionsUpdated(Vec<CollectionSpecification>),
     CollectionHighlighted(CollectionSpecification),
     CollectionSelected(CollectionSpecification),
-    CollectionDropped(CollectionSpecification), // message for client
 
     /// carries a flag that indicates whether the dropped
     /// collection was the currently-selected one
@@ -55,13 +53,9 @@ pub enum Event {
     DataSentToClipboard,
     ErrorOccurred(String),
 
-    DocumentEdited(Document), // message for client
-    UpdateConfirmed,
-    DocumentCreated(Document), // message for client
-    InsertConfirmed,
-    DocumentDeleted(Document), // message for client
+    DocUpdateConfirmed,
+    DocInsertConfirmed,
     DocDeleteConfirmed,
-    RefreshRequested, // message for client
 
     // TODO: sort these out better
     FocusedForward,  // message for ... it depends!

@@ -330,6 +330,7 @@ impl Component for App<'_> {
             Target::App => match message.action() {
                 Action::EnterRawMode => self.raw_mode = true,
                 Action::ExitRawMode => self.raw_mode = false,
+                _ => {}
             },
             _ => {
                 let index = self.current_tab_idx();
