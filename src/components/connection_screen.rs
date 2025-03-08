@@ -7,7 +7,12 @@ use super::{
 use crate::{
     connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
-    system::{command::CommandGroup, event::Event, Signal},
+    system::{
+        command::CommandGroup,
+        event::Event,
+        message::{Action, Message, Target},
+        Signal,
+    },
     utils::storage::FileStorage,
 };
 use ratatui::{
@@ -115,13 +120,13 @@ impl Component for ConnectionScreen {
             Event::NewConnectionStarted => {
                 self.conn_name_input.focus();
                 self.conn_name_input.start_editing();
-                out.push(Event::RawModeEntered.into());
+                out.push(Message::new(Action::EnterRawMode, Target::App).into());
             }
             Event::EditConnectionStarted(conn) => {
                 self.conn_name_input.focus();
                 self.conn_name_input.start_editing();
                 self.editing = Some(conn.clone());
-                out.push(Event::RawModeEntered.into());
+                out.push(Message::new(Action::EnterRawMode, Target::App).into());
             }
             Event::FocusedForward => match self.internal_focus() {
                 Some(ConnScrFocus::NameIn) => {

@@ -6,6 +6,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
+        message::{Action, Message, Target},
         Signal,
     },
 };
@@ -62,7 +63,10 @@ impl Component for ConnStrInput {
                 if self.input.is_editing() {
                     match command {
                         Command::Confirm => {
-                            vec![Event::FocusedForward.into(), Event::RawModeExited.into()]
+                            vec![
+                                Event::FocusedForward.into(),
+                                Message::new(Action::ExitRawMode, Target::App).into(),
+                            ]
                         }
                         Command::Back => vec![Event::FocusedBackward.into()],
                         _ => vec![],

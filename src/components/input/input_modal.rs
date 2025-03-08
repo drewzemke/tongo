@@ -3,6 +3,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
+        message::{Action, Message, Target},
         Signal,
     },
 };
@@ -115,12 +116,15 @@ impl Component for InputModal {
                             value,
                         )
                         .into(),
-                        Event::RawModeExited.into(),
+                        Message::new(Action::ExitRawMode, Target::App).into(),
                     ]
                 }
                 Command::Back => {
                     self.input.set_value("");
-                    vec![Event::InputCanceled.into(), Event::RawModeExited.into()]
+                    vec![
+                        Event::InputCanceled.into(),
+                        Message::new(Action::ExitRawMode, Target::App).into(),
+                    ]
                 }
                 _ => vec![],
             },
@@ -146,7 +150,7 @@ mod tests {
         test.expect_event(|e| {
             matches!(e, Event::InputConfirmed(InputKind::NewCollectionName, s) if *s == "text!".to_string())
         });
-        test.expect_event(|e| matches!(e, Event::RawModeExited));
+        test.expect_message(|m| *m.action() == Action::ExitRawMode);
         assert_eq!(test.component_mut().input.value(), "");
     }
 
@@ -161,7 +165,7 @@ mod tests {
         test.given_command(Command::Back);
 
         test.expect_event(|e| matches!(e, Event::InputCanceled));
-        test.expect_event(|e| matches!(e, Event::RawModeExited));
+        test.expect_message(|m| *m.action() == Action::ExitRawMode);
         assert_eq!(test.component_mut().input.value(), "");
     }
 }

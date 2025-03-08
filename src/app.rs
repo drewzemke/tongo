@@ -307,12 +307,6 @@ impl Component for App<'_> {
     fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         let mut out = vec![];
         match event {
-            Event::RawModeEntered => {
-                self.raw_mode = true;
-            }
-            Event::RawModeExited => {
-                self.raw_mode = false;
-            }
             Event::ReturnedFromAltScreen => {
                 self.force_clear = true;
             }
@@ -337,7 +331,7 @@ impl Component for App<'_> {
                 Action::EnterRawMode => self.raw_mode = true,
                 Action::ExitRawMode => self.raw_mode = false,
             },
-            Target::Tab => {
+            _ => {
                 let index = self.current_tab_idx();
                 if let Some(tab) = self.tabs.get_mut(index) {
                     return tab.handle_message(message);

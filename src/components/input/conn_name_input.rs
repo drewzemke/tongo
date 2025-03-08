@@ -6,6 +6,7 @@ use crate::{
     system::{
         command::{Command, CommandGroup},
         event::Event,
+        message::{Action, Message, Target},
         Signal,
     },
 };
@@ -63,7 +64,10 @@ impl Component for ConnNameInput {
                     match command {
                         Command::Confirm => vec![Event::FocusedForward.into()],
                         Command::Back => {
-                            vec![Event::FocusedBackward.into(), Event::RawModeExited.into()]
+                            vec![
+                                Event::FocusedBackward.into(),
+                                Message::new(Action::ExitRawMode, Target::App).into(),
+                            ]
                         }
                         _ => vec![],
                     }

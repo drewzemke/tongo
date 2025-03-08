@@ -87,4 +87,13 @@ impl<C: Component> ComponentTestHarness<C> {
             self.events
         );
     }
+
+    pub fn expect_message<P: FnMut(&&Message) -> bool>(&self, predicate: P) {
+        let event = self.messages.iter().find(predicate);
+        assert!(
+            event.is_some(),
+            "Matching message not found. These message were recorded:\n{:?}",
+            self.messages
+        );
+    }
 }

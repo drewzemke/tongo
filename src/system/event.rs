@@ -19,11 +19,11 @@ pub enum Event {
 
     StatusMessageCleared,
 
-    ConnectionSelected(Connection),
-    NewConnectionStarted,              // message
-    EditConnectionStarted(Connection), // message
-    ConnectionCreated(Connection),     // message
-    ConnectionEdited(Connection),      // message
+    ConnectionSelected(Connection), // sometimes a message for client
+    NewConnectionStarted,           // message for conn scr
+    EditConnectionStarted(Connection), // message for conn scr
+    ConnectionCreated(Connection),  // message for client
+    ConnectionEdited(Connection),   // message for conn scr
     ConnectionDeleted,
 
     ClientCreated(MongoClient),
@@ -31,12 +31,12 @@ pub enum Event {
     DatabasesUpdated(Vec<DatabaseSpecification>),
     DatabaseHighlighted(DatabaseSpecification),
     DatabaseSelected(DatabaseSpecification),
-    DatabaseDropped(DatabaseSpecification), // message
+    DatabaseDropped(DatabaseSpecification), // message for client
 
     CollectionsUpdated(Vec<CollectionSpecification>),
     CollectionHighlighted(CollectionSpecification),
     CollectionSelected(CollectionSpecification),
-    CollectionDropped(CollectionSpecification), // message
+    CollectionDropped(CollectionSpecification), // message for client
 
     /// carries a flag that indicates whether the dropped
     /// collection was the currently-selected one
@@ -55,21 +55,19 @@ pub enum Event {
     DataSentToClipboard,
     ErrorOccurred(String),
 
-    DocumentEdited(Document), // message
+    DocumentEdited(Document), // message for client
     UpdateConfirmed,
-    DocumentCreated(Document), // message
+    DocumentCreated(Document), // message for client
     InsertConfirmed,
-    DocumentDeleted(Document), // message
+    DocumentDeleted(Document), // message for client
     DocDeleteConfirmed,
-    RefreshRequested, // message
+    RefreshRequested, // message for client
 
     // TODO: sort these out better
-    FocusedForward,  // message
-    FocusedBackward, // message
+    FocusedForward,  // message for ... it depends!
+    FocusedBackward, // message for ... it depends!
     FocusedChanged,
 
-    RawModeEntered, // message
-    RawModeExited,  // message
     InputKeyPressed,
 
     ReturnedFromAltScreen,
@@ -79,7 +77,7 @@ pub enum Event {
     InputConfirmed(InputKind, String),
     InputCanceled,
 
-    ConfirmationRequested(ConfirmKind), // message
+    ConfirmationRequested(ConfirmKind), // message for tab
     // TODO: Better names
     ConfirmationYes(Command),
     ConfirmationNo,

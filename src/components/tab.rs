@@ -9,7 +9,12 @@ use crate::{
     },
     connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
-    system::{command::CommandGroup, event::Event, Signal},
+    system::{
+        command::CommandGroup,
+        event::Event,
+        message::{Action, Message, Target},
+        Signal,
+    },
 };
 use ratatui::{layout::Rect, Frame};
 use serde::{Deserialize, Serialize};
@@ -159,7 +164,7 @@ impl Component for Tab<'_> {
             Event::InputRequested(input_kind) => {
                 self.background_focus = Some(self.focus.borrow().clone());
                 self.input_modal.show_with(*input_kind);
-                out.push(Event::RawModeEntered.into());
+                out.push(Message::new(Action::EnterRawMode, Target::App).into());
             }
             Event::ConfirmationYes(..)
             | Event::ConfirmationNo
