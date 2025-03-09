@@ -3,7 +3,7 @@ use crate::{
         status_bar::StatusBar,
         tab::{PersistedTab, Tab},
         tab_bar::{PersistedTabBar, TabBar},
-        Component, ComponentCommand,
+        Component,
     },
     connection::{Connection, ConnectionManager},
     key_map::KeyMap,
@@ -223,31 +223,29 @@ impl Component for App<'_> {
     }
 
     #[must_use]
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
-        if let ComponentCommand::Command(command) = command {
-            match command {
-                Command::Quit => {
-                    tracing::info!("Quit command received. Exiting...");
-                    self.exiting = true;
-                    return vec![];
-                }
-                Command::NewTab => {
-                    let tab = self.create_tab();
-                    self.tabs.push(tab);
-                }
-                Command::DuplicateTab => {
-                    if let Some(current_tab) = self.tabs.get(self.tab_bar.current_tab_idx()) {
-                        let new_tab = current_tab.clone();
-                        self.tabs.push(new_tab);
-                    }
-                }
-                Command::CloseTab => {
-                    if self.tabs.len() > 1 {
-                        self.tabs.remove(self.tab_bar.current_tab_idx());
-                    }
-                }
-                _ => {}
+    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
+        match command {
+            Command::Quit => {
+                tracing::info!("Quit command received. Exiting...");
+                self.exiting = true;
+                return vec![];
             }
+            Command::NewTab => {
+                let tab = self.create_tab();
+                self.tabs.push(tab);
+            }
+            Command::DuplicateTab => {
+                if let Some(current_tab) = self.tabs.get(self.tab_bar.current_tab_idx()) {
+                    let new_tab = current_tab.clone();
+                    self.tabs.push(new_tab);
+                }
+            }
+            Command::CloseTab => {
+                if self.tabs.len() > 1 {
+                    self.tabs.remove(self.tab_bar.current_tab_idx());
+                }
+            }
+            _ => {}
         }
 
         // the tab bar sees every command (although it only handles a few of them)
@@ -275,10 +273,10 @@ impl Component for App<'_> {
             // FIXME: these should be configurable!
             if self.raw_mode {
                 if key.code == KeyCode::Enter {
-                    return self.handle_command(&ComponentCommand::Command(Command::Confirm));
+                    return self.handle_command(&Command::Confirm);
                 }
                 if key.code == KeyCode::Esc {
-                    return self.handle_command(&ComponentCommand::Command(Command::Back));
+                    return self.handle_command(&Command::Back);
                 }
                 let index = self.current_tab_idx();
                 if let Some(tab) = &mut self.tabs.get_mut(index) {
@@ -292,7 +290,7 @@ impl Component for App<'_> {
 
             // handle the command
             if let Some(command) = command {
-                return self.handle_command(&ComponentCommand::Command(command));
+                return self.handle_command(&command);
             }
         }
 
@@ -306,6 +304,7 @@ impl Component for App<'_> {
             _ => vec![],
         }
     }
+
     fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         let mut out = vec![];
         match event {

@@ -17,21 +17,12 @@ pub mod status_bar;
 pub mod tab;
 pub mod tab_bar;
 
-// FIXME: crappy name
-// OR: remove this enum entirely, and add a function called `handle_crossterm_event`
-// to this trait
-// ... yeahhhh that's the play
-pub enum ComponentCommand {
-    Command(Command),
-    RawEvent(CrosstermEvent),
-}
-
 pub trait Component {
     fn commands(&self) -> Vec<CommandGroup> {
         vec![]
     }
 
-    fn handle_command(&mut self, _command: &ComponentCommand) -> Vec<Signal> {
+    fn handle_command(&mut self, _command: &Command) -> Vec<Signal> {
         vec![]
     }
 

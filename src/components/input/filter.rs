@@ -1,6 +1,6 @@
 use super::{InnerInput, InputFormatter};
 use crate::{
-    components::{primary_screen::PrimScrFocus, tab::TabFocus, Component, ComponentCommand},
+    components::{primary_screen::PrimScrFocus, tab::TabFocus, Component},
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
@@ -79,31 +79,28 @@ impl Component for FilterInput {
         }
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
+    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
         if self.input.is_editing() {
             match command {
-                ComponentCommand::RawEvent(event) => self.input.handle_raw_event(event),
-                ComponentCommand::Command(command) => match command {
-                    Command::Confirm => {
-                        if let Some(doc) = self.get_filter_doc() {
-                            self.input.stop_editing();
-                            vec![
-                                Event::DocumentPageChanged(0).into(),
-                                Event::DocFilterUpdated(doc).into(),
-                                Message::to_app(AppAction::ExitRawMode).into(),
-                            ]
-                        } else {
-                            vec![Event::ErrorOccurred("Invalid filter.".to_string()).into()]
-                        }
+                Command::Confirm => {
+                    if let Some(doc) = self.get_filter_doc() {
+                        self.input.stop_editing();
+                        vec![
+                            Event::DocumentPageChanged(0).into(),
+                            Event::DocFilterUpdated(doc).into(),
+                            Message::to_app(AppAction::ExitRawMode).into(),
+                        ]
+                    } else {
+                        vec![Event::ErrorOccurred("Invalid filter.".to_string()).into()]
                     }
-                    Command::Back => {
-                        self.stop_editing();
-                        vec![Message::to_app(AppAction::ExitRawMode).into()]
-                    }
-                    _ => vec![],
-                },
+                }
+                Command::Back => {
+                    self.stop_editing();
+                    vec![Message::to_app(AppAction::ExitRawMode).into()]
+                }
+                _ => vec![],
             }
-        } else if let ComponentCommand::Command(command) = command {
+        } else {
             match command {
                 Command::Confirm => {
                     self.start_editing();
@@ -115,8 +112,6 @@ impl Component for FilterInput {
                 }
                 _ => vec![],
             }
-        } else {
-            vec![]
         }
     }
 

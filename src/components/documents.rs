@@ -1,7 +1,6 @@
 use super::{confirm_modal::ConfirmKind, primary_screen::PrimScrFocus, tab::TabFocus, Component};
 use crate::{
     client::PAGE_SIZE,
-    components::ComponentCommand,
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
@@ -165,11 +164,7 @@ impl Component for Documents<'_> {
         ]
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
-        let ComponentCommand::Command(command) = command else {
-            return vec![];
-        };
-
+    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
         let mut out = vec![];
         match command {
             Command::NavLeft => {

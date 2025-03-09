@@ -2,7 +2,7 @@ use super::InnerList;
 use crate::{
     components::{
         confirm_modal::ConfirmKind, input::input_modal::InputKind, primary_screen::PrimScrFocus,
-        tab::TabFocus, Component, ComponentCommand,
+        tab::TabFocus, Component,
     },
     persistence::PersistedComponent,
     system::{
@@ -71,11 +71,8 @@ impl Component for Collections {
         out
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
+    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
         let mut out = self.list.handle_base_command(command, self.items.len());
-        let ComponentCommand::Command(command) = command else {
-            return vec![];
-        };
         match command {
             Command::Confirm => {
                 if let Some(coll) = self.get_selected() {

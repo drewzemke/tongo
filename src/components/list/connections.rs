@@ -7,7 +7,6 @@ use super::InnerList;
 use crate::{
     components::{
         confirm_modal::ConfirmKind, connection_screen::ConnScrFocus, tab::TabFocus, Component,
-        ComponentCommand,
     },
     connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
@@ -86,13 +85,10 @@ impl Component for Connections {
         out
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
+    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
         let mut out = self
             .list
             .handle_base_command(command, self.connection_manager.connections().len());
-        let ComponentCommand::Command(command) = command else {
-            return vec![];
-        };
         match command {
             Command::Confirm => {
                 if let Some(conn) = self.get_selected_conn() {

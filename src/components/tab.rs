@@ -5,12 +5,12 @@ use crate::{
         connection_screen::{ConnScrFocus, ConnectionScreen, PersistedConnectionScreen},
         list::connections::Connections,
         primary_screen::{PersistedPrimaryScreen, PrimScrFocus, PrimaryScreen},
-        Component, ComponentCommand,
+        Component,
     },
     connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
     system::{
-        command::CommandGroup,
+        command::{Command, CommandGroup},
         event::Event,
         message::{AppAction, Message, TabAction},
         Signal,
@@ -138,7 +138,7 @@ impl Component for Tab<'_> {
     }
 
     #[must_use]
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
+    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
         // HACK: need to clone here to avoid borrow error with the focus `RefCell`
         // TODO: refactor to use `Cell` instead of `RefCell`, since AppFocus is Copy
         let app_focus = self.focus.borrow().clone();

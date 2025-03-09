@@ -1,4 +1,4 @@
-use super::{Component, ComponentCommand};
+use super::Component;
 use crate::{
     persistence::PersistedComponent,
     system::{
@@ -133,64 +133,60 @@ impl Component for TabBar {
         ]
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
-        if let ComponentCommand::Command(command) = command {
-            match command {
-                Command::NewTab => {
-                    self.tabs.push(TabSpec::default());
-                    self.current_tab_idx = self.tabs.len() - 1;
-                    self.scroll_to_current_tab();
-                    return vec![Event::TabCreated.into(), Event::TabChanged.into()];
-                }
-                Command::NextTab => {
-                    self.next_tab();
-                    self.scroll_to_current_tab();
-                    return vec![Event::TabChanged.into()];
-                }
-                Command::PreviousTab => {
-                    self.prev_tab();
-                    self.scroll_to_current_tab();
-                    return vec![Event::TabChanged.into()];
-                }
-                Command::CloseTab => {
-                    // do nothing if this is the last tab
-                    if self.tabs.len() == 1 {
-                        return vec![];
-                    }
-
-                    let next_tab_idx = self.current_tab_idx.saturating_sub(1);
-                    self.tabs.remove(self.current_tab_idx);
-                    self.current_tab_idx = next_tab_idx;
-                    self.scroll_to_current_tab();
-
-                    return vec![Event::TabClosed.into(), Event::TabChanged.into()];
-                }
-                Command::DuplicateTab => {
-                    let Some(current_tab) = self.tabs.get_mut(self.current_tab_idx) else {
-                        return vec![];
-                    };
-
-                    let new_tab = current_tab.clone();
-                    self.tabs.push(new_tab);
-                    self.current_tab_idx = self.tabs.len() - 1;
-                    self.scroll_to_current_tab();
-                    return vec![Event::TabCreated.into(), Event::TabChanged.into()];
-                }
-                Command::GotoTab(num) => {
-                    let new_idx = num - 1;
-                    if new_idx >= self.tabs.len() {
-                        return vec![];
-                    }
-
-                    self.current_tab_idx = new_idx;
-                    self.scroll_to_current_tab();
-                    return vec![Event::TabChanged.into()];
-                }
-                _ => {}
+    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
+        match command {
+            Command::NewTab => {
+                self.tabs.push(TabSpec::default());
+                self.current_tab_idx = self.tabs.len() - 1;
+                self.scroll_to_current_tab();
+                vec![Event::TabCreated.into(), Event::TabChanged.into()]
             }
-        }
+            Command::NextTab => {
+                self.next_tab();
+                self.scroll_to_current_tab();
+                vec![Event::TabChanged.into()]
+            }
+            Command::PreviousTab => {
+                self.prev_tab();
+                self.scroll_to_current_tab();
+                vec![Event::TabChanged.into()]
+            }
+            Command::CloseTab => {
+                // do nothing if this is the last tab
+                if self.tabs.len() == 1 {
+                    return vec![];
+                }
 
-        vec![]
+                let next_tab_idx = self.current_tab_idx.saturating_sub(1);
+                self.tabs.remove(self.current_tab_idx);
+                self.current_tab_idx = next_tab_idx;
+                self.scroll_to_current_tab();
+
+                vec![Event::TabClosed.into(), Event::TabChanged.into()]
+            }
+            Command::DuplicateTab => {
+                let Some(current_tab) = self.tabs.get_mut(self.current_tab_idx) else {
+                    return vec![];
+                };
+
+                let new_tab = current_tab.clone();
+                self.tabs.push(new_tab);
+                self.current_tab_idx = self.tabs.len() - 1;
+                self.scroll_to_current_tab();
+                vec![Event::TabCreated.into(), Event::TabChanged.into()]
+            }
+            Command::GotoTab(num) => {
+                let new_idx = num - 1;
+                if new_idx >= self.tabs.len() {
+                    return vec![];
+                }
+
+                self.current_tab_idx = new_idx;
+                self.scroll_to_current_tab();
+                vec![Event::TabChanged.into()]
+            }
+            _ => vec![],
+        }
     }
 
     fn handle_event(&mut self, event: &Event) -> Vec<Signal> {

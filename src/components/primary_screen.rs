@@ -9,7 +9,7 @@ use crate::{
         documents::Documents,
         input::filter::FilterInput,
         list::{collections::Collections, databases::Databases},
-        Component, ComponentCommand,
+        Component,
     },
     persistence::PersistedComponent,
     system::{
@@ -94,7 +94,7 @@ impl Component for PrimaryScreen<'_> {
         out
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
+    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
         // we need to pass the command to the currently-focused component first,
         // the way this component handles the command might change the focus
         let mut out = match self.internal_focus() {
@@ -105,73 +105,71 @@ impl Component for PrimaryScreen<'_> {
             None => vec![],
         };
 
-        if let ComponentCommand::Command(command) = command {
-            match command {
-                Command::FocusLeft => match self.internal_focus() {
-                    Some(PrimScrFocus::DocTree) => {
-                        self.coll_list.focus();
-                        out.push(Event::FocusedChanged.into());
-                    }
-                    Some(PrimScrFocus::FilterIn) => {
-                        self.db_list.focus();
-                        out.push(Event::FocusedChanged.into());
-                    }
-                    _ => {}
-                },
-                Command::FocusUp => match self.internal_focus() {
-                    Some(PrimScrFocus::CollList) => {
-                        self.db_list.focus();
-                        out.push(Event::FocusedChanged.into());
-                    }
-                    Some(PrimScrFocus::DocTree) => {
-                        self.filter_input.focus();
-                        out.push(Event::FocusedChanged.into());
-                    }
-                    _ => {}
-                },
-                Command::FocusDown => match self.internal_focus() {
-                    Some(PrimScrFocus::DbList) => {
-                        self.coll_list.focus();
-                        out.push(Event::FocusedChanged.into());
-                    }
-                    Some(PrimScrFocus::FilterIn) => {
-                        self.doc_tree.focus();
-                        out.push(Event::FocusedChanged.into());
-                    }
-                    _ => {}
-                },
-                Command::FocusRight => match self.internal_focus() {
-                    Some(PrimScrFocus::DbList) => {
-                        self.filter_input.focus();
-                        out.push(Event::FocusedChanged.into());
-                    }
-                    Some(PrimScrFocus::CollList) => {
-                        self.doc_tree.focus();
-                        out.push(Event::FocusedChanged.into());
-                    }
-                    _ => {}
-                },
-                Command::Back => match self.internal_focus() {
-                    Some(PrimScrFocus::DbList) => {
-                        *self.focus.borrow_mut() = TabFocus::ConnScr(ConnScrFocus::ConnList);
-                        out.push(Event::FocusedChanged.into());
-                    }
-                    Some(PrimScrFocus::CollList) => {
-                        self.db_list.focus();
-                        out.push(Event::FocusedChanged.into());
-                    }
-                    Some(PrimScrFocus::DocTree) => {
-                        self.coll_list.focus();
-                        out.push(Event::FocusedChanged.into());
-                    }
-                    Some(PrimScrFocus::FilterIn) => {
-                        self.doc_tree.focus();
-                        out.push(Event::FocusedChanged.into());
-                    }
-                    None => {}
-                },
+        match command {
+            Command::FocusLeft => match self.internal_focus() {
+                Some(PrimScrFocus::DocTree) => {
+                    self.coll_list.focus();
+                    out.push(Event::FocusedChanged.into());
+                }
+                Some(PrimScrFocus::FilterIn) => {
+                    self.db_list.focus();
+                    out.push(Event::FocusedChanged.into());
+                }
                 _ => {}
-            }
+            },
+            Command::FocusUp => match self.internal_focus() {
+                Some(PrimScrFocus::CollList) => {
+                    self.db_list.focus();
+                    out.push(Event::FocusedChanged.into());
+                }
+                Some(PrimScrFocus::DocTree) => {
+                    self.filter_input.focus();
+                    out.push(Event::FocusedChanged.into());
+                }
+                _ => {}
+            },
+            Command::FocusDown => match self.internal_focus() {
+                Some(PrimScrFocus::DbList) => {
+                    self.coll_list.focus();
+                    out.push(Event::FocusedChanged.into());
+                }
+                Some(PrimScrFocus::FilterIn) => {
+                    self.doc_tree.focus();
+                    out.push(Event::FocusedChanged.into());
+                }
+                _ => {}
+            },
+            Command::FocusRight => match self.internal_focus() {
+                Some(PrimScrFocus::DbList) => {
+                    self.filter_input.focus();
+                    out.push(Event::FocusedChanged.into());
+                }
+                Some(PrimScrFocus::CollList) => {
+                    self.doc_tree.focus();
+                    out.push(Event::FocusedChanged.into());
+                }
+                _ => {}
+            },
+            Command::Back => match self.internal_focus() {
+                Some(PrimScrFocus::DbList) => {
+                    *self.focus.borrow_mut() = TabFocus::ConnScr(ConnScrFocus::ConnList);
+                    out.push(Event::FocusedChanged.into());
+                }
+                Some(PrimScrFocus::CollList) => {
+                    self.db_list.focus();
+                    out.push(Event::FocusedChanged.into());
+                }
+                Some(PrimScrFocus::DocTree) => {
+                    self.coll_list.focus();
+                    out.push(Event::FocusedChanged.into());
+                }
+                Some(PrimScrFocus::FilterIn) => {
+                    self.doc_tree.focus();
+                    out.push(Event::FocusedChanged.into());
+                }
+                None => {}
+            },
+            _ => {}
         }
         out
     }

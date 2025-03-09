@@ -2,7 +2,7 @@ use ratatui::prelude::{Frame, Rect};
 
 use super::{DefaultFormatter, InnerInput};
 use crate::{
-    components::{connection_screen::ConnScrFocus, tab::TabFocus, Component, ComponentCommand},
+    components::{connection_screen::ConnScrFocus, tab::TabFocus, Component},
     system::{
         command::{Command, CommandGroup},
         event::Event,
@@ -60,26 +60,19 @@ impl Component for ConnStrInput {
         self.input.handle_raw_event(event)
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
-        match command {
-            ComponentCommand::RawEvent(event) => self.input.handle_raw_event(event),
-            ComponentCommand::Command(command) => {
-                if self.input.is_editing() {
-                    match command {
-                        Command::Confirm => {
-                            vec![Message::to_conn_scr(ConnScreenAction::FinishEditingConn).into()]
-                        }
-                        Command::Back => {
-                            vec![Message::to_conn_scr(ConnScreenAction::FocusConnNameInput).into()]
-                        }
-                        _ => vec![],
-                    }
+    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
+        if !self.input.is_editing() {
+            return vec![];
+        }
 
-                    // see confirm and back events in previous version
-                } else {
-                    vec![]
-                }
+        match command {
+            Command::Confirm => {
+                vec![Message::to_conn_scr(ConnScreenAction::FinishEditingConn).into()]
             }
+            Command::Back => {
+                vec![Message::to_conn_scr(ConnScreenAction::FocusConnNameInput).into()]
+            }
+            _ => vec![],
         }
     }
 

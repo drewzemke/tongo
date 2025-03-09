@@ -1,5 +1,5 @@
 use crate::{
-    components::{Component, ComponentCommand},
+    components::Component,
     key_map::key_code_from_str,
     system::{command::Command, event::Event, message::Message, Signal},
 };
@@ -33,26 +33,22 @@ impl<C: Component> ComponentTestHarness<C> {
     }
 
     pub fn given_command(&mut self, command: Command) {
-        let signals = self
-            .component
-            .handle_command(&ComponentCommand::Command(command));
+        let signals = self.component.handle_command(&command);
         self.process_signals(signals);
     }
 
     pub fn given_key(&mut self, string: &str) {
         let key_code = key_code_from_str(string).expect("key codes in tests should be correct");
-        let ct_event = CrosstermEvent::Key(KeyEvent::new(key_code, KeyModifiers::empty()));
-        let command = ComponentCommand::RawEvent(ct_event);
-        let signals = self.component.handle_command(&command);
+        let raw_event = CrosstermEvent::Key(KeyEvent::new(key_code, KeyModifiers::empty()));
+        let signals = self.component.handle_raw_event(&raw_event);
         self.process_signals(signals);
     }
 
     pub fn given_string(&mut self, string: &str) {
         for c in string.chars() {
-            let ct_event =
+            let raw_event =
                 CrosstermEvent::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::empty()));
-            let command = ComponentCommand::RawEvent(ct_event);
-            let signals = self.component.handle_command(&command);
+            let signals = self.component.handle_raw_event(&raw_event);
             self.process_signals(signals);
         }
     }

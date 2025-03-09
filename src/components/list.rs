@@ -1,10 +1,7 @@
-use crate::{
-    components::ComponentCommand,
-    system::{
-        command::{Command, CommandGroup},
-        event::Event,
-        Signal,
-    },
+use crate::system::{
+    command::{Command, CommandGroup},
+    event::Event,
+    Signal,
 };
 use ratatui::{
     prelude::*,
@@ -37,30 +34,28 @@ impl InnerList {
         )]
     }
 
-    fn handle_base_command(&mut self, command: &ComponentCommand, num_items: usize) -> Vec<Signal> {
+    fn handle_base_command(&mut self, command: &Command, num_items: usize) -> Vec<Signal> {
         let mut out = vec![];
-        if let ComponentCommand::Command(command) = command {
-            match command {
-                Command::NavUp => {
-                    // jump to the bottom if we're at the top
-                    if self.state.selected() == Some(0) {
-                        self.state.select(Some(num_items.saturating_sub(1)));
-                    } else {
-                        self.state.select_previous();
-                    }
-                    out.push(Event::ListSelectionChanged.into());
+        match command {
+            Command::NavUp => {
+                // jump to the bottom if we're at the top
+                if self.state.selected() == Some(0) {
+                    self.state.select(Some(num_items.saturating_sub(1)));
+                } else {
+                    self.state.select_previous();
                 }
-                Command::NavDown => {
-                    // jump to the top if we're at the bottom
-                    if self.state.selected() == Some(num_items.saturating_sub(1)) {
-                        self.state.select_first();
-                    } else {
-                        self.state.select_next();
-                    }
-                    out.push(Event::ListSelectionChanged.into());
-                }
-                _ => {}
+                out.push(Event::ListSelectionChanged.into());
             }
+            Command::NavDown => {
+                // jump to the top if we're at the bottom
+                if self.state.selected() == Some(num_items.saturating_sub(1)) {
+                    self.state.select_first();
+                } else {
+                    self.state.select_next();
+                }
+                out.push(Event::ListSelectionChanged.into());
+            }
+            _ => {}
         }
         out
     }

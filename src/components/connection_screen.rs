@@ -2,13 +2,13 @@ use super::{
     input::{conn_name_input::ConnNameInput, conn_str_input::ConnStrInput},
     list::connections::{Connections, PersistedConnections},
     tab::TabFocus,
-    Component, ComponentCommand,
+    Component,
 };
 use crate::{
     connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
     system::{
-        command::CommandGroup,
+        command::{Command, CommandGroup},
         event::Event,
         message::{AppAction, ClientAction, ConnScreenAction, Message},
         Signal,
@@ -105,7 +105,7 @@ impl Component for ConnectionScreen {
         }
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
+    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
         match self.internal_focus() {
             Some(ConnScrFocus::ConnList) => self.conn_list.handle_command(command),
             Some(ConnScrFocus::NameIn) => self.conn_name_input.handle_command(command),

@@ -2,7 +2,7 @@ use ratatui::prelude::{Frame, Rect};
 
 use super::{DefaultFormatter, InnerInput};
 use crate::{
-    components::{connection_screen::ConnScrFocus, tab::TabFocus, Component, ComponentCommand},
+    components::{connection_screen::ConnScrFocus, tab::TabFocus, Component},
     system::{
         command::{Command, CommandGroup},
         event::Event,
@@ -56,27 +56,22 @@ impl Component for ConnNameInput {
         ]
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
+    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
+        if !self.input.is_editing() {
+            return vec![];
+        }
+
         match command {
-            ComponentCommand::RawEvent(event) => self.input.handle_raw_event(event),
-            ComponentCommand::Command(command) => {
-                if self.input.is_editing() {
-                    match command {
-                        Command::Confirm => {
-                            vec![Message::to_conn_scr(ConnScreenAction::FocusConnStrInput).into()]
-                        }
-                        Command::Back => {
-                            vec![
-                                Message::to_conn_scr(ConnScreenAction::CancelEditingConn).into(),
-                                Message::to_app(AppAction::ExitRawMode).into(),
-                            ]
-                        }
-                        _ => vec![],
-                    }
-                } else {
-                    vec![]
-                }
+            Command::Confirm => {
+                vec![Message::to_conn_scr(ConnScreenAction::FocusConnStrInput).into()]
             }
+            Command::Back => {
+                vec![
+                    Message::to_conn_scr(ConnScreenAction::CancelEditingConn).into(),
+                    Message::to_app(AppAction::ExitRawMode).into(),
+                ]
+            }
+            _ => vec![],
         }
     }
 

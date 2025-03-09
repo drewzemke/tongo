@@ -1,4 +1,4 @@
-use super::{tab::TabFocus, ComponentCommand};
+use super::tab::TabFocus;
 use crate::{
     components::Component,
     system::{
@@ -122,10 +122,7 @@ impl Component for ConfirmModal {
         ]
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
-        let ComponentCommand::Command(command) = command else {
-            return vec![];
-        };
+    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
         let Some(confirm_kind) = &self.kind else {
             return vec![];
         };

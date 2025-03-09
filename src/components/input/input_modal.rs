@@ -1,5 +1,5 @@
 use crate::{
-    components::{tab::TabFocus, Component, ComponentCommand},
+    components::{tab::TabFocus, Component},
     system::{
         command::{Command, CommandGroup},
         event::Event,
@@ -107,31 +107,28 @@ impl Component for InputModal {
         self.input.handle_raw_event(event)
     }
 
-    fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
+    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
         match command {
-            ComponentCommand::RawEvent(event) => self.input.handle_raw_event(event),
-            ComponentCommand::Command(command) => match command {
-                Command::Confirm => {
-                    let value = self.input.value().to_string();
-                    self.input.set_value("");
-                    vec![
-                        Event::InputConfirmed(
-                            self.kind.expect("input should not be shown without a kind"),
-                            value,
-                        )
-                        .into(),
-                        Message::to_app(AppAction::ExitRawMode).into(),
-                    ]
-                }
-                Command::Back => {
-                    self.input.set_value("");
-                    vec![
-                        Event::InputCanceled.into(),
-                        Message::to_app(AppAction::ExitRawMode).into(),
-                    ]
-                }
-                _ => vec![],
-            },
+            Command::Confirm => {
+                let value = self.input.value().to_string();
+                self.input.set_value("");
+                vec![
+                    Event::InputConfirmed(
+                        self.kind.expect("input should not be shown without a kind"),
+                        value,
+                    )
+                    .into(),
+                    Message::to_app(AppAction::ExitRawMode).into(),
+                ]
+            }
+            Command::Back => {
+                self.input.set_value("");
+                vec![
+                    Event::InputCanceled.into(),
+                    Message::to_app(AppAction::ExitRawMode).into(),
+                ]
+            }
+            _ => vec![],
         }
     }
 }
