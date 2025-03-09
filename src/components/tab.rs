@@ -7,7 +7,7 @@ use crate::{
         primary_screen::{PersistedPrimaryScreen, PrimScrFocus, PrimaryScreen},
         Component,
     },
-    connection::{Connection, ConnectionManager},
+    model::connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},

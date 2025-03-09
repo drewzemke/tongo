@@ -1,4 +1,4 @@
-use crate::{app::PersistedApp, config::Config, connection::Connection, utils::storage::Storage};
+use crate::{app::PersistedApp, config::Config, model::connection::Connection, utils::storage::Storage};
 use anyhow::{anyhow, Result};
 
 #[cfg(test)]

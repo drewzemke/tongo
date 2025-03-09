@@ -8,7 +8,7 @@ use crate::{
     components::{
         confirm_modal::ConfirmKind, connection_screen::ConnScrFocus, tab::TabFocus, Component,
     },
-    connection::{Connection, ConnectionManager},
+    model::connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
@@ -129,7 +129,10 @@ impl Component for Connections {
                 return out;
             };
 
-            if matches!(self.connection_manager.delete_connection(index_to_delete), Ok(())) {
+            if matches!(
+                self.connection_manager.delete_connection(index_to_delete),
+                Ok(())
+            ) {
                 out.push(Event::ConnectionDeleted.into());
             } else {
                 out.push(

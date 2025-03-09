@@ -271,7 +271,7 @@ impl PersistedComponent for TabBar {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{connection::Connection, testing::ComponentTestHarness};
+    use crate::{model::connection::Connection, testing::ComponentTestHarness};
     use mongodb::results::{CollectionSpecification, DatabaseSpecification};
     use serde_json::json;
 

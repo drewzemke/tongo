@@ -4,8 +4,8 @@ use ratatui::{backend::CrosstermBackend, Terminal};
 use std::{io::Stdout, path::PathBuf, rc::Rc};
 use tongo::{
     app::App,
-    connection::Connection,
     key_map::KeyMap,
+    model::connection::Connection,
     utils::storage::{get_app_data_path, FileStorage, Storage},
 };
 

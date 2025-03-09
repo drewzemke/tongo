@@ -5,8 +5,8 @@ use crate::{
         tab_bar::{PersistedTabBar, TabBar},
         Component,
     },
-    connection::{Connection, ConnectionManager},
     key_map::KeyMap,
+    model::connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},

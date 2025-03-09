@@ -1,6 +1,6 @@
 use crate::{
     components::{confirm_modal::ConfirmKind, input::input_modal::InputKind},
-    connection::Connection,
+    model::connection::Connection,
 };
 use mongodb::{
     bson::Document,

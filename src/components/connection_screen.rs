@@ -5,7 +5,7 @@ use super::{
     Component,
 };
 use crate::{
-    connection::{Connection, ConnectionManager},
+    model::connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},

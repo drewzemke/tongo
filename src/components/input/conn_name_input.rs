@@ -93,7 +93,7 @@ impl Component for ConnNameInput {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{connection::Connection, testing::ComponentTestHarness};
+    use crate::{model::connection::Connection, testing::ComponentTestHarness};
 
     #[test]
     fn reset_input_after_creating_connection() {

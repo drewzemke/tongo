@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{app::PersistedApp, config::Config, connection::Connection};
+use crate::{app::PersistedApp, config::Config, model::connection::Connection};
 
 const APP_DIR_NAME: &str = "tongo";
 const CONNECTIONS_FILE_NAME: &str = "connections.json";

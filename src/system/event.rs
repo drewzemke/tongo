@@ -1,5 +1,5 @@
 use super::command::Command;
-use crate::{components::input::input_modal::InputKind, connection::Connection};
+use crate::{components::input::input_modal::InputKind, model::connection::Connection};
 use mongodb::{
     bson::{Bson, Document},
     results::{CollectionSpecification, DatabaseSpecification},
