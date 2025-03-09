@@ -79,7 +79,7 @@ impl Clone for Client {
             db: self.db.clone(),
             coll: self.coll.clone(),
             filter: self.filter.clone(),
-            page: self.page.clone(),
+            page: self.page,
             response_send,
             response_recv,
             queued_ops: HashSet::default(),
@@ -223,9 +223,9 @@ impl Client {
         Some(())
     }
 
-    fn drop_coll(&self, coll_name: String) -> Option<()> {
+    fn drop_coll(&self, coll_name: &str) -> Option<()> {
         let db = self.get_database()?;
-        let coll = db.collection::<Document>(&coll_name);
+        let coll = db.collection::<Document>(coll_name);
         let dropping_selected_coll = self
             .coll
             .as_ref()
@@ -250,7 +250,7 @@ impl Client {
         Some(())
     }
 
-    fn drop_db(&self, db_name: String) -> Option<()> {
+    fn drop_db(&self, db_name: &str) -> Option<()> {
         let db = self.get_database()?;
         let dropping_selected_db = self.db.as_ref().is_some_and(|db| db.name == *db_name);
 
@@ -262,9 +262,9 @@ impl Client {
         Some(())
     }
 
-    fn create_db(&self, db_name: String) -> Option<()> {
+    fn create_db(&self, db_name: &str) -> Option<()> {
         let client = self.mongo_client.clone()?;
-        let db = client.database(&db_name);
+        let db = client.database(db_name);
 
         self.exec(async move {
             // HACK: the only way to create a db on the server is to create a collection
@@ -290,9 +290,9 @@ impl Client {
                 Operation::QueryDatabases => self.query_dbs(),
                 Operation::Count => self.count(),
                 Operation::CreateCollection(coll_name) => self.create_coll(coll_name.clone()),
-                Operation::DropCollection(coll_name) => self.drop_coll(coll_name.clone()),
-                Operation::CreateDatabase(db_name) => self.create_db(db_name.clone()),
-                Operation::DropDatabase(db_name) => self.drop_db(db_name.clone()),
+                Operation::DropCollection(coll_name) => self.drop_coll(coll_name),
+                Operation::CreateDatabase(db_name) => self.create_db(db_name),
+                Operation::DropDatabase(db_name) => self.drop_db(db_name),
             };
         }
         self.queued_ops = HashSet::default();
@@ -359,7 +359,7 @@ impl Component for Client {
                 self.queue(Operation::QueryCollections);
             }
             Event::InputConfirmed(InputKind::NewCollectionName, coll_name) => {
-                self.queue(Operation::CreateCollection(coll_name.to_string()))
+                self.queue(Operation::CreateCollection(coll_name.to_string()));
             }
             Event::DatabaseDropConfirmed(dropped_selected) => {
                 if *dropped_selected {
@@ -372,7 +372,7 @@ impl Component for Client {
                 self.queue(Operation::QueryDatabases);
             }
             Event::InputConfirmed(InputKind::NewDatabaseName, coll_name) => {
-                self.queue(Operation::CreateDatabase(coll_name.to_string()))
+                self.queue(Operation::CreateDatabase(coll_name.to_string()));
             }
             _ => (),
         }
@@ -439,7 +439,7 @@ impl PersistedComponent for Client {
             db: self.db.clone(),
             coll: self.coll.clone(),
             filter: self.filter.clone(),
-            page: self.page.clone(),
+            page: self.page,
         }
     }
 

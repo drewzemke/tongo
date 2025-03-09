@@ -25,14 +25,13 @@ pub enum ConfirmKind {
 }
 
 impl ConfirmKind {
-    fn command(&self) -> Command {
-        // match self {
-        //     Self::DeleteConnection => Command::Delete,
-        //     Self::DeleteDoc => Command::DeleteDoc,
-        //     Self::DropConnection => Command::DeleteDoc,
-        //     Self::DropDatabase => Command::DeleteDoc,
-        // }
-        Command::Delete
+    const fn command(self) -> Command {
+        match self {
+            Self::DropDatabase
+            | Self::DropCollection
+            | Self::DeleteDoc
+            | Self::DeleteConnection => Command::Delete,
+        }
     }
 }
 

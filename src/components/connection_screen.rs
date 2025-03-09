@@ -47,7 +47,7 @@ impl Default for ConnectionScreen {
 
         let storage = Rc::new(FileStorage::default());
 
-        let connection_manager = ConnectionManager::new(vec![], storage.clone());
+        let connection_manager = ConnectionManager::new(vec![], storage);
         let conn_list = Connections::new(focus.clone(), connection_manager.clone());
         let conn_name_input = ConnNameInput::new(focus.clone(), cursor_pos.clone());
         let conn_str_input = ConnStrInput::new(focus.clone(), cursor_pos);
@@ -122,18 +122,15 @@ impl Component for ConnectionScreen {
 
     fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         let mut out = vec![];
-        match event {
-            Event::ConnectionCreated(conn) => {
-                self.connection_manager
-                    .add_connection(conn.clone())
-                    .unwrap_or_else(|_| {
-                        out.push(
-                            Event::ErrorOccurred("Could not save updated connections.".to_string())
-                                .into(),
-                        );
-                    });
-            }
-            _ => {}
+        if let Event::ConnectionCreated(conn) = event {
+            self.connection_manager
+                .add_connection(conn.clone())
+                .unwrap_or_else(|_| {
+                    out.push(
+                        Event::ErrorOccurred("Could not save updated connections.".to_string())
+                            .into(),
+                    );
+                });
         }
         out.append(&mut self.conn_list.handle_event(event));
         out.append(&mut self.conn_name_input.handle_event(event));
@@ -193,7 +190,7 @@ impl Component for ConnectionScreen {
                     );
                     out.push(Event::ConnectionCreated(conn.clone()).into());
                     out.push(Message::to_client(ClientAction::Connect(conn)).into());
-                };
+                }
                 out.push(Message::to_app(AppAction::ExitRawMode).into());
             }
             Some(ConnScreenAction::CancelEditingConn) => {
@@ -268,7 +265,7 @@ impl PersistedComponent for ConnectionScreen {
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) {
-        self.conn_list.hydrate(storage.conn_list)
+        self.conn_list.hydrate(storage.conn_list);
     }
 }
 
@@ -284,7 +281,7 @@ mod tests {
         fn new_mock(connections: Vec<Connection>) -> Self {
             let storage = Rc::new(MockStorage::default());
             let connection_manager = ConnectionManager::new(connections, storage);
-            ConnectionScreen {
+            Self {
                 conn_list: Connections {
                     connection_manager: connection_manager.clone(),
                     ..Default::default()

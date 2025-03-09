@@ -11,6 +11,9 @@ use ratatui::{
 };
 use std::collections::HashMap;
 
+/// # Errors
+/// If the input key is not recognized.
+#[expect(clippy::missing_panics_doc)]
 pub fn key_code_from_str(s: &str) -> Result<KeyCode> {
     match s {
         "enter" | "Enter" | "return" | "Return" => Ok(KeyCode::Enter),
@@ -89,6 +92,9 @@ impl Default for KeyMap {
 }
 
 impl KeyMap {
+    /// # Errors
+    /// If the key part of the config cannot be parsed into valid keys and
+    /// commands
     pub fn try_from_config(config: &Config) -> Result<Self> {
         let mut key_map = Self::default();
 
@@ -105,6 +111,7 @@ impl KeyMap {
     /// making sure that the command is one of the commands that the currently-focused
     /// component will respond to
     #[cfg(test)]
+    #[must_use]
     pub fn command_for_key_unfiltered(&self, key: KeyCode) -> Option<&Command> {
         self.map
             .iter()
@@ -114,6 +121,7 @@ impl KeyMap {
     /// Gets the command corresponding to a key based on the loaded keymap,
     /// making sure that the command is one of the commands that the currently-focused
     /// component will respond to
+    #[must_use]
     pub fn command_for_key(
         &self,
         key: KeyCode,
@@ -160,6 +168,7 @@ impl KeyMap {
 
     /// Uses the current key configuration to build a string from a command group.
     /// Used for displaying key hints in the status bar.
+    #[must_use]
     pub fn cmd_group_to_span<'a>(&self, group: &'a CommandGroup) -> Vec<Span<'a>> {
         let hint_style = Style::default();
         let key_hint: String = group

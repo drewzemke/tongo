@@ -60,6 +60,10 @@ impl Display for MongoKey {
     }
 }
 
+/// # Panics
+/// If the passed-in document does not uphold the Mongo invariant of every doc
+/// having an `_id` field.
+#[must_use]
 pub fn top_level_document<'a>(doc: &Document) -> TreeItem<'a, MongoKey> {
     let id = doc
         .get("_id")

@@ -84,7 +84,7 @@ impl App<'_> {
         let key_map = Rc::new(key_map);
 
         let tab = Tab::new(
-            selected_connection.clone(),
+            selected_connection,
             connection_manager.clone(),
             cursor_pos.clone(),
         );
@@ -110,7 +110,7 @@ impl App<'_> {
         }
     }
 
-    fn create_tab(&mut self) -> Tab<'static> {
+    fn create_tab(&self) -> Tab<'static> {
         Tab::new(
             None,
             self.connection_manager.clone(),
@@ -118,10 +118,14 @@ impl App<'_> {
         )
     }
 
-    fn current_tab_idx(&self) -> usize {
+    const fn current_tab_idx(&self) -> usize {
         self.tab_bar.current_tab_idx()
     }
 
+    /// Starts and runs the main app loop until the user exits the program.
+    ///
+    /// # Errors
+    /// If something goes wrong while drawing to the screen
     pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
         // initial draw call
         terminal.draw(|frame| self.render(frame, frame.area()))?;
@@ -307,11 +311,8 @@ impl Component for App<'_> {
 
     fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         let mut out = vec![];
-        match event {
-            Event::ReturnedFromAltScreen => {
-                self.force_clear = true;
-            }
-            _ => {}
+        if matches!(event, Event::ReturnedFromAltScreen) {
+            self.force_clear = true;
         }
 
         out.append(&mut self.tab_bar.handle_event(event));
@@ -338,7 +339,7 @@ impl Component for App<'_> {
             }
         }
 
-        return vec![];
+        vec![]
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {

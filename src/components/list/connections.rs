@@ -129,7 +129,7 @@ impl Component for Connections {
                 return out;
             };
 
-            if let Ok(_) = self.connection_manager.delete_connection(index_to_delete) {
+            if matches!(self.connection_manager.delete_connection(index_to_delete), Ok(())) {
                 out.push(Event::ConnectionDeleted.into());
             } else {
                 out.push(

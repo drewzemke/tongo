@@ -36,15 +36,15 @@ pub struct Documents<'a> {
     count: u64,
 }
 
-impl<'a> Clone for Documents<'a> {
+impl Clone for Documents<'_> {
     fn clone(&self) -> Self {
         let mut documents = Self {
             focus: self.focus.clone(),
             state: TreeState::default(),
             items: self.items.clone(),
             documents: self.documents.clone(),
-            page: self.page.clone(),
-            count: self.count.clone(),
+            page: self.page,
+            count: self.count,
         };
         documents.reset_state();
         documents
@@ -164,6 +164,7 @@ impl Component for Documents<'_> {
         ]
     }
 
+    #[expect(clippy::too_many_lines)]
     fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
         let mut out = vec![];
         match command {

@@ -45,7 +45,7 @@ impl FilterInput {
         self.input.stop_editing();
     }
 
-    fn get_filter_doc(&mut self) -> Option<Document> {
+    fn get_filter_doc(&self) -> Option<Document> {
         let filter_str = self.input.value();
         json5::from_str::<serde_json::Value>(filter_str)
             .ok()
@@ -124,12 +124,10 @@ impl Component for FilterInput {
         let valid_filter = self.get_filter_doc().is_some();
         let (symbol, color) = if valid_filter {
             ("●", Color::Green)
+        } else if self.is_editing() {
+            ("◯", Color::Red)
         } else {
-            if self.is_editing() {
-                ("◯", Color::Red)
-            } else {
-                ("●", Color::Red)
-            }
+            ("●", Color::Red)
         };
 
         frame

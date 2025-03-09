@@ -16,25 +16,26 @@ const TAB_NAME_SEP: &str = "‣";
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 struct TabSpec {
-    connection_name: Option<String>,
-    db_name: Option<String>,
-    coll_name: Option<String>,
+    connection: Option<String>,
+    db: Option<String>,
+    coll: Option<String>,
 }
 
 impl TabSpec {
     fn name(&self) -> String {
-        if let Some(conn_name) = &self.connection_name {
-            let mut name = conn_name.clone();
-            if let Some(db_name) = &self.db_name {
-                name = name + TAB_NAME_SEP + db_name;
-                if let Some(coll_name) = &self.coll_name {
-                    name = name + TAB_NAME_SEP + coll_name;
+        self.connection.as_ref().map_or_else(
+            || String::from("New Tab"),
+            |conn_name| {
+                let mut name = conn_name.clone();
+                if let Some(db_name) = &self.db {
+                    name = name + TAB_NAME_SEP + db_name;
+                    if let Some(coll_name) = &self.coll {
+                        name = name + TAB_NAME_SEP + coll_name;
+                    }
                 }
-            }
-            name
-        } else {
-            String::from("New Tab")
-        }
+                name
+            },
+        )
     }
 }
 
@@ -60,7 +61,7 @@ impl TabBar {
         }
     }
 
-    pub fn current_tab_idx(&self) -> usize {
+    pub const fn current_tab_idx(&self) -> usize {
         self.current_tab_idx
     }
 
@@ -68,7 +69,7 @@ impl TabBar {
         self.tabs.len()
     }
 
-    fn tab_names(&mut self) -> impl Iterator<Item = String> + Clone + use<'_> {
+    fn tab_names(&self) -> impl Iterator<Item = String> + Clone + use<'_> {
         self.tabs
             .iter()
             .enumerate()
@@ -84,6 +85,7 @@ impl TabBar {
     }
 
     /// scrolls the view so that the currently-selected tab is visible
+    #[expect(clippy::cast_possible_truncation)]
     fn scroll_to_current_tab(&mut self) {
         let current_tab_idx = self.current_tab_idx;
         // calculate the positions (relative to the left edge) of the first and last character
@@ -196,18 +198,18 @@ impl Component for TabBar {
 
         match event {
             Event::ConnectionSelected(conn) | Event::ConnectionCreated(conn) => {
-                current_tab.connection_name = Some(conn.name.clone());
-                current_tab.db_name = None;
-                current_tab.coll_name = None;
+                current_tab.connection = Some(conn.name.clone());
+                current_tab.db = None;
+                current_tab.coll = None;
                 self.scroll_to_current_tab();
             }
             Event::DatabaseSelected(db) => {
-                current_tab.db_name = Some(db.name.clone());
-                current_tab.coll_name = None;
+                current_tab.db = Some(db.name.clone());
+                current_tab.coll = None;
                 self.scroll_to_current_tab();
             }
             Event::CollectionSelected(coll) => {
-                current_tab.coll_name = Some(coll.name.clone());
+                current_tab.coll = Some(coll.name.clone());
                 self.scroll_to_current_tab();
             }
             _ => {}
@@ -216,10 +218,11 @@ impl Component for TabBar {
         vec![]
     }
 
+    #[expect(clippy::cast_possible_truncation)]
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         // update the width and scrolling if this is the first render,
         // or if the screen was resized
-        if !self.visible_width.is_some_and(|w| w == area.width) {
+        if self.visible_width.is_none_or(|w| w != area.width) {
             self.visible_width = Some(area.width);
             self.scroll_to_current_tab();
         }

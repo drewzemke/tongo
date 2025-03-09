@@ -35,7 +35,7 @@ where
         }
     }
 
-    pub fn set_title(&mut self, title: &'static str) {
+    pub const fn set_title(&mut self, title: &'static str) {
         self.title = title;
     }
 

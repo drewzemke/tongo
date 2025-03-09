@@ -22,10 +22,10 @@ pub enum InputKind {
 }
 
 impl InputKind {
-    fn modal_title(&self) -> &'static str {
+    const fn modal_title(self) -> &'static str {
         match self {
-            InputKind::NewCollectionName => "New Connection's Name",
-            InputKind::NewDatabaseName => "New Database's Name",
+            Self::NewCollectionName => "New Connection's Name",
+            Self::NewDatabaseName => "New Database's Name",
         }
     }
 }
@@ -145,9 +145,9 @@ mod tests {
         test.given_string("text!");
         test.given_command(Command::Confirm);
 
-        test.expect_event(|e| {
-            matches!(e, Event::InputConfirmed(InputKind::NewCollectionName, s) if *s == "text!".to_string())
-        });
+        test.expect_event(
+            |e| matches!(e, Event::InputConfirmed(InputKind::NewCollectionName, s) if s == "text!"),
+        );
         test.expect_message(|m| matches!(m.read_as_app(), Some(AppAction::ExitRawMode)));
         assert_eq!(test.component_mut().input.value(), "");
     }

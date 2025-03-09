@@ -13,6 +13,8 @@ const LAST_SESSION_FILE_NAME: &str = "last-session.json";
 const CONFIG_FILE_NAME: &str = "config.toml";
 
 // NOTE: stole this from `gitui`
+/// # Errors
+/// If the OS config path cannot be found.
 pub fn get_app_config_path() -> Result<PathBuf> {
     let mut path = if cfg!(target_os = "macos") {
         dirs::home_dir().map(|h| h.join(".config"))
@@ -26,6 +28,8 @@ pub fn get_app_config_path() -> Result<PathBuf> {
     Ok(path)
 }
 
+/// # Errors
+/// If the OS data path cannot be found.
 pub fn get_app_data_path() -> Result<PathBuf> {
     let mut path = if cfg!(target_os = "macos") {
         dirs::home_dir().map(|h| h.join(".local").join("share"))
@@ -40,10 +44,27 @@ pub fn get_app_data_path() -> Result<PathBuf> {
 }
 
 pub trait Storage: Debug {
+    /// # Errors
+    /// If something goes wrong while reading from the filesystem or parsing
+    /// the connections list.
     fn read_connections(&self) -> Result<Vec<Connection>>;
+
+    /// # Errors
+    /// If something goes wrong while writing to the filesystem.
     fn write_connections(&self, connections: &[Connection]) -> Result<()>;
+
+    /// # Errors
+    /// If something goes wrong while writing to the filesystem.
     fn write_last_session(&self, persisted_app: &PersistedApp) -> Result<()>;
+
+    /// # Errors
+    /// If something goes wrong while reading from the filesystem or parsing
+    /// the session.
     fn read_last_session(&self) -> Result<PersistedApp>;
+
+    /// # Errors
+    /// If something goes wrong while reading from the filesystem or parsing
+    /// the config.
     fn read_config(&self) -> Result<Config>;
 }
 
@@ -99,6 +120,8 @@ impl Storage for FileStorage {
 }
 
 impl FileStorage {
+    /// # Errors
+    /// If the OS data or config directories cannot be found.
     pub fn init() -> Result<Self> {
         Ok(Self {
             data_dir: get_app_data_path()?,

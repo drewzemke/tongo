@@ -53,6 +53,9 @@ impl Default for JsonLabeler {
 pub type JsonLabels = Vec<(String, JsonLabel)>;
 
 impl JsonLabeler {
+    /// # Panics
+    /// If the included syntax file is not found for some reason.
+    #[must_use]
     pub fn new() -> Self {
         let mut syntax_set_builder = SyntaxSetBuilder::new();
         syntax_set_builder.add(
@@ -86,6 +89,8 @@ impl JsonLabeler {
         }
     }
 
+    /// # Errors
+    /// If something goes wrong while parsing the line.
     pub fn label_line(&self, line: &str) -> Result<JsonLabels> {
         let mut parse_state = ParseState::new(&self.syntax);
         let ops = parse_state.parse_line(line, &self.syntax_set)?;

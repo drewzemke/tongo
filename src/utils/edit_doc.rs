@@ -30,6 +30,10 @@ pub enum EditDocError {
 }
 
 /// Edit document in external editor
+///
+/// # Errors
+/// Emits a `EditDocError` if something goes wrong. See that struct for details
+/// on the possible cases.
 pub fn edit_doc(doc: Document) -> Result<Document, EditDocError> {
     // prepare doc
     let doc_string = from_document::<Value>(doc)

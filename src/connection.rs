@@ -17,6 +17,7 @@ pub struct Connection {
 
 impl Connection {
     // TODO: change arg types to AsRef<String> and clone here
+    #[must_use]
     pub fn new(name: String, connection_str: String) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -25,7 +26,8 @@ impl Connection {
         }
     }
 
-    pub fn id(&self) -> &Uuid {
+    #[must_use]
+    pub const fn id(&self) -> &Uuid {
         &self.id
     }
 }
@@ -53,6 +55,7 @@ impl ConnectionManager {
         }
     }
 
+    #[must_use]
     pub fn connections(&self) -> Ref<Vec<Connection>> {
         self.connections.borrow()
     }
@@ -61,6 +64,8 @@ impl ConnectionManager {
         *self.connections.borrow_mut() = connections;
     }
 
+    /// # Errors
+    /// If something goes wrong while writing to the filesystem.
     pub fn add_connection(&mut self, connection: Connection) -> Result<()> {
         let mut connections = self.connections.borrow_mut();
         connections.push(connection);
@@ -68,6 +73,8 @@ impl ConnectionManager {
         self.storage.write_connections(&connections)
     }
 
+    /// # Errors
+    /// If something goes wrong while writing to the filesystem.
     pub fn update_connection(&mut self, connection: &Connection) -> Result<()> {
         let mut connections = self.connections.borrow_mut();
         let edited_conn = connections.iter_mut().find(|c| c.id() == connection.id());
@@ -80,6 +87,8 @@ impl ConnectionManager {
         Ok(())
     }
 
+    /// # Errors
+    /// If something goes wrong while writing to the filesystem.
     pub fn delete_connection(&mut self, index: usize) -> Result<()> {
         let mut connections = self.connections.borrow_mut();
         connections.remove(index);

@@ -3,6 +3,8 @@ use arboard::Clipboard;
 use mongodb::bson::{from_bson, Bson};
 use serde_json::Value;
 
+/// # Errors
+/// If the BSON is a document that cannot be converted to JSON
 pub fn send_bson_to_clipboard(bson: &Bson) -> Result<()> {
     // if the Bson is a doc or array, turn it to json;
     // otherwise, .to_string it

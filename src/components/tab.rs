@@ -95,15 +95,15 @@ impl Tab<'_> {
         let conn_screen = ConnectionScreen::new(
             connection_list,
             focus.clone(),
-            cursor_pos.clone(),
+            cursor_pos,
             connection_manager,
         );
 
         Tab {
             client,
 
-            primary_screen,
             conn_screen,
+            primary_screen,
             confirm_modal,
             input_modal,
 
@@ -193,7 +193,7 @@ impl Component for Tab<'_> {
                     return vec![Message::to_app(AppAction::EnterRawMode).into()];
                 }
                 _ => {}
-            };
+            }
             vec![]
         }
     }
@@ -242,12 +242,12 @@ impl PersistedComponent for Tab<'_> {
             TabFocus::PrimScr(ref focus) => {
                 let ps_focus = match focus {
                     PrimScrFocus::FilterIn => PrimScrFocus::DocTree,
-                    f => f.clone(),
+                    f => *f,
                 };
                 TabFocus::PrimScr(ps_focus)
             }
             TabFocus::ConfModal | TabFocus::InputModal | TabFocus::NotFocused => {
-                self.background_focus.clone().unwrap_or_default()
+                self.background_focus.unwrap_or_default()
             }
         };
 
