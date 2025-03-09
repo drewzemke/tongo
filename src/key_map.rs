@@ -47,6 +47,7 @@ impl Default for KeyMap {
     // when a command isn't mapped here
     fn default() -> Self {
         let map = [
+            (Command::ShowHelpModal, KeyCode::Char('?')),
             (Command::NavUp, KeyCode::Up),
             (Command::NavDown, KeyCode::Down),
             (Command::NavLeft, KeyCode::Left),

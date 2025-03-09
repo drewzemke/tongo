@@ -119,6 +119,9 @@ pub enum Event {
     /// Emitted when the currently-focused panel has changed.
     FocusedChanged,
 
+    /// Emitted when help modal has been opened or closed.
+    HelpModalToggled,
+
     /// Emitted when the user closes the input modal without confirming.
     InputCanceled,
 

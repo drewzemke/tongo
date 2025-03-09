@@ -37,12 +37,16 @@ pub enum Command {
     CloseTab,
     DuplicateTab,
     GotoTab(usize),
+
+    ShowHelpModal,
 }
 
 impl Command {
     pub fn try_from_str(value: &str) -> Result<Self> {
         // TODO: better names?
         match value {
+            "show_help_modal" => Ok(Self::ShowHelpModal),
+
             "nav_up" => Ok(Self::NavUp),
             "nav_down" => Ok(Self::NavDown),
             "nav_left" => Ok(Self::NavLeft),

@@ -10,6 +10,7 @@ use ratatui::{layout::Rect, Frame};
 pub mod confirm_modal;
 pub mod connection_screen;
 pub mod documents;
+pub mod help_modal;
 pub mod input;
 pub mod list;
 pub mod primary_screen;

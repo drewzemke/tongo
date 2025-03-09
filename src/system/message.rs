@@ -6,6 +6,9 @@ use mongodb::bson::Document;
 
 #[derive(Debug, Clone, strum_macros::Display)]
 pub enum AppAction {
+    /// Tells `App` to stop showing hte help modal.
+    CloseHelpModal,
+
     /// Tells `App` to start recording user input as raw keystrokes instead of
     /// mapping to commands.
     EnterRawMode,

@@ -1,5 +1,6 @@
 use crate::{
     components::{
+        help_modal::HelpModal,
         status_bar::StatusBar,
         tab::{PersistedTab, Tab},
         tab_bar::{PersistedTabBar, TabBar},
@@ -27,12 +28,21 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[derive(Debug, Default)]
+enum Mode {
+    #[default]
+    Normal,
+    Raw,
+    HelpModal,
+}
+
 #[derive(Debug)]
 pub struct App<'a> {
     //components
     tabs: Vec<Tab<'a>>,
     tab_bar: TabBar,
     status_bar: StatusBar,
+    help_modal: HelpModal,
 
     // shared data
     cursor_pos: Rc<Cell<(u16, u16)>>,
@@ -43,7 +53,7 @@ pub struct App<'a> {
     key_map: Rc<KeyMap>,
 
     // flags
-    raw_mode: bool,
+    mode: Mode,
     force_clear: bool,
     exiting: bool,
 }
@@ -55,11 +65,12 @@ impl Default for App<'_> {
             tabs: vec![Tab::default()],
             tab_bar: TabBar::default(),
             status_bar: StatusBar::default(),
+            help_modal: HelpModal::new(),
             cursor_pos: Rc::new(Cell::new((0, 0))),
             connection_manager: ConnectionManager::new(vec![], storage.clone()),
             storage,
             key_map: Rc::new(KeyMap::default()),
-            raw_mode: false,
+            mode: Mode::Normal,
             force_clear: false,
             exiting: false,
         }
@@ -96,15 +107,14 @@ impl App<'_> {
             tabs: vec![tab],
             tab_bar,
             status_bar,
-
-            raw_mode: false,
-
-            cursor_pos,
+            help_modal: HelpModal::new(),
 
             key_map,
+            cursor_pos,
             storage,
             connection_manager,
 
+            mode: Mode::Normal,
             force_clear: false,
             exiting: false,
         }
@@ -210,11 +220,18 @@ impl App<'_> {
 
 impl Component for App<'_> {
     fn commands(&self) -> Vec<CommandGroup> {
-        let mut out = if self.raw_mode {
-            vec![]
-        } else {
-            vec![CommandGroup::new(vec![Command::Quit], "quit")]
+        let mut out = match self.mode {
+            Mode::Normal => vec![
+                CommandGroup::new(vec![Command::ShowHelpModal], "show help"),
+                CommandGroup::new(vec![Command::Quit], "quit"),
+            ],
+            Mode::Raw => vec![],
+            Mode::HelpModal => vec![CommandGroup::new(vec![Command::Quit], "quit")],
         };
+
+        if matches!(self.mode, Mode::HelpModal) {
+            out.append(&mut self.help_modal.commands());
+        }
 
         out.append(&mut self.status_bar.commands());
         out.append(&mut self.tab_bar.commands());
@@ -228,6 +245,12 @@ impl Component for App<'_> {
 
     #[must_use]
     fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
+        let mut out = vec![];
+
+        if matches!(self.mode, Mode::HelpModal) {
+            return self.help_modal.handle_command(command);
+        }
+
         match command {
             Command::Quit => {
                 tracing::info!("Quit command received. Exiting...");
@@ -249,11 +272,15 @@ impl Component for App<'_> {
                     self.tabs.remove(self.tab_bar.current_tab_idx());
                 }
             }
+            Command::ShowHelpModal => {
+                self.mode = Mode::HelpModal;
+                out.push(Event::HelpModalToggled.into());
+            }
             _ => {}
         }
 
         // the tab bar sees every command (although it only handles a few of them)
-        let mut out = self.tab_bar.handle_command(command);
+        out.append(&mut self.tab_bar.handle_command(command));
 
         let index = self.current_tab_idx();
         if let Some(tab) = &mut self.tabs.get_mut(index) {
@@ -275,7 +302,7 @@ impl Component for App<'_> {
             // otherwise just pass the whole event
             //
             // FIXME: these should be configurable!
-            if self.raw_mode {
+            if matches!(self.mode, Mode::Raw) {
                 if key.code == KeyCode::Enter {
                     return self.handle_command(&Command::Confirm);
                 }
@@ -329,8 +356,12 @@ impl Component for App<'_> {
 
     fn handle_message(&mut self, message: &Message) -> Vec<Signal> {
         match message.read_as_app() {
-            Some(AppAction::EnterRawMode) => self.raw_mode = true,
-            Some(AppAction::ExitRawMode) => self.raw_mode = false,
+            Some(AppAction::EnterRawMode) => self.mode = Mode::Raw,
+            Some(AppAction::ExitRawMode) => self.mode = Mode::Normal,
+            Some(AppAction::CloseHelpModal) => {
+                self.mode = Mode::Normal;
+                return vec![Event::HelpModalToggled.into()];
+            }
             _ => {
                 let index = self.current_tab_idx();
                 if let Some(tab) = self.tabs.get_mut(index) {
@@ -375,10 +406,17 @@ impl Component for App<'_> {
         self.status_bar.commands = self.commands();
         self.status_bar.render(frame, status_bar_area);
 
-        // show the cursor if we're editing something
-        if self.raw_mode {
-            let (x, y) = self.cursor_pos.get();
-            frame.set_cursor_position((x, y));
+        // show the cursor if we're editing something, or the help modal if
+        // we're supposed to be showing that
+        match self.mode {
+            Mode::Raw => {
+                let (x, y) = self.cursor_pos.get();
+                frame.set_cursor_position((x, y));
+            }
+            Mode::HelpModal => {
+                self.help_modal.render(frame, area);
+            }
+            Mode::Normal => {}
         }
     }
 }
