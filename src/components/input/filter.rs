@@ -120,6 +120,10 @@ impl Component for FilterInput {
         }
     }
 
+    fn handle_raw_event(&mut self, event: &crossterm::event::Event) -> Vec<Signal> {
+        self.input.handle_raw_event(event)
+    }
+
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         self.input.render(frame, area, self.is_focused());
 

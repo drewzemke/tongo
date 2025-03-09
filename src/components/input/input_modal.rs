@@ -103,6 +103,10 @@ impl Component for InputModal {
         }
     }
 
+    fn handle_raw_event(&mut self, event: &crossterm::event::Event) -> Vec<Signal> {
+        self.input.handle_raw_event(event)
+    }
+
     fn handle_command(&mut self, command: &ComponentCommand) -> Vec<Signal> {
         match command {
             ComponentCommand::RawEvent(event) => self.input.handle_raw_event(event),

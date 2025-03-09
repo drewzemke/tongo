@@ -151,6 +151,19 @@ impl Component for Tab<'_> {
         }
     }
 
+    fn handle_raw_event(&mut self, event: &crossterm::event::Event) -> Vec<Signal> {
+        // HACK: need to clone here to avoid borrow error with the focus `RefCell`
+        // TODO: refactor to use `Cell` instead of `RefCell`, since AppFocus is Copy
+        let app_focus = self.focus.borrow().clone();
+        match app_focus {
+            TabFocus::ConnScr(_) => self.conn_screen.handle_raw_event(event),
+            TabFocus::PrimScr(_) => self.primary_screen.handle_raw_event(event),
+            TabFocus::ConfModal => self.confirm_modal.handle_raw_event(event),
+            TabFocus::InputModal => self.input_modal.handle_raw_event(event),
+            TabFocus::NotFocused => vec![],
+        }
+    }
+
     fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         let mut out = vec![];
         match event {

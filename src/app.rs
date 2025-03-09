@@ -136,7 +136,7 @@ impl App<'_> {
             // if no key is pressed, process a `tick` event and send it
             let signals = if crossterm::event::poll(timeout)? {
                 let event = crossterm::event::read()?;
-                self.handle_terminal_event(&event)
+                self.handle_raw_event(&event)
             } else {
                 vec![Event::Tick.into()]
             };
@@ -195,50 +195,6 @@ impl App<'_> {
         }
 
         should_render
-    }
-
-    fn handle_terminal_event(&mut self, event: &CrosstermEvent) -> Vec<Signal> {
-        // NOTE: for now we only deal with key events
-        if let CrosstermEvent::Key(key) = event {
-            // always quit on Control-C
-            if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
-                self.exiting = true;
-                return vec![];
-            }
-
-            // if in raw mode, check for enter or escape
-            // otherwise just pass the whole event
-            //
-            // FIXME: these should be configurable!
-            if self.raw_mode {
-                if key.code == KeyCode::Enter {
-                    return self.handle_command(&ComponentCommand::Command(Command::Confirm));
-                }
-                if key.code == KeyCode::Esc {
-                    return self.handle_command(&ComponentCommand::Command(Command::Back));
-                }
-                return self.handle_command(&ComponentCommand::RawEvent(event.clone()));
-            }
-
-            // map the key to a command if we're not in raw mode,
-            // making sure it's one of the currently-available commands
-            let command = self.key_map.command_for_key(key.code, &self.commands());
-
-            // handle the command
-            if let Some(command) = command {
-                return self.handle_command(&ComponentCommand::Command(command));
-            }
-        }
-
-        match event {
-            CrosstermEvent::Resize(..) => {
-                // returning a nontrivial event triggers a redraw
-                vec![Event::ScreenResized.into()]
-            }
-            CrosstermEvent::FocusGained => vec![Event::AppFocusGained.into()],
-            CrosstermEvent::FocusLost => vec![Event::AppFocusLost.into()],
-            _ => vec![],
-        }
     }
 
     fn persist_self(&self) -> Result<()> {
@@ -304,6 +260,52 @@ impl Component for App<'_> {
         out
     }
 
+    fn handle_raw_event(&mut self, event: &CrosstermEvent) -> Vec<Signal> {
+        // NOTE: for now we only deal with key events
+        if let CrosstermEvent::Key(key) = event {
+            // always quit on Control-C
+            if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
+                self.exiting = true;
+                return vec![];
+            }
+
+            // if in raw mode, check for enter or escape
+            // otherwise just pass the whole event
+            //
+            // FIXME: these should be configurable!
+            if self.raw_mode {
+                if key.code == KeyCode::Enter {
+                    return self.handle_command(&ComponentCommand::Command(Command::Confirm));
+                }
+                if key.code == KeyCode::Esc {
+                    return self.handle_command(&ComponentCommand::Command(Command::Back));
+                }
+                let index = self.current_tab_idx();
+                if let Some(tab) = &mut self.tabs.get_mut(index) {
+                    return tab.handle_raw_event(event);
+                }
+            }
+
+            // map the key to a command if we're not in raw mode,
+            // making sure it's one of the currently-available commands
+            let command = self.key_map.command_for_key(key.code, &self.commands());
+
+            // handle the command
+            if let Some(command) = command {
+                return self.handle_command(&ComponentCommand::Command(command));
+            }
+        }
+
+        match event {
+            CrosstermEvent::Resize(..) => {
+                // returning a nontrivial event triggers a redraw
+                vec![Event::ScreenResized.into()]
+            }
+            CrosstermEvent::FocusGained => vec![Event::AppFocusGained.into()],
+            CrosstermEvent::FocusLost => vec![Event::AppFocusLost.into()],
+            _ => vec![],
+        }
+    }
     fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         let mut out = vec![];
         match event {

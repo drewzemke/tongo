@@ -114,6 +114,15 @@ impl Component for ConnectionScreen {
         }
     }
 
+    fn handle_raw_event(&mut self, event: &crossterm::event::Event) -> Vec<Signal> {
+        match self.internal_focus() {
+            Some(ConnScrFocus::ConnList) => self.conn_list.handle_raw_event(event),
+            Some(ConnScrFocus::NameIn) => self.conn_name_input.handle_raw_event(event),
+            Some(ConnScrFocus::StringIn) => self.conn_str_input.handle_raw_event(event),
+            None => vec![],
+        }
+    }
+
     fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         let mut out = vec![];
         match event {

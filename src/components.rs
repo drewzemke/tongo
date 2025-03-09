@@ -35,6 +35,10 @@ pub trait Component {
         vec![]
     }
 
+    fn handle_raw_event(&mut self, _event: &CrosstermEvent) -> Vec<Signal> {
+        vec![]
+    }
+
     fn handle_event(&mut self, _event: &Event) -> Vec<Signal> {
         vec![]
     }

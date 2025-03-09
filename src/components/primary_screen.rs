@@ -176,6 +176,16 @@ impl Component for PrimaryScreen<'_> {
         out
     }
 
+    fn handle_raw_event(&mut self, event: &crossterm::event::Event) -> Vec<Signal> {
+        match self.internal_focus() {
+            Some(PrimScrFocus::DbList) => self.db_list.handle_raw_event(event),
+            Some(PrimScrFocus::CollList) => self.coll_list.handle_raw_event(event),
+            Some(PrimScrFocus::DocTree) => self.doc_tree.handle_raw_event(event),
+            Some(PrimScrFocus::FilterIn) => self.filter_input.handle_raw_event(event),
+            None => vec![],
+        }
+    }
+
     fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         let mut out = vec![];
         match event {

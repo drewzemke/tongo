@@ -80,6 +80,10 @@ impl Component for ConnNameInput {
         }
     }
 
+    fn handle_raw_event(&mut self, event: &crossterm::event::Event) -> Vec<Signal> {
+        self.input.handle_raw_event(event)
+    }
+
     fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         match event {
             Event::ConnectionCreated(..) => self.input.set_value(""),
