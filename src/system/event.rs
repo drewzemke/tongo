@@ -105,10 +105,7 @@ pub enum Event {
 
     // TODO: split this into two events? one to set the docs and one to reset the state
     /// Emitted when the set of Mongo documents have been updated.
-    DocumentsUpdated {
-        docs: Vec<Bson>,
-        reset_state: bool,
-    },
+    DocumentsUpdated { docs: Vec<Bson>, reset_state: bool },
 
     /// Emitted when the user starts editing an existing collection
     EditConnectionStarted(Connection),
@@ -128,9 +125,6 @@ pub enum Event {
 
     /// Emitted when a key has been presssed while the app is in raw mode.
     InputKeyPressed,
-
-    // FIXME: this should be a message
-    InputRequested(InputKind),
 
     /// Emitted when the selection of a list has changed.
     ListSelectionChanged,

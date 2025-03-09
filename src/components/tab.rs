@@ -157,11 +157,6 @@ impl Component for Tab<'_> {
             Event::ConnectionCreated(..) | Event::ConnectionSelected(..) => {
                 self.primary_screen.focus();
             }
-            Event::InputRequested(input_kind) => {
-                self.background_focus = Some(self.focus.borrow().clone());
-                self.input_modal.show_with(*input_kind);
-                out.push(Message::to_app(AppAction::EnterRawMode).into());
-            }
             Event::ConfirmYes(..)
             | Event::ConfirmNo
             | Event::InputConfirmed(..)
@@ -186,6 +181,11 @@ impl Component for Tab<'_> {
                 Some(TabAction::RequestConfirmation(kind)) => {
                     self.background_focus = Some(self.focus.borrow().clone());
                     self.confirm_modal.show_with(*kind);
+                }
+                Some(TabAction::RequestInput(kind)) => {
+                    self.background_focus = Some(self.focus.borrow().clone());
+                    self.input_modal.show_with(*kind);
+                    return vec![Message::to_app(AppAction::EnterRawMode).into()];
                 }
                 _ => {}
             };

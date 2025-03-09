@@ -80,9 +80,8 @@ impl Component for Databases {
                     out.push(Event::DatabaseSelected(db.clone()).into());
                 }
             }
-            Command::CreateNew => {
-                out.push(Event::InputRequested(InputKind::NewDatabaseName).into())
-            }
+            Command::CreateNew => out
+                .push(Message::to_tab(TabAction::RequestInput(InputKind::NewDatabaseName)).into()),
             Command::Delete => {
                 if self.get_selected().is_some() {
                     out.push(
@@ -205,7 +204,12 @@ mod tests {
         let mut test = ComponentTestHarness::new(component);
 
         test.given_command(Command::CreateNew);
-        test.expect_event(|e| matches!(e, Event::InputRequested(InputKind::NewDatabaseName)));
+        test.expect_message(|m| {
+            matches!(
+                m.read_as_tab(),
+                Some(TabAction::RequestInput(InputKind::NewDatabaseName))
+            )
+        });
     }
 
     #[test]

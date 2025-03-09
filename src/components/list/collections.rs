@@ -83,9 +83,9 @@ impl Component for Collections {
                     out.push(Event::CollectionSelected(coll.clone()).into());
                 }
             }
-            Command::CreateNew => {
-                out.push(Event::InputRequested(InputKind::NewCollectionName).into())
-            }
+            Command::CreateNew => out.push(
+                Message::to_tab(TabAction::RequestInput(InputKind::NewCollectionName)).into(),
+            ),
             Command::Delete => {
                 if self.get_selected().is_some() {
                     out.push(
@@ -210,7 +210,12 @@ mod tests {
         let mut test = ComponentTestHarness::new(component);
 
         test.given_command(Command::CreateNew);
-        test.expect_event(|e| matches!(e, Event::InputRequested(InputKind::NewCollectionName)));
+        test.expect_message(|m| {
+            matches!(
+                m.read_as_tab(),
+                Some(TabAction::RequestInput(InputKind::NewCollectionName))
+            )
+        });
     }
 
     #[test]
