@@ -6,6 +6,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.1](https://github.com/drewzemke/tongo/compare/v0.13.0...v0.13.1) - 2025-03-09
+
+### Added
+
+- *(databases)* create and drop databases
+- *(collections)* add collections to a db
+
+### Other
+
+- *(messages)* change one last event into a message, also add doc comments for all the messages
+- *(events)* more doc comments and some renaming of events
+- *(components)* add default impls for all `Component` trait functions
+- *(events)* doc comments for some of the events
+- *(messages)* change events that are target at `Tab` and `ConnectionScreen` into messages
+- *(messages)* make message creation/reading more idiomatic
+- *(messages)* change events that are targeted at `Client` into messages
+- *(messages)* change events that are target at `App` into messages
+- *(message)* introduce `Message` and `Signal` to help organize component comms system
+- *(system)* add some comments in planning for event/message refactor
+- *(collections)* most of the impl for creating new collections; just missing the mongo part
+- *(collections)* small test for dropping collection
+
 ## [0.13.0](https://github.com/drewzemke/tongo/compare/v0.12.3...v0.13.0) - 2025-03-03
 
 ### Added
