@@ -11,7 +11,7 @@ use ratatui::{
     prelude::*,
     widgets::{Block, Clear, Paragraph, Wrap},
 };
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::Cell, rc::Rc};
 
 const CONFIRM_MODAL_WIDTH: u16 = 40;
 const CONFIRM_MODAL_HEIGHT: u16 = 3;
@@ -38,11 +38,11 @@ impl ConfirmKind {
 
 #[derive(Debug, Default, Clone)]
 pub struct ConfirmModal {
-    focus: Rc<RefCell<TabFocus>>,
+    focus: Rc<Cell<TabFocus>>,
     kind: Option<ConfirmKind>,
 }
 impl ConfirmModal {
-    pub fn new(focus: Rc<RefCell<TabFocus>>) -> Self {
+    pub fn new(focus: Rc<Cell<TabFocus>>) -> Self {
         Self {
             focus,
             ..Default::default()
@@ -80,11 +80,11 @@ impl ConfirmModal {
 
 impl Component for ConfirmModal {
     fn is_focused(&self) -> bool {
-        *self.focus.borrow() == TabFocus::ConfModal
+        self.focus.get() == TabFocus::ConfModal
     }
 
     fn focus(&self) {
-        *self.focus.borrow_mut() = TabFocus::ConfModal;
+        self.focus.set(TabFocus::ConfModal);
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {

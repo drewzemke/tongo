@@ -16,21 +16,18 @@ use ratatui::{
     style::{Color, Style, Stylize},
     text::{Line, Span, Text},
 };
-use std::{
-    cell::{Cell, RefCell},
-    rc::Rc,
-};
+use std::{cell::Cell, rc::Rc};
 
 #[derive(Debug, Default, Clone)]
 pub struct FilterInput {
-    focus: Rc<RefCell<TabFocus>>,
+    focus: Rc<Cell<TabFocus>>,
     input: InnerInput<FilterInputFormatter>,
 }
 
 const DEFAULT_FILTER: &str = "{}";
 
 impl FilterInput {
-    pub fn new(focus: Rc<RefCell<TabFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
+    pub fn new(focus: Rc<Cell<TabFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
         let mut input = InnerInput::new("Filter", cursor_pos, FilterInputFormatter::default());
         input.set_value(DEFAULT_FILTER);
         Self { focus, input }
@@ -58,11 +55,11 @@ impl FilterInput {
 
 impl Component for FilterInput {
     fn is_focused(&self) -> bool {
-        *self.focus.borrow() == TabFocus::PrimScr(PrimScrFocus::FilterIn)
+        self.focus.get() == TabFocus::PrimScr(PrimScrFocus::FilterIn)
     }
 
     fn focus(&self) {
-        *self.focus.borrow_mut() = TabFocus::PrimScr(PrimScrFocus::FilterIn);
+        self.focus.set(TabFocus::PrimScr(PrimScrFocus::FilterIn));
     }
 
     fn commands(&self) -> Vec<CommandGroup> {

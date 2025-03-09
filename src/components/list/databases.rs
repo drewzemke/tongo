@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::Cell, rc::Rc};
 
 use super::InnerList;
 use crate::{
@@ -23,13 +23,13 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Clone)]
 pub struct Databases {
-    focus: Rc<RefCell<TabFocus>>,
+    focus: Rc<Cell<TabFocus>>,
     items: Vec<DatabaseSpecification>,
     list: InnerList,
 }
 
 impl Databases {
-    pub fn new(focus: Rc<RefCell<TabFocus>>) -> Self {
+    pub fn new(focus: Rc<Cell<TabFocus>>) -> Self {
         Self {
             focus,
             list: InnerList::new("Databases"),
@@ -53,11 +53,11 @@ impl Databases {
 
 impl Component for Databases {
     fn is_focused(&self) -> bool {
-        *self.focus.borrow() == TabFocus::PrimScr(PrimScrFocus::DbList)
+        self.focus.get() == TabFocus::PrimScr(PrimScrFocus::DbList)
     }
 
     fn focus(&self) {
-        *self.focus.borrow_mut() = TabFocus::PrimScr(PrimScrFocus::DbList);
+        self.focus.set(TabFocus::PrimScr(PrimScrFocus::DbList));
     }
 
     fn commands(&self) -> Vec<CommandGroup> {

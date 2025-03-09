@@ -8,10 +8,7 @@ use crate::{
     },
 };
 use ratatui::{prelude::*, widgets::Clear};
-use std::{
-    cell::{Cell, RefCell},
-    rc::Rc,
-};
+use std::{cell::Cell, rc::Rc};
 
 use super::{DefaultFormatter, InnerInput};
 
@@ -35,12 +32,12 @@ impl InputKind {
 
 #[derive(Debug, Default, Clone)]
 pub struct InputModal {
-    focus: Rc<RefCell<TabFocus>>,
+    focus: Rc<Cell<TabFocus>>,
     kind: Option<InputKind>,
     input: InnerInput<DefaultFormatter>,
 }
 impl InputModal {
-    pub fn new(focus: Rc<RefCell<TabFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
+    pub fn new(focus: Rc<Cell<TabFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
         let mut input = InnerInput::new("", cursor_pos, DefaultFormatter::default());
         input.start_editing();
 
@@ -63,11 +60,11 @@ impl InputModal {
 
 impl Component for InputModal {
     fn is_focused(&self) -> bool {
-        *self.focus.borrow() == TabFocus::InputModal
+        self.focus.get() == TabFocus::InputModal
     }
 
     fn focus(&self) {
-        *self.focus.borrow_mut() = TabFocus::InputModal;
+        self.focus.set(TabFocus::InputModal);
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {

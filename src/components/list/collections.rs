@@ -15,17 +15,17 @@ use crate::{
 use mongodb::results::CollectionSpecification;
 use ratatui::{prelude::*, widgets::ListItem};
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::Cell, rc::Rc};
 
 #[derive(Debug, Default, Clone)]
 pub struct Collections {
-    focus: Rc<RefCell<TabFocus>>,
+    focus: Rc<Cell<TabFocus>>,
     pub items: Vec<CollectionSpecification>,
     list: InnerList,
 }
 
 impl Collections {
-    pub fn new(focus: Rc<RefCell<TabFocus>>) -> Self {
+    pub fn new(focus: Rc<Cell<TabFocus>>) -> Self {
         Self {
             focus,
             list: InnerList::new("Collections"),
@@ -53,11 +53,11 @@ impl Collections {
 
 impl Component for Collections {
     fn is_focused(&self) -> bool {
-        *self.focus.borrow() == TabFocus::PrimScr(PrimScrFocus::CollList)
+        self.focus.get() == TabFocus::PrimScr(PrimScrFocus::CollList)
     }
 
     fn focus(&self) {
-        *self.focus.borrow_mut() = TabFocus::PrimScr(PrimScrFocus::CollList);
+        self.focus.set(TabFocus::PrimScr(PrimScrFocus::CollList));
     }
 
     fn commands(&self) -> Vec<CommandGroup> {

@@ -1,5 +1,5 @@
 use std::{
-    cell::{Ref, RefCell},
+    cell::{Cell, Ref},
     rc::Rc,
 };
 
@@ -22,7 +22,7 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
 pub struct Connections {
-    pub focus: Rc<RefCell<TabFocus>>,
+    pub focus: Rc<Cell<TabFocus>>,
     pub connection_manager: ConnectionManager,
     pub list: InnerList,
 }
@@ -30,7 +30,7 @@ pub struct Connections {
 impl Default for Connections {
     fn default() -> Self {
         Self {
-            focus: Rc::new(RefCell::new(TabFocus::default())),
+            focus: Rc::new(Cell::new(TabFocus::default())),
             connection_manager: ConnectionManager::default(),
             list: InnerList::default(),
         }
@@ -38,7 +38,7 @@ impl Default for Connections {
 }
 
 impl Connections {
-    pub fn new(focus: Rc<RefCell<TabFocus>>, connection_manager: ConnectionManager) -> Self {
+    pub fn new(focus: Rc<Cell<TabFocus>>, connection_manager: ConnectionManager) -> Self {
         Self {
             focus,
             connection_manager,
@@ -67,11 +67,11 @@ impl Connections {
 
 impl Component for Connections {
     fn is_focused(&self) -> bool {
-        *self.focus.borrow() == TabFocus::ConnScr(ConnScrFocus::ConnList)
+        self.focus.get() == TabFocus::ConnScr(ConnScrFocus::ConnList)
     }
 
     fn focus(&self) {
-        *self.focus.borrow_mut() = TabFocus::ConnScr(ConnScrFocus::ConnList);
+        self.focus.set(TabFocus::ConnScr(ConnScrFocus::ConnList));
     }
 
     fn commands(&self) -> Vec<CommandGroup> {

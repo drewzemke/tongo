@@ -20,12 +20,9 @@ use crate::{
 };
 use ratatui::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::{
-    cell::{Cell, RefCell},
-    rc::Rc,
-};
+use std::{cell::Cell, rc::Rc};
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PrimScrFocus {
     #[default]
     DbList,
@@ -36,7 +33,7 @@ pub enum PrimScrFocus {
 
 #[derive(Debug, Default, Clone)]
 pub struct PrimaryScreen<'a> {
-    focus: Rc<RefCell<TabFocus>>,
+    focus: Rc<Cell<TabFocus>>,
     db_list: Databases,
     coll_list: Collections,
     doc_tree: Documents<'a>,
@@ -44,7 +41,7 @@ pub struct PrimaryScreen<'a> {
 }
 
 impl PrimaryScreen<'_> {
-    pub fn new(focus: Rc<RefCell<TabFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
+    pub fn new(focus: Rc<Cell<TabFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
         let db_list = Databases::new(focus.clone());
         let coll_list = Collections::new(focus.clone());
         let doc_tree = Documents::new(focus.clone());
@@ -60,8 +57,8 @@ impl PrimaryScreen<'_> {
 
     /// Narrows the shared `AppFocus` variable into the focus enum for this componenent
     fn internal_focus(&self) -> Option<PrimScrFocus> {
-        match &*self.focus.borrow() {
-            TabFocus::PrimScr(focus) => Some(focus.clone()),
+        match self.focus.get() {
+            TabFocus::PrimScr(focus) => Some(focus),
             _ => None,
         }
     }
@@ -152,7 +149,7 @@ impl Component for PrimaryScreen<'_> {
             },
             Command::Back => match self.internal_focus() {
                 Some(PrimScrFocus::DbList) => {
-                    *self.focus.borrow_mut() = TabFocus::ConnScr(ConnScrFocus::ConnList);
+                    self.focus.set(TabFocus::ConnScr(ConnScrFocus::ConnList));
                     out.push(Event::FocusedChanged.into());
                 }
                 Some(PrimScrFocus::CollList) => {
@@ -226,11 +223,11 @@ impl Component for PrimaryScreen<'_> {
     }
 
     fn focus(&self) {
-        *self.focus.borrow_mut() = TabFocus::PrimScr(PrimScrFocus::default());
+        self.focus.set(TabFocus::PrimScr(PrimScrFocus::default()));
     }
 
     fn is_focused(&self) -> bool {
-        matches!(*self.focus.borrow(), TabFocus::PrimScr(..))
+        matches!(self.focus.get(), TabFocus::PrimScr(..))
     }
 }
 

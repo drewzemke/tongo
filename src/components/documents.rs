@@ -20,12 +20,12 @@ use ratatui::{
     widgets::{Block, Scrollbar, ScrollbarOrientation},
 };
 use serde::{Deserialize, Serialize};
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::Cell, rc::Rc};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
 
 #[derive(Debug, Default)]
 pub struct Documents<'a> {
-    focus: Rc<RefCell<TabFocus>>,
+    focus: Rc<Cell<TabFocus>>,
     state: TreeState<MongoKey>,
     items: Vec<TreeItem<'a, MongoKey>>,
 
@@ -52,7 +52,7 @@ impl<'a> Clone for Documents<'a> {
 }
 
 impl Documents<'_> {
-    pub fn new(focus: Rc<RefCell<TabFocus>>) -> Self {
+    pub fn new(focus: Rc<Cell<TabFocus>>) -> Self {
         Self {
             focus,
             ..Default::default()
@@ -128,11 +128,11 @@ impl Documents<'_> {
 
 impl Component for Documents<'_> {
     fn is_focused(&self) -> bool {
-        *self.focus.borrow() == TabFocus::PrimScr(PrimScrFocus::DocTree)
+        self.focus.get() == TabFocus::PrimScr(PrimScrFocus::DocTree)
     }
 
     fn focus(&self) {
-        *self.focus.borrow_mut() = TabFocus::PrimScr(PrimScrFocus::DocTree);
+        self.focus.set(TabFocus::PrimScr(PrimScrFocus::DocTree));
     }
 
     fn commands(&self) -> Vec<CommandGroup> {

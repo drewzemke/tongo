@@ -10,19 +10,16 @@ use crate::{
         Signal,
     },
 };
-use std::{
-    cell::{Cell, RefCell},
-    rc::Rc,
-};
+use std::{cell::Cell, rc::Rc};
 
 #[derive(Debug, Default, Clone)]
 pub struct ConnStrInput {
-    focus: Rc<RefCell<TabFocus>>,
+    focus: Rc<Cell<TabFocus>>,
     input: InnerInput<DefaultFormatter>,
 }
 
 impl ConnStrInput {
-    pub fn new(focus: Rc<RefCell<TabFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
+    pub fn new(focus: Rc<Cell<TabFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
         let input = InnerInput::new("Connection String", cursor_pos, DefaultFormatter::default());
         Self { focus, input }
     }
@@ -42,11 +39,11 @@ impl ConnStrInput {
 
 impl Component for ConnStrInput {
     fn is_focused(&self) -> bool {
-        *self.focus.borrow() == TabFocus::ConnScr(ConnScrFocus::StringIn)
+        self.focus.get() == TabFocus::ConnScr(ConnScrFocus::StringIn)
     }
 
     fn focus(&self) {
-        *self.focus.borrow_mut() = TabFocus::ConnScr(ConnScrFocus::StringIn);
+        self.focus.set(TabFocus::ConnScr(ConnScrFocus::StringIn));
     }
 
     fn commands(&self) -> Vec<crate::system::command::CommandGroup> {

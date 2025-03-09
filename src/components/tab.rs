@@ -18,14 +18,11 @@ use crate::{
 };
 use ratatui::{layout::Rect, Frame};
 use serde::{Deserialize, Serialize};
-use std::{
-    cell::{Cell, RefCell},
-    rc::Rc,
-};
+use std::{cell::Cell, rc::Rc};
 
 use super::input::input_modal::InputModal;
 
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TabFocus {
     ConnScr(ConnScrFocus),
     PrimScr(PrimScrFocus),
@@ -50,7 +47,7 @@ pub struct Tab<'a> {
     input_modal: InputModal,
 
     // used when displaying the confirm modal or while the app is unfocused
-    focus: Rc<RefCell<TabFocus>>,
+    focus: Rc<Cell<TabFocus>>,
     background_focus: Option<TabFocus>,
 }
 
@@ -62,7 +59,7 @@ impl Default for Tab<'_> {
             primary_screen: PrimaryScreen::default(),
             confirm_modal: ConfirmModal::default(),
             input_modal: InputModal::default(),
-            focus: Rc::new(RefCell::new(TabFocus::default())),
+            focus: Rc::new(Cell::new(TabFocus::default())),
             background_focus: None,
         }
     }
@@ -87,7 +84,7 @@ impl Tab<'_> {
         };
 
         // initialize shared data
-        let focus = Rc::new(RefCell::new(initial_focus));
+        let focus = Rc::new(Cell::new(initial_focus));
 
         let confirm_modal = ConfirmModal::new(focus.clone());
         let input_modal = InputModal::new(focus.clone(), cursor_pos.clone());
@@ -127,7 +124,7 @@ impl Component for Tab<'_> {
 
         out.append(&mut self.client.commands());
 
-        match *self.focus.borrow() {
+        match self.focus.get() {
             TabFocus::ConnScr(_) => out.append(&mut self.conn_screen.commands()),
             TabFocus::PrimScr(_) => out.append(&mut self.primary_screen.commands()),
             TabFocus::ConfModal => out.append(&mut self.confirm_modal.commands()),
@@ -139,10 +136,7 @@ impl Component for Tab<'_> {
 
     #[must_use]
     fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
-        // HACK: need to clone here to avoid borrow error with the focus `RefCell`
-        // TODO: refactor to use `Cell` instead of `RefCell`, since AppFocus is Copy
-        let app_focus = self.focus.borrow().clone();
-        match app_focus {
+        match self.focus.get() {
             TabFocus::ConnScr(_) => self.conn_screen.handle_command(command),
             TabFocus::PrimScr(_) => self.primary_screen.handle_command(command),
             TabFocus::ConfModal => self.confirm_modal.handle_command(command),
@@ -152,10 +146,7 @@ impl Component for Tab<'_> {
     }
 
     fn handle_raw_event(&mut self, event: &crossterm::event::Event) -> Vec<Signal> {
-        // HACK: need to clone here to avoid borrow error with the focus `RefCell`
-        // TODO: refactor to use `Cell` instead of `RefCell`, since AppFocus is Copy
-        let app_focus = self.focus.borrow().clone();
-        match app_focus {
+        match self.focus.get() {
             TabFocus::ConnScr(_) => self.conn_screen.handle_raw_event(event),
             TabFocus::PrimScr(_) => self.primary_screen.handle_raw_event(event),
             TabFocus::ConfModal => self.confirm_modal.handle_raw_event(event),
@@ -174,7 +165,8 @@ impl Component for Tab<'_> {
             | Event::ConfirmNo
             | Event::InputConfirmed(..)
             | Event::InputCanceled => {
-                *self.focus.borrow_mut() = self.background_focus.take().unwrap_or_default();
+                self.focus
+                    .set(self.background_focus.take().unwrap_or_default());
             }
             _ => {}
         }
@@ -192,11 +184,11 @@ impl Component for Tab<'_> {
         } else {
             match message.read_as_tab() {
                 Some(TabAction::RequestConfirmation(kind)) => {
-                    self.background_focus = Some(self.focus.borrow().clone());
+                    self.background_focus = Some(self.focus.get());
                     self.confirm_modal.show_with(*kind);
                 }
                 Some(TabAction::RequestInput(kind)) => {
-                    self.background_focus = Some(self.focus.borrow().clone());
+                    self.background_focus = Some(self.focus.get());
                     self.input_modal.show_with(*kind);
                     return vec![Message::to_app(AppAction::EnterRawMode).into()];
                 }
@@ -208,7 +200,7 @@ impl Component for Tab<'_> {
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         // render a screen based on current focus
-        match &*self.focus.borrow() {
+        match self.focus.get() {
             TabFocus::PrimScr(..) => self.primary_screen.render(frame, area),
             TabFocus::ConnScr(..) => self.conn_screen.render(frame, area),
             TabFocus::ConfModal => {
@@ -245,7 +237,7 @@ impl PersistedComponent for Tab<'_> {
 
     fn persist(&self) -> Self::StorageType {
         // don't save focus as any of the input components, it gets weird
-        let focus = match *self.focus.borrow() {
+        let focus = match self.focus.get() {
             TabFocus::ConnScr(..) => TabFocus::ConnScr(ConnScrFocus::ConnList),
             TabFocus::PrimScr(ref focus) => {
                 let ps_focus = match focus {
@@ -268,7 +260,7 @@ impl PersistedComponent for Tab<'_> {
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) {
-        *self.focus.borrow_mut() = storage.focus;
+        self.focus.set(storage.focus);
         self.conn_screen.hydrate(storage.conn_screen.clone());
         self.primary_screen.hydrate(storage.primary_screen);
 

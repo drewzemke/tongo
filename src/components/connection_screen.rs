@@ -20,12 +20,9 @@ use ratatui::{
     widgets::{Block, Clear},
 };
 use serde::{Deserialize, Serialize};
-use std::{
-    cell::{Cell, RefCell},
-    rc::Rc,
-};
+use std::{cell::Cell, rc::Rc};
 
-#[derive(Clone, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ConnScrFocus {
     #[default]
     ConnList,
@@ -35,7 +32,7 @@ pub enum ConnScrFocus {
 
 #[derive(Debug, Clone)]
 pub struct ConnectionScreen {
-    focus: Rc<RefCell<TabFocus>>,
+    focus: Rc<Cell<TabFocus>>,
     pub connection_manager: ConnectionManager,
     conn_list: Connections,
     conn_name_input: ConnNameInput,
@@ -45,7 +42,7 @@ pub struct ConnectionScreen {
 
 impl Default for ConnectionScreen {
     fn default() -> Self {
-        let focus = Rc::new(RefCell::new(TabFocus::ConnScr(ConnScrFocus::ConnList)));
+        let focus = Rc::new(Cell::new(TabFocus::ConnScr(ConnScrFocus::ConnList)));
         let cursor_pos = Rc::new(Cell::new((0, 0)));
 
         let storage = Rc::new(FileStorage::default());
@@ -69,7 +66,7 @@ impl Default for ConnectionScreen {
 impl ConnectionScreen {
     pub fn new(
         connection_list: Connections,
-        app_focus: Rc<RefCell<TabFocus>>,
+        app_focus: Rc<Cell<TabFocus>>,
         cursor_pos: Rc<Cell<(u16, u16)>>,
         connection_manager: ConnectionManager,
     ) -> Self {
@@ -88,8 +85,8 @@ impl ConnectionScreen {
 
     /// Narrows the shared `AppFocus` variable into the focus enum for this componenent
     fn internal_focus(&self) -> Option<ConnScrFocus> {
-        match &*self.focus.borrow() {
-            TabFocus::ConnScr(focus) => Some(focus.clone()),
+        match self.focus.get() {
+            TabFocus::ConnScr(focus) => Some(focus),
             _ => None,
         }
     }
@@ -248,11 +245,11 @@ impl Component for ConnectionScreen {
     }
 
     fn focus(&self) {
-        *self.focus.borrow_mut() = TabFocus::ConnScr(ConnScrFocus::default());
+        self.focus.set(TabFocus::ConnScr(ConnScrFocus::default()));
     }
 
     fn is_focused(&self) -> bool {
-        matches!(*self.focus.borrow(), TabFocus::ConnScr(..))
+        matches!(self.focus.get(), TabFocus::ConnScr(..))
     }
 }
 
