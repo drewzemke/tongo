@@ -271,9 +271,10 @@ impl PersistedComponent for TabBar {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{model::connection::Connection, testing::ComponentTestHarness};
-    use mongodb::results::{CollectionSpecification, DatabaseSpecification};
-    use serde_json::json;
+    use crate::{
+        model::{collection::Collection, connection::Connection, database::Database},
+        testing::ComponentTestHarness,
+    };
 
     #[test]
     fn create_new_tab() {
@@ -384,28 +385,12 @@ mod tests {
         assert_eq!(test.component().current_tab_idx(), 0);
     }
 
-    fn get_dummy_database() -> DatabaseSpecification {
-        let db_spec_json = json!({
-            "name": "test_db",
-            "sizeOnDisk": 1024,
-            "empty": false,
-            "shards": null
-        });
-
-        serde_json::from_value(db_spec_json).expect("should be able to parse database from json")
+    fn get_dummy_database() -> Database {
+        Database::new("test_db".to_string())
     }
 
-    fn get_dummy_collection() -> CollectionSpecification {
-        let coll_spec_json = json!({
-            "name": "test_collection",
-            "type": "collection",
-            "options": {},
-            "info": { "readOnly": false, "uuid": null },
-            "id_index": null
-        });
-
-        serde_json::from_value(coll_spec_json)
-            .expect("should be able to parse collection from json")
+    fn get_dummy_collection() -> Collection {
+        Collection::new("test_collection".to_string())
     }
 
     #[test]

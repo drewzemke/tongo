@@ -21,8 +21,6 @@ pub mod event;
 /// bar, or any other component within the currently-visible tab.
 pub mod message;
 
-// FIXME: stop using collection and db specs from mongo
-#[expect(clippy::large_enum_variant)]
 /// A utility enum that is the union of the event and message type, since a
 /// component may return either when handling a command, event, or message,
 /// and both are used for communication between components.

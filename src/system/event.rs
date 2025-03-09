@@ -1,8 +1,10 @@
 use super::command::Command;
-use crate::{components::input::input_modal::InputKind, model::connection::Connection};
+use crate::{
+    components::input::input_modal::InputKind,
+    model::{collection::Collection, connection::Connection, database::Database},
+};
 use mongodb::{
     bson::{Bson, Document},
-    results::{CollectionSpecification, DatabaseSpecification},
     Client as MongoClient,
 };
 
@@ -29,14 +31,14 @@ pub enum Event {
 
     /// Emitted when the user has changed the selection in the collection list
     /// to a specific collection (but not necessarily selected it).
-    CollectionHighlighted(CollectionSpecification),
+    CollectionHighlighted(Collection),
 
     /// Emitted when a collection has been selected by the user.
-    CollectionSelected(CollectionSpecification),
+    CollectionSelected(Collection),
 
     /// Emitted when the list of collections for the currently-active database
     /// in a tab has been updated.
-    CollectionsUpdated(Vec<CollectionSpecification>),
+    CollectionsUpdated(Vec<Collection>),
 
     /// Emitted when the user has canceled something in the confirm modal.
     ConfirmNo,
@@ -75,14 +77,14 @@ pub enum Event {
 
     /// Emitted when the user has changed the selection in the database list to
     /// a specific database (but not necessarily selected it).
-    DatabaseHighlighted(DatabaseSpecification),
+    DatabaseHighlighted(Database),
 
     /// Emitted when a database has been selected by the user.
-    DatabaseSelected(DatabaseSpecification),
+    DatabaseSelected(Database),
 
     /// Emitted when the list of databases for the currently-active collection
     /// in a tab has been updated.
-    DatabasesUpdated(Vec<DatabaseSpecification>),
+    DatabasesUpdated(Vec<Database>),
 
     /// Emitted when a document has been successfully deleted from the Mongo
     /// server.

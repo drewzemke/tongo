@@ -6,6 +6,7 @@ use crate::{
         confirm_modal::ConfirmKind, input::input_modal::InputKind, primary_screen::PrimScrFocus,
         tab::TabFocus, Component,
     },
+    model::database::Database,
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
@@ -14,7 +15,6 @@ use crate::{
         Signal,
     },
 };
-use mongodb::results::DatabaseSpecification;
 use ratatui::{
     prelude::{Frame, Rect},
     widgets::ListItem,
@@ -24,7 +24,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Default, Clone)]
 pub struct Databases {
     focus: Rc<Cell<TabFocus>>,
-    items: Vec<DatabaseSpecification>,
+    items: Vec<Database>,
     list: InnerList,
 }
 
@@ -37,14 +37,14 @@ impl Databases {
         }
     }
 
-    fn get_selected(&self) -> Option<&DatabaseSpecification> {
+    fn get_selected(&self) -> Option<&Database> {
         self.list
             .state
             .selected()
             .and_then(|index| self.items.get(index))
     }
 
-    fn select(&mut self, database: Option<DatabaseSpecification>) {
+    fn select(&mut self, database: Option<Database>) {
         let index = database
             .and_then(|database| self.items.iter().position(|db| *db.name == database.name));
         self.list.state.select(index);
@@ -139,8 +139,8 @@ impl Component for Databases {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedDatabases {
-    selected_db: Option<DatabaseSpecification>,
-    all_dbs: Vec<DatabaseSpecification>,
+    selected_db: Option<Database>,
+    all_dbs: Vec<Database>,
 }
 
 impl PersistedComponent for Databases {
@@ -167,17 +167,9 @@ mod tests {
         components::{confirm_modal::ConfirmKind, input::input_modal::InputKind},
         testing::ComponentTestHarness,
     };
-    use serde_json::json;
 
-    fn get_dummy_database() -> DatabaseSpecification {
-        let db_spec_json = json!({
-            "name": "test_db",
-            "sizeOnDisk": 1024,
-            "empty": false,
-            "shards": null
-        });
-
-        serde_json::from_value(db_spec_json).expect("should be able to parse database from json")
+    fn get_dummy_database() -> Database {
+        Database::new("test_db".to_string())
     }
 
     #[test]

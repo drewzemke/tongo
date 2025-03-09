@@ -4,6 +4,7 @@ use crate::{
         confirm_modal::ConfirmKind, input::input_modal::InputKind, primary_screen::PrimScrFocus,
         tab::TabFocus, Component,
     },
+    model::collection::Collection,
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
@@ -12,7 +13,6 @@ use crate::{
         Signal,
     },
 };
-use mongodb::results::CollectionSpecification;
 use ratatui::{prelude::*, widgets::ListItem};
 use serde::{Deserialize, Serialize};
 use std::{cell::Cell, rc::Rc};
@@ -20,7 +20,7 @@ use std::{cell::Cell, rc::Rc};
 #[derive(Debug, Default, Clone)]
 pub struct Collections {
     focus: Rc<Cell<TabFocus>>,
-    pub items: Vec<CollectionSpecification>,
+    pub items: Vec<Collection>,
     list: InnerList,
 }
 
@@ -33,7 +33,7 @@ impl Collections {
         }
     }
 
-    fn get_selected(&self) -> Option<&CollectionSpecification> {
+    fn get_selected(&self) -> Option<&Collection> {
         self.list
             .state
             .selected()
@@ -41,7 +41,7 @@ impl Collections {
     }
 
     // TODO: remove? only used for hydration
-    fn select(&mut self, collection: Option<CollectionSpecification>) {
+    fn select(&mut self, collection: Option<Collection>) {
         let index = collection.and_then(|collection| {
             self.items
                 .iter()
@@ -147,8 +147,8 @@ impl Component for Collections {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedCollections {
-    selected_coll: Option<CollectionSpecification>,
-    all_colls: Vec<CollectionSpecification>,
+    selected_coll: Option<Collection>,
+    all_colls: Vec<Collection>,
 }
 
 impl PersistedComponent for Collections {
@@ -172,19 +172,9 @@ mod tests {
 
     use super::*;
     use crate::{components::input::input_modal::InputKind, testing::ComponentTestHarness};
-    use serde_json::json;
 
-    fn get_dummy_collection() -> CollectionSpecification {
-        let coll_spec_json = json!({
-            "name": "test_collection",
-            "type": "collection",
-            "options": {},
-            "info": { "readOnly": false, "uuid": null },
-            "id_index": null
-        });
-
-        serde_json::from_value(coll_spec_json)
-            .expect("should be able to parse collection from json")
+    fn get_dummy_collection() -> Collection {
+        Collection::new("test_collection".to_string())
     }
 
     #[test]

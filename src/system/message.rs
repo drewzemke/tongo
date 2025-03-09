@@ -1,11 +1,8 @@
 use crate::{
     components::{confirm_modal::ConfirmKind, input::input_modal::InputKind},
-    model::connection::Connection,
+    model::{collection::Collection, connection::Connection, database::Database},
 };
-use mongodb::{
-    bson::Document,
-    results::{CollectionSpecification, DatabaseSpecification},
-};
+use mongodb::bson::Document;
 
 #[derive(Debug, Clone, strum_macros::Display)]
 pub enum AppAction {
@@ -29,8 +26,6 @@ pub enum TabAction {
     RequestInput(InputKind),
 }
 
-// FIXME: stop using collection and db specs from mongo
-#[expect(clippy::large_enum_variant)]
 #[derive(Debug, Clone, strum_macros::Display)]
 pub enum ClientAction {
     /// Tells `Client` to connect to a given Mongo instance.
@@ -42,10 +37,10 @@ pub enum ClientAction {
 
     /// Tells `Client` to drop the given collection from the currently-selected
     /// database.
-    DropCollection(CollectionSpecification),
+    DropCollection(Collection),
 
     /// Tells `Client` to drop the given database.
-    DropDatabase(DatabaseSpecification),
+    DropDatabase(Database),
 
     /// Tells `Client` to insert the given document into the currently-selected
     /// collection.
@@ -81,8 +76,6 @@ pub enum ConnScreenAction {
     StartNewConn,
 }
 
-// FIXME: stop using collection and db specs from mongo
-#[expect(clippy::large_enum_variant)]
 #[derive(Debug, Clone, strum_macros::Display)]
 enum Action {
     App(AppAction),

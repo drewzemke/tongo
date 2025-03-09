@@ -1,5 +1,6 @@
 use crate::{
     components::{input::input_modal::InputKind, Component},
+    model::{collection::Collection, database::Database},
     persistence::PersistedComponent,
     system::{
         event::Event,
@@ -12,8 +13,7 @@ use futures::{Future, TryStreamExt};
 use mongodb::{
     bson::{doc, Bson, Document},
     options::{ClientOptions, FindOptions},
-    results::{CollectionSpecification, DatabaseSpecification},
-    Client as MongoClient, Collection, Database,
+    Client as MongoClient, Collection as MongoCollection, Database as MongoDatabase,
 };
 use serde::{Deserialize, Serialize};
 use std::{
@@ -42,8 +42,8 @@ pub struct Client {
     #[expect(clippy::struct_field_names)]
     mongo_client: Option<MongoClient>,
 
-    db: Option<DatabaseSpecification>,
-    coll: Option<CollectionSpecification>,
+    db: Option<Database>,
+    coll: Option<Collection>,
 
     filter: Document,
     page: usize,
@@ -119,13 +119,13 @@ impl Client {
         });
     }
 
-    fn get_database(&self) -> Option<Database> {
+    fn get_database(&self) -> Option<MongoDatabase> {
         let client = self.mongo_client.as_ref()?;
         let db_spec = self.db.as_ref()?;
         Some(client.database(&db_spec.name))
     }
 
-    fn get_collection<T>(&self) -> Option<Collection<T>>
+    fn get_collection<T>(&self) -> Option<MongoCollection<T>>
     where
         T: Send + Sync,
     {
@@ -139,7 +139,9 @@ impl Client {
 
         self.exec(async move {
             let dbs = client.list_databases().await?;
-            Ok(Event::DatabasesUpdated(dbs))
+            Ok(Event::DatabasesUpdated(
+                dbs.into_iter().map(Database::from).collect(),
+            ))
         });
 
         Some(())
@@ -151,7 +153,9 @@ impl Client {
         self.exec(async move {
             let cursor = db.list_collections().await?;
             let colls = cursor.try_collect::<Vec<_>>().await?;
-            Ok(Event::CollectionsUpdated(colls))
+            Ok(Event::CollectionsUpdated(
+                colls.into_iter().map(Collection::from).collect(),
+            ))
         });
 
         Some(())
@@ -425,8 +429,8 @@ impl Component for Client {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PersistedClient {
-    db: Option<DatabaseSpecification>,
-    coll: Option<CollectionSpecification>,
+    db: Option<Database>,
+    coll: Option<Collection>,
     filter: Document,
     page: usize,
 }
