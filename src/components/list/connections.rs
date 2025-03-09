@@ -128,7 +128,7 @@ impl Component for Connections {
         let mut out = vec![];
 
         // only process the confirmation if this component is focused
-        if self.is_focused() && matches!(event, Event::ConfirmationYes(Command::Delete)) {
+        if self.is_focused() && matches!(event, Event::ConfirmYes(Command::Delete)) {
             let Some(index_to_delete) = self.list.state.selected() else {
                 return out;
             };

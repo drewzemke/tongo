@@ -122,7 +122,7 @@ impl Component for Collections {
                     }
                 }
             }
-            Event::ConfirmationYes(Command::Delete) => {
+            Event::ConfirmYes(Command::Delete) => {
                 if self.is_focused() {
                     if let Some(coll) = self.get_selected() {
                         return vec![Message::to_client(ClientAction::DropCollection(

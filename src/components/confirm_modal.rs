@@ -132,8 +132,8 @@ impl Component for ConfirmModal {
 
         let mut out = vec![];
         match command {
-            Command::Confirm => out.push(Event::ConfirmationYes(confirm_kind.command()).into()),
-            Command::Back => out.push(Event::ConfirmationNo.into()),
+            Command::Confirm => out.push(Event::ConfirmYes(confirm_kind.command()).into()),
+            Command::Back => out.push(Event::ConfirmNo.into()),
             _ => {}
         }
         out

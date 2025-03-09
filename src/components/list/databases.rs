@@ -117,7 +117,7 @@ impl Component for Databases {
                     }
                 }
             }
-            Event::ConfirmationYes(Command::Delete) => {
+            Event::ConfirmYes(Command::Delete) => {
                 if self.is_focused() {
                     if let Some(db) = self.get_selected() {
                         return vec![

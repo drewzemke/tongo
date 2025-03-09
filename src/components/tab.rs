@@ -162,8 +162,8 @@ impl Component for Tab<'_> {
                 self.input_modal.show_with(*input_kind);
                 out.push(Message::to_app(AppAction::EnterRawMode).into());
             }
-            Event::ConfirmationYes(..)
-            | Event::ConfirmationNo
+            Event::ConfirmYes(..)
+            | Event::ConfirmNo
             | Event::InputConfirmed(..)
             | Event::InputCanceled => {
                 *self.focus.borrow_mut() = self.background_focus.take().unwrap_or_default();

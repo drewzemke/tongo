@@ -15,7 +15,6 @@ use mongodb::{
     results::{CollectionSpecification, DatabaseSpecification},
     Client as MongoClient, Collection, Database,
 };
-use ratatui::prelude::{Frame, Rect};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashSet,
@@ -195,7 +194,7 @@ impl Client {
 
         self.exec(async move {
             coll.insert_one(doc).await?;
-            Ok(Event::DocInsertConfirmed)
+            Ok(Event::DocInsertComplete)
         });
 
         Some(())
@@ -207,7 +206,7 @@ impl Client {
 
         self.exec(async move {
             coll.update_one(filter, update).await?;
-            Ok(Event::DocUpdateConfirmed)
+            Ok(Event::DocUpdateComplete)
         });
 
         Some(())
@@ -218,7 +217,7 @@ impl Client {
 
         self.exec(async move {
             coll.delete_one(filter).await?;
-            Ok(Event::DocDeleteConfirmed)
+            Ok(Event::DocDeleteComplete)
         });
 
         Some(())
@@ -345,8 +344,8 @@ impl Component for Client {
                 self.queue(Operation::Query(true));
                 self.queue(Operation::Count);
             }
-            Event::DocUpdateConfirmed => self.queue(Operation::Query(false)),
-            Event::DocInsertConfirmed | Event::DocDeleteConfirmed => {
+            Event::DocUpdateComplete => self.queue(Operation::Query(false)),
+            Event::DocInsertComplete | Event::DocDeleteComplete => {
                 self.queue(Operation::Count);
                 self.queue(Operation::Query(false));
             }

@@ -132,13 +132,13 @@ impl Component for StatusBar {
             Event::ErrorOccurred(error) => {
                 self.message = Some(Message::error(error));
             }
-            Event::DocUpdateConfirmed => {
+            Event::DocUpdateComplete => {
                 self.message = Some(Message::success("Document updated."));
             }
-            Event::DocInsertConfirmed => {
+            Event::DocInsertComplete => {
                 self.message = Some(Message::success("Document created."));
             }
-            Event::DocDeleteConfirmed => {
+            Event::DocDeleteComplete => {
                 self.message = Some(Message::success("Document deleted."));
             }
             Event::CollectionCreationConfirmed => {

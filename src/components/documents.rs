@@ -293,7 +293,7 @@ impl Component for Documents<'_> {
             Event::CountUpdated(count) => {
                 self.count = *count;
             }
-            Event::ConfirmationYes(Command::Delete) => {
+            Event::ConfirmYes(Command::Delete) => {
                 if self.is_focused() {
                     if let Some(doc) = self.selected_doc() {
                         return vec![
