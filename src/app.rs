@@ -61,17 +61,19 @@ pub struct App<'a> {
 
 impl Default for App<'_> {
     fn default() -> Self {
+        let key_map = Rc::new(KeyMap::default());
         let storage = Rc::new(FileStorage::default());
+        let command_manager = CommandManager::default();
         Self {
             tabs: vec![Tab::default()],
             tab_bar: TabBar::default(),
             status_bar: StatusBar::default(),
-            help_modal: HelpModal::new(),
+            help_modal: HelpModal::new(command_manager.clone(), key_map.clone()),
             cursor_pos: Rc::new(Cell::new((0, 0))),
             connection_manager: ConnectionManager::new(vec![], storage.clone()),
-            command_manager: CommandManager::default(),
+            command_manager,
             storage,
-            key_map: Rc::new(KeyMap::default()),
+            key_map,
             mode: Mode::Normal,
             force_clear: false,
             exiting: false,
@@ -104,12 +106,13 @@ impl App<'_> {
 
         let tab_bar = TabBar::new();
         let status_bar = StatusBar::new(command_manager.clone(), key_map.clone());
+        let help_modal = HelpModal::new(command_manager.clone(), key_map.clone());
 
         Self {
             tabs: vec![tab],
             tab_bar,
             status_bar,
-            help_modal: HelpModal::new(),
+            help_modal,
 
             key_map,
             cursor_pos,

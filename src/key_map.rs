@@ -142,7 +142,8 @@ impl KeyMap {
             .copied()
     }
 
-    fn command_to_key_str(&self, command: Command) -> String {
+    #[must_use]
+    pub fn command_to_key_str(&self, command: Command) -> String {
         let Some(key) = self.map.get(&command) else {
             return "?".into();
         };
