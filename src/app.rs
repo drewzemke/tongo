@@ -10,7 +10,7 @@ use crate::{
     model::connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
     system::{
-        command::{Command, CommandGroup},
+        command::{Command, CommandGroup, CommandManager},
         event::Event,
         message::{AppAction, Message},
         Signal,
@@ -48,6 +48,7 @@ pub struct App<'a> {
     cursor_pos: Rc<Cell<(u16, u16)>>,
     storage: Rc<dyn Storage>,
     connection_manager: ConnectionManager,
+    command_manager: CommandManager,
 
     // config
     key_map: Rc<KeyMap>,
@@ -68,6 +69,7 @@ impl Default for App<'_> {
             help_modal: HelpModal::new(),
             cursor_pos: Rc::new(Cell::new((0, 0))),
             connection_manager: ConnectionManager::new(vec![], storage.clone()),
+            command_manager: CommandManager::default(),
             storage,
             key_map: Rc::new(KeyMap::default()),
             mode: Mode::Normal,
@@ -80,7 +82,6 @@ impl Default for App<'_> {
 const DEBOUNCE: Duration = Duration::from_millis(20); // 50 FPS
 
 impl App<'_> {
-    // TODO: organize this function a bit better
     // TODO?: all_connections can be stored in the persisted connection list rather than
     // read in from a separate file
     pub fn new(
@@ -93,6 +94,7 @@ impl App<'_> {
         let cursor_pos = Rc::new(Cell::new((0, 0)));
         let connection_manager = ConnectionManager::new(connections, storage.clone());
         let key_map = Rc::new(key_map);
+        let command_manager = CommandManager::default();
 
         let tab = Tab::new(
             selected_connection,
@@ -101,7 +103,7 @@ impl App<'_> {
         );
 
         let tab_bar = TabBar::new();
-        let status_bar = StatusBar::new(key_map.clone());
+        let status_bar = StatusBar::new(command_manager.clone(), key_map.clone());
 
         Self {
             tabs: vec![tab],
@@ -113,6 +115,7 @@ impl App<'_> {
             cursor_pos,
             storage,
             connection_manager,
+            command_manager,
 
             mode: Mode::Normal,
             force_clear: false,
@@ -170,6 +173,7 @@ impl App<'_> {
                 return Ok(());
             }
 
+            // clear the screen and do a full redraw if the flag is set
             if self.force_clear {
                 terminal.clear()?;
                 self.force_clear = false;
@@ -207,6 +211,9 @@ impl App<'_> {
                 signals_deque.push_back(new_signal);
             }
         }
+
+        // recompute the app's available commands
+        self.command_manager.set_commands(self.commands());
 
         should_render
     }
@@ -317,7 +324,9 @@ impl Component for App<'_> {
 
             // map the key to a command if we're not in raw mode,
             // making sure it's one of the currently-available commands
-            let command = self.key_map.command_for_key(key.code, &self.commands());
+            let command = self
+                .key_map
+                .command_for_key(key.code, &self.command_manager.groups());
 
             // handle the command
             if let Some(command) = command {
@@ -402,8 +411,6 @@ impl Component for App<'_> {
         }
 
         // render status bar
-        // TODO: avoid a second call to `commands()` here?
-        self.status_bar.commands = self.commands();
         self.status_bar.render(frame, status_bar_area);
 
         // show the cursor if we're editing something, or the help modal if

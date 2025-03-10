@@ -6,7 +6,11 @@ use std::{
 use crate::{
     components::Component,
     key_map::KeyMap,
-    system::{command::CommandGroup, event::Event, Signal},
+    system::{
+        command::{CommandGroup, CommandManager},
+        event::Event,
+        Signal,
+    },
 };
 use ratatui::{
     prelude::*,
@@ -64,7 +68,7 @@ impl Message {
 
 #[derive(Debug, Default)]
 pub struct StatusBar {
-    pub commands: Vec<CommandGroup>,
+    command_manager: CommandManager,
     message: Option<Message>,
 
     key_map: Rc<KeyMap>,
@@ -73,8 +77,9 @@ pub struct StatusBar {
     renders: usize,
 }
 impl StatusBar {
-    pub fn new(key_map: Rc<KeyMap>) -> Self {
+    pub fn new(command_manager: CommandManager, key_map: Rc<KeyMap>) -> Self {
         Self {
+            command_manager,
             key_map,
             ..Default::default()
         }
@@ -86,9 +91,10 @@ impl Component for StatusBar {
         let content = self.message.as_ref().map_or_else(
             || {
                 Line::from(
-                    self.commands
-                        .iter()
-                        .flat_map(|group| self.key_map.cmd_group_to_span(group))
+                    self.command_manager
+                        .groups()
+                        .into_iter()
+                        .flat_map(|group| self.key_map.cmd_group_to_span(&group))
                         .collect::<Vec<Span>>(),
                 )
             },

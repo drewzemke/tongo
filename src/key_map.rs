@@ -170,7 +170,7 @@ impl KeyMap {
     /// Uses the current key configuration to build a string from a command group.
     /// Used for displaying key hints in the status bar.
     #[must_use]
-    pub fn cmd_group_to_span<'a>(&self, group: &'a CommandGroup) -> Vec<Span<'a>> {
+    pub fn cmd_group_to_span(&self, group: &CommandGroup) -> Vec<Span> {
         let hint_style = Style::default();
         let key_hint: String = group
             .commands
