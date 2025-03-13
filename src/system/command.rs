@@ -41,15 +41,54 @@ pub enum Command {
     ShowHelpModal,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CommandCategory {
+    DocNav,
+    DocActions,
+    CollActions,
+    DbActions,
+    InputActions,
+    ConnActions,
+    TabActions,
+    AppNav,
+    Hidden,
+}
+
+impl CommandCategory {
+    pub const fn all() -> [Self; 9] {
+        [
+            Self::DocNav,
+            Self::DocActions,
+            Self::CollActions,
+            Self::DbActions,
+            Self::InputActions,
+            Self::ConnActions,
+            Self::TabActions,
+            Self::AppNav,
+            Self::Hidden,
+        ]
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct CommandGroup {
     pub commands: Vec<Command>,
     pub name: &'static str,
+    pub category: CommandCategory,
 }
 
 impl CommandGroup {
     pub const fn new(commands: Vec<Command>, name: &'static str) -> Self {
-        Self { commands, name }
+        Self {
+            commands,
+            name,
+            category: CommandCategory::Hidden,
+        }
+    }
+
+    pub const fn in_cat(mut self, category: CommandCategory) -> Self {
+        self.category = category;
+        self
     }
 }
 
@@ -62,14 +101,6 @@ impl CommandManager {
     pub fn groups(&self) -> Vec<CommandGroup> {
         self.commands.borrow().clone()
     }
-
-    // pub fn commands(&self) -> Vec<Command> {
-    //     self.commands
-    //         .borrow()
-    //         .iter()
-    //         .flat_map(|group| group.commands.clone())
-    //         .collect::<Vec<_>>()
-    // }
 
     pub fn set_commands(&self, commands: Vec<CommandGroup>) {
         *self.commands.borrow_mut() = commands;

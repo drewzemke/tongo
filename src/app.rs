@@ -361,6 +361,7 @@ impl Component for App<'_> {
             out.append(&mut tab.handle_event(event));
         }
 
+        out.append(&mut self.help_modal.handle_event(event));
         out.append(&mut self.status_bar.handle_event(event));
 
         out

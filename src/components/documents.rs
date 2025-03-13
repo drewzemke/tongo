@@ -3,7 +3,7 @@ use crate::{
     client::PAGE_SIZE,
     persistence::PersistedComponent,
     system::{
-        command::{Command, CommandGroup},
+        command::{Command, CommandCategory, CommandGroup},
         event::Event,
         message::{ClientAction, Message, TabAction},
         Signal,
@@ -145,22 +145,31 @@ impl Component for Documents<'_> {
                     Command::NavRight,
                 ],
                 "navigate",
-            ),
-            CommandGroup::new(vec![Command::ExpandCollapse], "expand/collapse"),
+            )
+            .in_cat(CommandCategory::AppNav),
+            CommandGroup::new(vec![Command::ExpandCollapse], "expand/collapse")
+                .in_cat(CommandCategory::DocNav),
             CommandGroup::new(
                 vec![Command::NextPage, Command::PreviousPage],
                 "next/prev page",
-            ),
+            )
+            .in_cat(CommandCategory::DocNav),
             CommandGroup::new(
                 vec![Command::FirstPage, Command::LastPage],
                 "first/last page",
-            ),
-            CommandGroup::new(vec![Command::Refresh], "refresh"),
-            CommandGroup::new(vec![Command::Yank], "yank selected"),
-            CommandGroup::new(vec![Command::Edit], "edit doc"),
-            CommandGroup::new(vec![Command::CreateNew], "insert doc"),
-            CommandGroup::new(vec![Command::DuplicateDoc], "duplicate doc"),
-            CommandGroup::new(vec![Command::Delete], "delete doc"),
+            )
+            .in_cat(CommandCategory::DocNav),
+            CommandGroup::new(vec![Command::Refresh], "refresh")
+                .in_cat(CommandCategory::DocActions),
+            CommandGroup::new(vec![Command::Yank], "yank selected")
+                .in_cat(CommandCategory::DocActions),
+            CommandGroup::new(vec![Command::Edit], "edit doc").in_cat(CommandCategory::DocActions),
+            CommandGroup::new(vec![Command::CreateNew], "insert doc")
+                .in_cat(CommandCategory::DocActions),
+            CommandGroup::new(vec![Command::DuplicateDoc], "duplicate doc")
+                .in_cat(CommandCategory::DocActions),
+            CommandGroup::new(vec![Command::Delete], "delete doc")
+                .in_cat(CommandCategory::DocActions),
         ]
     }
 
