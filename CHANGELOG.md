@@ -6,6 +6,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0](https://github.com/drewzemke/tongo/compare/v0.13.0...v0.14.0) - 2025-03-15
+
+### Added
+
+- *(help)* a little more styling on the help menu
+- *(help)* add categories to commands, WIP (and I mean it) of rendering commands grouped by category in the modal
+- *(help)* super basic impl of a help modal that shows all currently-available commands
+- *(help)* initial impl of a help modal
+- *(databases)* create and drop databases
+- *(collections)* add collections to a db
+
+### Fixed
+
+- *(lints)* turn clippy pedantic lints back on, and fix (almost) all of them
+
+### Other
+
+- *(commands)* move string->command function into `key_map` module
+- *(commands)* introduce `CommandManager` to manage command statee
+- *(model)* use simpler `Collection` and `Database` structs instead of `CollectionSpecification` and `DatabaseSpecification` from mongodb
+- *(modules)* move `connection` into new `model` module
+- *(components)* convert `Tab.focus` into a `Cell`
+- *(components)* remove the `ComponentCommand` enum
+- *(components)* add `handle_raw_event` fn to `Component` trait
+- *(messages)* change one last event into a message, also add doc comments for all the messages
+- *(events)* more doc comments and some renaming of events
+- *(components)* add default impls for all `Component` trait functions
+- *(events)* doc comments for some of the events
+- *(messages)* change events that are target at `Tab` and `ConnectionScreen` into messages
+- *(messages)* make message creation/reading more idiomatic
+- *(messages)* change events that are targeted at `Client` into messages
+- *(messages)* change events that are target at `App` into messages
+- *(message)* introduce `Message` and `Signal` to help organize component comms system
+- *(system)* add some comments in planning for event/message refactor
+- *(collections)* most of the impl for creating new collections; just missing the mongo part
+- *(collections)* small test for dropping collection
+
 ## [0.13.0](https://github.com/drewzemke/tongo/compare/v0.12.3...v0.13.0) - 2025-03-03
 
 ### Added
