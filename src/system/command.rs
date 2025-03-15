@@ -71,7 +71,7 @@ impl std::fmt::Display for CommandCategory {
 }
 
 impl CommandCategory {
-    pub const fn all() -> [Self; 9] {
+    pub const fn help_modal_categories() -> [Self; 8] {
         [
             Self::DocNav,
             Self::DocActions,
@@ -81,7 +81,6 @@ impl CommandCategory {
             Self::ConnActions,
             Self::TabActions,
             Self::AppNav,
-            Self::Hidden,
         ]
     }
 }
