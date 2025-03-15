@@ -10,7 +10,7 @@ use crate::{
     model::connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
     system::{
-        command::{Command, CommandGroup, CommandManager},
+        command::{Command, CommandCategory, CommandGroup, CommandManager},
         event::Event,
         message::{AppAction, Message},
         Signal,
@@ -232,11 +232,15 @@ impl Component for App<'_> {
     fn commands(&self) -> Vec<CommandGroup> {
         let mut out = match self.mode {
             Mode::Normal => vec![
-                CommandGroup::new(vec![Command::ShowHelpModal], "show help"),
-                CommandGroup::new(vec![Command::Quit], "quit"),
+                CommandGroup::new(vec![Command::ShowHelpModal], "show help")
+                    .in_cat(CommandCategory::StatusBarOnly),
+                CommandGroup::new(vec![Command::Quit], "quit")
+                    .in_cat(CommandCategory::StatusBarOnly),
             ],
             Mode::Raw => vec![],
-            Mode::HelpModal => vec![CommandGroup::new(vec![Command::Quit], "quit")],
+            Mode::HelpModal => {
+                vec![CommandGroup::new(vec![Command::Quit], "quit").in_cat(CommandCategory::AppNav)]
+            }
         };
 
         if matches!(self.mode, Mode::HelpModal) {

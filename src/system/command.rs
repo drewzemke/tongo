@@ -47,10 +47,11 @@ pub enum CommandCategory {
     DocActions,
     CollActions,
     DbActions,
-    InputActions,
+    FilterInputActions,
     ConnActions,
     TabActions,
     AppNav,
+    StatusBarOnly,
     Hidden,
 }
 
@@ -59,13 +60,13 @@ impl std::fmt::Display for CommandCategory {
         match self {
             Self::DocNav => write!(f, "Document Navigation"),
             Self::DocActions => write!(f, "Document Actions"),
-            Self::CollActions => write!(f, "Collection Actions"),
-            Self::DbActions => write!(f, "Database Actions"),
-            Self::InputActions => write!(f, "Input Actions"),
-            Self::ConnActions => write!(f, "Connection Actions"),
-            Self::TabActions => write!(f, "Tab Actions"),
+            Self::CollActions => write!(f, "Collection"),
+            Self::DbActions => write!(f, "Database"),
+            Self::FilterInputActions => write!(f, "Filter"),
+            Self::ConnActions => write!(f, "Connection"),
+            Self::TabActions => write!(f, "Tab"),
             Self::AppNav => write!(f, "Navigation"),
-            Self::Hidden => write!(f, ""),
+            _ => write!(f, ""),
         }
     }
 }
@@ -77,7 +78,7 @@ impl CommandCategory {
             Self::DocActions,
             Self::CollActions,
             Self::DbActions,
-            Self::InputActions,
+            Self::FilterInputActions,
             Self::ConnActions,
             Self::TabActions,
             Self::AppNav,

@@ -3,7 +3,7 @@ use crate::{
     components::{primary_screen::PrimScrFocus, tab::TabFocus, Component},
     persistence::PersistedComponent,
     system::{
-        command::{Command, CommandGroup},
+        command::{Command, CommandCategory, CommandGroup},
         event::Event,
         message::{AppAction, Message},
         Signal,
@@ -65,13 +65,17 @@ impl Component for FilterInput {
     fn commands(&self) -> Vec<CommandGroup> {
         if self.input.is_editing() {
             vec![
-                CommandGroup::new(vec![Command::Confirm], "execute query"),
-                CommandGroup::new(vec![Command::Back], "cancel"),
+                CommandGroup::new(vec![Command::Confirm], "execute query")
+                    .in_cat(CommandCategory::StatusBarOnly),
+                CommandGroup::new(vec![Command::Back], "cancel")
+                    .in_cat(CommandCategory::StatusBarOnly),
             ]
         } else {
             vec![
-                CommandGroup::new(vec![Command::Confirm], "edit filter"),
-                CommandGroup::new(vec![Command::Reset], "reset filter"),
+                CommandGroup::new(vec![Command::Confirm], "edit filter")
+                    .in_cat(CommandCategory::FilterInputActions),
+                CommandGroup::new(vec![Command::Reset], "reset filter")
+                    .in_cat(CommandCategory::FilterInputActions),
             ]
         }
     }

@@ -2,7 +2,7 @@ use super::tab::TabFocus;
 use crate::{
     components::Component,
     system::{
-        command::{Command, CommandGroup},
+        command::{Command, CommandCategory, CommandGroup},
         event::Event,
         Signal,
     },
@@ -116,8 +116,9 @@ impl Component for ConfirmModal {
 
     fn commands(&self) -> Vec<CommandGroup> {
         vec![
-            CommandGroup::new(vec![Command::Confirm], "confirm"),
-            CommandGroup::new(vec![Command::Back], "cancel"),
+            CommandGroup::new(vec![Command::Confirm], "confirm")
+                .in_cat(CommandCategory::StatusBarOnly),
+            CommandGroup::new(vec![Command::Back], "cancel").in_cat(CommandCategory::StatusBarOnly),
         ]
     }
 

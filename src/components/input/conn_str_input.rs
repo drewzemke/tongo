@@ -1,15 +1,14 @@
-use ratatui::prelude::{Frame, Rect};
-
 use super::{DefaultFormatter, InnerInput};
 use crate::{
     components::{connection_screen::ConnScrFocus, tab::TabFocus, Component},
     system::{
-        command::{Command, CommandGroup},
+        command::{Command, CommandCategory, CommandGroup},
         event::Event,
         message::{ConnScreenAction, Message},
         Signal,
     },
 };
+use ratatui::prelude::{Frame, Rect};
 use std::{cell::Cell, rc::Rc};
 
 #[derive(Debug, Default, Clone)]
@@ -48,8 +47,10 @@ impl Component for ConnStrInput {
 
     fn commands(&self) -> Vec<crate::system::command::CommandGroup> {
         vec![
-            CommandGroup::new(vec![Command::Confirm], "confirm"),
-            CommandGroup::new(vec![Command::Back], "prev field"),
+            CommandGroup::new(vec![Command::Confirm], "confirm")
+                .in_cat(CommandCategory::StatusBarOnly),
+            CommandGroup::new(vec![Command::Back], "prev field")
+                .in_cat(CommandCategory::StatusBarOnly),
         ]
     }
 

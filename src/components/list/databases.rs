@@ -9,7 +9,7 @@ use crate::{
     model::database::Database,
     persistence::PersistedComponent,
     system::{
-        command::{Command, CommandGroup},
+        command::{Command, CommandCategory, CommandGroup},
         event::Event,
         message::{ClientAction, Message, TabAction},
         Signal,
@@ -62,9 +62,12 @@ impl Component for Databases {
 
     fn commands(&self) -> Vec<CommandGroup> {
         let mut out = InnerList::base_commands();
-        out.push(CommandGroup::new(vec![Command::Confirm], "select"));
-        out.push(CommandGroup::new(vec![Command::CreateNew], "new database"));
-        out.push(CommandGroup::new(vec![Command::Delete], "drop"));
+        out.append(&mut vec![
+            CommandGroup::new(vec![Command::Confirm], "select").in_cat(CommandCategory::DbActions),
+            CommandGroup::new(vec![Command::CreateNew], "new database")
+                .in_cat(CommandCategory::DbActions),
+            CommandGroup::new(vec![Command::Delete], "drop").in_cat(CommandCategory::DbActions),
+        ]);
         out
     }
 

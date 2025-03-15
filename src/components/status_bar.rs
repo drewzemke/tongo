@@ -6,11 +6,7 @@ use std::{
 use crate::{
     components::Component,
     key_map::KeyMap,
-    system::{
-        command::{CommandGroup, CommandManager},
-        event::Event,
-        Signal,
-    },
+    system::{command::CommandManager, event::Event, Signal},
 };
 use ratatui::{
     prelude::*,
@@ -126,10 +122,6 @@ impl Component for StatusBar {
         } else {
             frame.render_widget(content, area);
         }
-    }
-
-    fn commands(&self) -> Vec<CommandGroup> {
-        vec![]
     }
 
     fn handle_event(&mut self, event: &Event) -> Vec<Signal> {

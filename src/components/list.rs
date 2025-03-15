@@ -1,5 +1,5 @@
 use crate::system::{
-    command::{Command, CommandGroup},
+    command::{Command, CommandCategory, CommandGroup},
     event::Event,
     Signal,
 };
@@ -28,10 +28,10 @@ impl InnerList {
     }
 
     fn base_commands() -> Vec<CommandGroup> {
-        vec![CommandGroup::new(
-            vec![Command::NavUp, Command::NavDown],
-            "navigate",
-        )]
+        vec![
+            CommandGroup::new(vec![Command::NavUp, Command::NavDown], "navigate")
+                .in_cat(CommandCategory::AppNav),
+        ]
     }
 
     fn handle_base_command(&mut self, command: &Command, num_items: usize) -> Vec<Signal> {

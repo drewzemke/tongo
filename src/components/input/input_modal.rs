@@ -1,7 +1,7 @@
 use crate::{
     components::{tab::TabFocus, Component},
     system::{
-        command::{Command, CommandGroup},
+        command::{Command, CommandCategory, CommandGroup},
         event::Event,
         message::{AppAction, Message},
         Signal,
@@ -89,12 +89,16 @@ impl Component for InputModal {
     fn commands(&self) -> Vec<CommandGroup> {
         match self.kind {
             Some(InputKind::NewCollectionName) => vec![
-                CommandGroup::new(vec![Command::Confirm], "create collection"),
-                CommandGroup::new(vec![Command::Back], "cancel"),
+                CommandGroup::new(vec![Command::Confirm], "create collection")
+                    .in_cat(CommandCategory::StatusBarOnly),
+                CommandGroup::new(vec![Command::Back], "cancel")
+                    .in_cat(CommandCategory::StatusBarOnly),
             ],
             Some(InputKind::NewDatabaseName) => vec![
-                CommandGroup::new(vec![Command::Confirm], "create database"),
-                CommandGroup::new(vec![Command::Back], "cancel"),
+                CommandGroup::new(vec![Command::Confirm], "create database")
+                    .in_cat(CommandCategory::StatusBarOnly),
+                CommandGroup::new(vec![Command::Back], "cancel")
+                    .in_cat(CommandCategory::StatusBarOnly),
             ],
             _ => vec![],
         }

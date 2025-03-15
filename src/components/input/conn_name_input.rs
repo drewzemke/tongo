@@ -1,15 +1,14 @@
-use ratatui::prelude::{Frame, Rect};
-
 use super::{DefaultFormatter, InnerInput};
 use crate::{
     components::{connection_screen::ConnScrFocus, tab::TabFocus, Component},
     system::{
-        command::{Command, CommandGroup},
+        command::{Command, CommandCategory, CommandGroup},
         event::Event,
         message::{AppAction, ConnScreenAction, Message},
         Signal,
     },
 };
+use ratatui::prelude::{Frame, Rect};
 use std::{cell::Cell, rc::Rc};
 
 #[derive(Debug, Default, Clone)]
@@ -46,10 +45,11 @@ impl Component for ConnNameInput {
         self.focus.set(TabFocus::ConnScr(ConnScrFocus::NameIn));
     }
 
-    fn commands(&self) -> Vec<crate::system::command::CommandGroup> {
+    fn commands(&self) -> Vec<CommandGroup> {
         vec![
-            CommandGroup::new(vec![Command::Confirm], "next field"),
-            CommandGroup::new(vec![Command::Back], "back"),
+            CommandGroup::new(vec![Command::Confirm], "next field")
+                .in_cat(CommandCategory::StatusBarOnly),
+            CommandGroup::new(vec![Command::Back], "back").in_cat(CommandCategory::StatusBarOnly),
         ]
     }
 

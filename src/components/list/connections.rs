@@ -11,7 +11,7 @@ use crate::{
     model::connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
     system::{
-        command::{Command, CommandGroup},
+        command::{Command, CommandCategory, CommandGroup},
         event::Event,
         message::{ClientAction, ConnScreenAction, Message, TabAction},
         Signal,
@@ -77,10 +77,14 @@ impl Component for Connections {
     fn commands(&self) -> Vec<CommandGroup> {
         let mut out = InnerList::base_commands();
         out.append(&mut vec![
-            CommandGroup::new(vec![Command::Confirm], "connect"),
-            CommandGroup::new(vec![Command::CreateNew], "new conn."),
-            CommandGroup::new(vec![Command::Edit], "edit conn."),
-            CommandGroup::new(vec![Command::Delete], "delete conn."),
+            CommandGroup::new(vec![Command::Confirm], "connect")
+                .in_cat(CommandCategory::CollActions),
+            CommandGroup::new(vec![Command::CreateNew], "new conn.")
+                .in_cat(CommandCategory::CollActions),
+            CommandGroup::new(vec![Command::Edit], "edit conn.")
+                .in_cat(CommandCategory::CollActions),
+            CommandGroup::new(vec![Command::Delete], "delete conn.")
+                .in_cat(CommandCategory::CollActions),
         ]);
         out
     }

@@ -13,7 +13,7 @@ use crate::{
     },
     persistence::PersistedComponent,
     system::{
-        command::{Command, CommandGroup},
+        command::{Command, CommandCategory, CommandGroup},
         event::Event,
         Signal,
     },
@@ -69,16 +69,21 @@ impl Component for PrimaryScreen<'_> {
         let mut out = vec![];
 
         if !self.filter_input.is_editing() {
-            out.push(CommandGroup::new(
-                vec![
-                    Command::FocusLeft,
-                    Command::FocusDown,
-                    Command::FocusUp,
-                    Command::FocusRight,
-                ],
-                "change focus",
-            ));
-            out.push(CommandGroup::new(vec![Command::Back], "back"));
+            out.push(
+                CommandGroup::new(
+                    vec![
+                        Command::FocusLeft,
+                        Command::FocusDown,
+                        Command::FocusUp,
+                        Command::FocusRight,
+                    ],
+                    "change focus",
+                )
+                .in_cat(CommandCategory::AppNav),
+            );
+            out.push(
+                CommandGroup::new(vec![Command::Back], "back").in_cat(CommandCategory::AppNav),
+            );
         }
 
         match self.internal_focus() {
