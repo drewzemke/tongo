@@ -8,13 +8,12 @@ use crate::{
         Signal,
     },
 };
-use itertools::Itertools;
 use ratatui::{
     layout::Offset,
     prelude::*,
     widgets::{Block, Clear, Row, Table},
 };
-use std::{collections::HashMap, rc::Rc};
+use std::rc::Rc;
 
 const HELP_MODAL_WIDTH: u16 = 60;
 
@@ -22,7 +21,7 @@ const HELP_MODAL_WIDTH: u16 = 60;
 pub struct HelpModal {
     command_manager: CommandManager,
     key_map: Rc<KeyMap>,
-    categorized_groups: HashMap<CommandCategory, Vec<CommandGroup>>,
+    categorized_groups: Vec<(CommandCategory, Vec<CommandGroup>)>,
 }
 
 impl HelpModal {
@@ -30,16 +29,26 @@ impl HelpModal {
         Self {
             command_manager,
             key_map,
-            categorized_groups: HashMap::default(),
+            categorized_groups: vec![],
         }
     }
 
     fn compute_cats(&mut self) {
-        self.categorized_groups = self
-            .command_manager
-            .groups()
-            .into_iter()
-            .into_group_map_by(|g| g.category);
+        let all_groups = self.command_manager.groups();
+        let mut categorized_groups = vec![];
+
+        for category in CommandCategory::help_modal_categories() {
+            let groups = all_groups
+                .iter()
+                .filter(|group| group.category == category)
+                .map(Clone::clone)
+                .collect::<Vec<_>>();
+            if !groups.is_empty() {
+                categorized_groups.push((category, groups));
+            }
+        }
+
+        self.categorized_groups = categorized_groups;
     }
 }
 
@@ -87,11 +96,7 @@ impl Component for HelpModal {
         //
         let mut grid_row_height = 0;
 
-        for category in CommandCategory::help_modal_categories() {
-            let Some(groups) = self.categorized_groups.get(&category) else {
-                continue;
-            };
-
+        for (category, groups) in &self.categorized_groups {
             let grid_cell_area = {
                 let sub_area_layout = Layout::horizontal(vec![
                     Constraint::Fill(1),
@@ -169,11 +174,9 @@ impl Component for HelpModal {
         match command {
             Command::Back => vec![Message::to_app(AppAction::CloseHelpModal).into()],
             Command::NavUp => {
-                // self.state.select_previous();
                 vec![Event::ListSelectionChanged.into()]
             }
             Command::NavDown => {
-                // self.state.select_next();
                 vec![Event::ListSelectionChanged.into()]
             }
             _ => vec![],
@@ -182,7 +185,6 @@ impl Component for HelpModal {
 
     fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         if matches!(event, Event::HelpModalToggled) {
-            // self.state = TableState::default();
             self.compute_cats();
         }
 
