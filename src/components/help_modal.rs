@@ -12,7 +12,7 @@ use itertools::Itertools;
 use ratatui::{
     layout::Offset,
     prelude::*,
-    widgets::{Block, Clear, Row, Table, TableState},
+    widgets::{Block, Clear, Row, Table},
 };
 use std::{collections::HashMap, rc::Rc};
 
@@ -22,7 +22,6 @@ const HELP_MODAL_WIDTH: u16 = 60;
 pub struct HelpModal {
     command_manager: CommandManager,
     key_map: Rc<KeyMap>,
-    state: TableState,
     categorized_groups: HashMap<CommandCategory, Vec<CommandGroup>>,
 }
 
@@ -31,7 +30,6 @@ impl HelpModal {
         Self {
             command_manager,
             key_map,
-            state: TableState::default(),
             categorized_groups: HashMap::default(),
         }
     }
@@ -140,11 +138,7 @@ impl Component for HelpModal {
             let table = Table::new(rows, vec![Constraint::Length(7), Constraint::Fill(1)])
                 .row_highlight_style(Style::default().bold().black().on_white());
 
-            frame.render_stateful_widget(
-                table,
-                grid_cell_layout[2].inner(Margin::new(1, 0)),
-                &mut self.state,
-            );
+            frame.render_widget(table, grid_cell_layout[2].inner(Margin::new(1, 0)));
 
             // compute the row height as the maximum of the heights of the two cells in the row
             grid_row_height = grid_row_height.max(groups.len());
@@ -168,18 +162,18 @@ impl Component for HelpModal {
     fn commands(&self) -> Vec<CommandGroup> {
         // FIXME: need to work on navigation / state management, then add this back in
         // CommandGroup::new(vec![Command::NavUp, Command::NavDown], "navigate"),
-        vec![CommandGroup::new(vec![Command::Back], "close")]
+        vec![CommandGroup::new(vec![Command::Back], "close").in_cat(CommandCategory::StatusBarOnly)]
     }
 
     fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
         match command {
             Command::Back => vec![Message::to_app(AppAction::CloseHelpModal).into()],
             Command::NavUp => {
-                self.state.select_previous();
+                // self.state.select_previous();
                 vec![Event::ListSelectionChanged.into()]
             }
             Command::NavDown => {
-                self.state.select_next();
+                // self.state.select_next();
                 vec![Event::ListSelectionChanged.into()]
             }
             _ => vec![],
@@ -188,7 +182,7 @@ impl Component for HelpModal {
 
     fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         if matches!(event, Event::HelpModalToggled) {
-            self.state = TableState::default();
+            // self.state = TableState::default();
             self.compute_cats();
         }
 
