@@ -12,7 +12,7 @@ use itertools::Itertools;
 use ratatui::{
     layout::Offset,
     prelude::*,
-    widgets::{Block, Clear, Row, Table, TableState},
+    widgets::{Block, Clear, Paragraph, Row, Table, TableState, Wrap},
 };
 use std::{collections::HashMap, rc::Rc};
 
@@ -78,6 +78,15 @@ impl Component for HelpModal {
             }
 
             if let Some(groups) = self.categorized_groups.get(&category) {
+                let sub_layout =
+                    Layout::horizontal(vec![Constraint::Length(12), Constraint::Fill(1)])
+                        .horizontal_margin(1)
+                        .split(sub_area);
+
+                // render the category name
+                let cat_name = Paragraph::new(format!("{category}")).wrap(Wrap::default());
+                frame.render_widget(cat_name, sub_layout[0]);
+
                 let rows = groups.iter().map(|group| {
                     let hint_style = Style::default();
                     let key_hint: String = group
@@ -94,18 +103,18 @@ impl Component for HelpModal {
                     ])
                 });
 
-                // render a table
-                let table = Table::new(rows, Constraint::from_fills([1, 1]))
+                // render the table
+                let table = Table::new(rows, vec![Constraint::Length(11), Constraint::Fill(1)])
                     .row_highlight_style(Style::default().bold().black().on_white());
 
-                frame.render_stateful_widget(table, sub_area, &mut self.state);
+                frame.render_stateful_widget(table, sub_layout[1], &mut self.state);
 
                 // move the drawing area down so that the next category is drawn below this one
                 sub_area = sub_area.offset(Offset {
                     x: 0,
                     #[expect(clippy::cast_possible_wrap)]
                     #[expect(clippy::cast_possible_truncation)]
-                    y: groups.len() as i32 + 1,
+                    y: groups.len() as i32 + 2,
                 });
             }
         }
@@ -135,6 +144,7 @@ impl Component for HelpModal {
 
     fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         if matches!(event, Event::HelpModalToggled) {
+            self.state = TableState::default();
             self.compute_cats();
         }
 

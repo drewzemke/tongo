@@ -54,6 +54,22 @@ pub enum CommandCategory {
     Hidden,
 }
 
+impl std::fmt::Display for CommandCategory {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::DocNav => write!(f, "Document Navigation"),
+            Self::DocActions => write!(f, "Document Actions"),
+            Self::CollActions => write!(f, "Collection Actions"),
+            Self::DbActions => write!(f, "Database Actions"),
+            Self::InputActions => write!(f, "Input Actions"),
+            Self::ConnActions => write!(f, "Connection Actions"),
+            Self::TabActions => write!(f, "Tab Actions"),
+            Self::AppNav => write!(f, "Navigation"),
+            Self::Hidden => write!(f, ""),
+        }
+    }
+}
+
 impl CommandCategory {
     pub const fn all() -> [Self; 9] {
         [

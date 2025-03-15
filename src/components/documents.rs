@@ -146,7 +146,7 @@ impl Component for Documents<'_> {
                 ],
                 "navigate",
             )
-            .in_cat(CommandCategory::AppNav),
+            .in_cat(CommandCategory::DocNav),
             CommandGroup::new(vec![Command::ExpandCollapse], "expand/collapse")
                 .in_cat(CommandCategory::DocNav),
             CommandGroup::new(

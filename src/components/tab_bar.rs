@@ -2,7 +2,7 @@ use super::Component;
 use crate::{
     persistence::PersistedComponent,
     system::{
-        command::{Command, CommandGroup},
+        command::{Command, CommandCategory, CommandGroup},
         event::Event,
         Signal,
     },
@@ -114,10 +114,13 @@ impl TabBar {
 impl Component for TabBar {
     fn commands(&self) -> Vec<CommandGroup> {
         vec![
-            CommandGroup::new(vec![Command::NewTab], "new tab"),
-            CommandGroup::new(vec![Command::NextTab, Command::PreviousTab], "change tab"),
-            CommandGroup::new(vec![Command::DuplicateTab], "duplicate tab"),
-            CommandGroup::new(vec![Command::CloseTab], "close tab"),
+            CommandGroup::new(vec![Command::NewTab], "new tab").in_cat(CommandCategory::TabActions),
+            CommandGroup::new(vec![Command::NextTab, Command::PreviousTab], "change tab")
+                .in_cat(CommandCategory::TabActions),
+            CommandGroup::new(vec![Command::DuplicateTab], "duplicate tab")
+                .in_cat(CommandCategory::TabActions),
+            CommandGroup::new(vec![Command::CloseTab], "close tab")
+                .in_cat(CommandCategory::TabActions),
             CommandGroup::new(
                 vec![
                     Command::GotoTab(1),
@@ -131,7 +134,8 @@ impl Component for TabBar {
                     Command::GotoTab(9),
                 ],
                 "goto tab",
-            ),
+            )
+            .in_cat(CommandCategory::TabActions),
         ]
     }
 
