@@ -6,7 +6,11 @@ use std::{
 use crate::{
     components::Component,
     key_map::KeyMap,
-    system::{command::CommandManager, event::Event, Signal},
+    system::{
+        command::{CommandCategory, CommandManager},
+        event::Event,
+        Signal,
+    },
 };
 use ratatui::{
     prelude::*,
@@ -90,6 +94,7 @@ impl Component for StatusBar {
                     self.command_manager
                         .groups()
                         .into_iter()
+                        .filter(|group| group.category == CommandCategory::StatusBarOnly)
                         .flat_map(|group| self.key_map.cmd_group_to_span(&group))
                         .collect::<Vec<Span>>(),
                 )
