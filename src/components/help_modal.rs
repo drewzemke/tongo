@@ -11,7 +11,7 @@ use crate::{
 use ratatui::{
     layout::Offset,
     prelude::*,
-    widgets::{Block, Clear, Row, Table},
+    widgets::{Block, Clear, Row, Table, TableState},
 };
 use std::rc::Rc;
 
@@ -225,7 +225,7 @@ impl Component for HelpModal {
         // the index counts how many cells we've drawn in total, so we can
         // decide when to move the subarea and whether to draw each cell in the
         // left or the right column
-        for (grid_cells_drawn, (category, groups)) in self.categorized_groups.iter().enumerate() {
+        for (cat_idx, (category, groups)) in self.categorized_groups.iter().enumerate() {
             let grid_cell_area = {
                 let sub_area_layout = Layout::horizontal(vec![
                     Constraint::Fill(1),
@@ -235,7 +235,7 @@ impl Component for HelpModal {
                 .split(sub_area);
 
                 // render on the left or right of this row
-                if grid_cells_drawn % 2 == 0 {
+                if cat_idx % 2 == 0 {
                     sub_area_layout[0]
                 } else {
                     sub_area_layout[2]
@@ -272,12 +272,28 @@ impl Component for HelpModal {
             let table = Table::new(rows, vec![Constraint::Length(7), Constraint::Fill(1)])
                 .row_highlight_style(Style::default().bold().black().on_white());
 
-            frame.render_widget(table, grid_cell_layout[2].inner(Margin::new(1, 0)));
+            // figure out if/where we should show a selected row in this table
+            let mut table_state =
+                if let State(Some((selected_cat_idx, selected_group_idx))) = self.state {
+                    if selected_cat_idx == cat_idx {
+                        TableState::default().with_selected(Some(selected_group_idx))
+                    } else {
+                        TableState::default()
+                    }
+                } else {
+                    TableState::default()
+                };
+
+            frame.render_stateful_widget(
+                table,
+                grid_cell_layout[2].inner(Margin::new(1, 0)),
+                &mut table_state,
+            );
 
             // compute the row height as the maximum of the heights of the two cells in the row
             grid_row_height = grid_row_height.max(groups.len());
 
-            if grid_cells_drawn % 2 == 1 {
+            if cat_idx % 2 == 1 {
                 // move the drawing area down so that the next row is below this one
                 sub_area = sub_area.offset(Offset {
                     x: 0,
@@ -301,7 +317,8 @@ impl Component for HelpModal {
                     Command::NavRight,
                 ],
                 "navigate",
-            ),
+            )
+            .in_cat(CommandCategory::StatusBarOnly),
             CommandGroup::new(vec![Command::Back], "close").in_cat(CommandCategory::StatusBarOnly),
         ]
     }
