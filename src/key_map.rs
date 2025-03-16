@@ -62,7 +62,21 @@ impl TryFrom<&str> for Key {
     type Error = anyhow::Error;
 
     fn try_from(s: &str) -> std::result::Result<Self, Self::Error> {
-        let key_code = match s {
+        let parts: Vec<&str> = s.split('-').collect();
+        let key_str = parts
+            .last()
+            .ok_or_else(|| anyhow!("Key not recognized: \"{s}\""))?;
+        let mut modifiers = KeyModifiers::empty();
+
+        for part in &parts[..parts.len() - 1] {
+            match *part {
+                "C" | "c" => modifiers.extend(KeyModifiers::CONTROL),
+                "A" | "a" => modifiers.extend(KeyModifiers::ALT),
+                _ => bail!("Modifier \"{part}\" in key \"{s}\" not recognized"),
+            }
+        }
+
+        let code = match *key_str {
             "enter" | "Enter" | "return" | "Return" => KeyCode::Enter,
             "esc" | "Esc" => KeyCode::Esc,
             "up" | "Up" => KeyCode::Up,
@@ -82,7 +96,7 @@ impl TryFrom<&str> for Key {
             _ => bail!("Key not recognized: \"{s}\""),
         };
 
-        Ok(key_code.into())
+        Ok(Self { code, modifiers })
     }
 }
 
@@ -336,5 +350,35 @@ mod tests {
 
         let key_map_res = KeyMap::try_from_config(&config);
         assert!(key_map_res.is_err());
+    }
+
+    #[test]
+    fn parse_keys_with_modifiers() {
+        let key = Key::try_from("C-enter").expect("should be able to parse key");
+        assert_eq!(
+            key,
+            Key {
+                code: KeyCode::Enter,
+                modifiers: KeyModifiers::CONTROL
+            }
+        );
+
+        let key = Key::try_from("A-C-k").expect("should be able to parse key");
+        assert_eq!(
+            key,
+            Key {
+                code: KeyCode::Char('k'),
+                modifiers: KeyModifiers::CONTROL | KeyModifiers::ALT
+            }
+        );
+
+        let key = Key::try_from("A-L").expect("should be able to parse key");
+        assert_eq!(
+            key,
+            Key {
+                code: KeyCode::Char('L'),
+                modifiers: KeyModifiers::ALT
+            }
+        );
     }
 }
