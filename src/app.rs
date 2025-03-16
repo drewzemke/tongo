@@ -84,8 +84,6 @@ impl Default for App<'_> {
 const DEBOUNCE: Duration = Duration::from_millis(20); // 50 FPS
 
 impl App<'_> {
-    // TODO?: all_connections can be stored in the persisted connection list rather than
-    // read in from a separate file
     pub fn new(
         selected_connection: Option<Connection>,
         connections: Vec<Connection>,
@@ -98,13 +96,13 @@ impl App<'_> {
         let key_map = Rc::new(key_map);
         let command_manager = CommandManager::default();
 
+        // initialize components
         let tab = Tab::new(
-            selected_connection,
+            selected_connection.clone(),
             connection_manager.clone(),
             cursor_pos.clone(),
         );
-
-        let tab_bar = TabBar::new();
+        let tab_bar = TabBar::new(selected_connection);
         let status_bar = StatusBar::new(command_manager.clone(), key_map.clone());
         let help_modal = HelpModal::new(command_manager.clone(), key_map.clone());
 

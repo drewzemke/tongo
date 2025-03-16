@@ -1,5 +1,6 @@
 use super::Component;
 use crate::{
+    model::connection::Connection,
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandCategory, CommandGroup},
@@ -12,6 +13,7 @@ use serde::{Deserialize, Serialize};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
 // other options for this: • · ⋅ ⋮ → ⟩ ⌲ ∕ ⟿ ⇝ ⇢ ▸ ⌁ ⁘ ⁙ ∶ ∷ ⟫ ⟾ ◈ ⟡ ⟜ ⟝ ‣
+const TAB_NAME_SPACING: usize = 3;
 const TAB_NAME_SEP: &str = "‣";
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
@@ -39,7 +41,7 @@ impl TabSpec {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct TabBar {
     tabs: Vec<TabSpec>,
     current_tab_idx: usize,
@@ -49,12 +51,26 @@ pub struct TabBar {
     visible_width: Option<u16>,
 }
 
-const TAB_NAME_SPACING: usize = 3;
-
-impl TabBar {
-    pub fn new() -> Self {
+impl Default for TabBar {
+    fn default() -> Self {
         Self {
             tabs: vec![TabSpec::default()],
+            current_tab_idx: 0,
+            scroll_state: ScrollViewState::new(),
+            visible_width: None,
+        }
+    }
+}
+
+impl TabBar {
+    pub fn new(selected_connection: Option<Connection>) -> Self {
+        let base_tab = TabSpec {
+            connection: selected_connection.map(|c| c.name),
+            ..Default::default()
+        };
+
+        Self {
+            tabs: vec![base_tab],
             current_tab_idx: 0,
             scroll_state: ScrollViewState::new(),
             visible_width: None,
@@ -292,7 +308,7 @@ mod tests {
 
     #[test]
     fn create_new_tab() {
-        let mut test = ComponentTestHarness::new(TabBar::new());
+        let mut test = ComponentTestHarness::new(TabBar::default());
 
         assert_eq!(test.component().current_tab_idx(), 0);
 
@@ -305,7 +321,7 @@ mod tests {
 
     #[test]
     fn navigate_between_tabs() {
-        let mut test = ComponentTestHarness::new(TabBar::new());
+        let mut test = ComponentTestHarness::new(TabBar::default());
 
         // create two additional tabs
         test.given_command(Command::NewTab);
@@ -327,7 +343,7 @@ mod tests {
 
     #[test]
     fn cycle_through_tabs() {
-        let mut test = ComponentTestHarness::new(TabBar::new());
+        let mut test = ComponentTestHarness::new(TabBar::default());
 
         // create two additional tabs
         test.given_command(Command::NewTab);
@@ -347,7 +363,7 @@ mod tests {
 
     #[test]
     fn goto_tab() {
-        let mut test = ComponentTestHarness::new(TabBar::new());
+        let mut test = ComponentTestHarness::new(TabBar::default());
 
         // create two additional tabs
         test.given_command(Command::NewTab);
@@ -370,7 +386,7 @@ mod tests {
 
     #[test]
     fn close_tabs() {
-        let mut test = ComponentTestHarness::new(TabBar::new());
+        let mut test = ComponentTestHarness::new(TabBar::default());
 
         // create three additional tabs
         test.given_command(Command::NewTab);
@@ -409,7 +425,7 @@ mod tests {
 
     #[test]
     fn update_tab_names() {
-        let mut test = ComponentTestHarness::new(TabBar::new());
+        let mut test = ComponentTestHarness::new(TabBar::default());
 
         // add a tab to make sure changes are only made to the current tab
         test.given_command(Command::NewTab);
@@ -468,7 +484,7 @@ mod tests {
 
     #[test]
     fn duplicate_tab() {
-        let mut test = ComponentTestHarness::new(TabBar::new());
+        let mut test = ComponentTestHarness::new(TabBar::default());
 
         // select a connection, collection, and db
         test.given_event(Event::ConnectionSelected(Connection::new(
