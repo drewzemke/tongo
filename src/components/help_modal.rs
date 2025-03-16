@@ -17,11 +17,17 @@ use std::rc::Rc;
 
 const HELP_MODAL_WIDTH: u16 = 60;
 
+/// represents the location of the selected command. first usize is the category,
+/// second usize is the group
+#[derive(Debug, Default, Clone)]
+struct State(Option<(usize, usize)>);
+
 #[derive(Debug, Default, Clone)]
 pub struct HelpModal {
     command_manager: CommandManager,
     key_map: Rc<KeyMap>,
     categorized_groups: Vec<(CommandCategory, Vec<CommandGroup>)>,
+    state: State,
 }
 
 impl HelpModal {
@@ -30,6 +36,7 @@ impl HelpModal {
             command_manager,
             key_map,
             categorized_groups: vec![],
+            state: State::default(),
         }
     }
 
@@ -49,6 +56,130 @@ impl HelpModal {
         }
 
         self.categorized_groups = categorized_groups;
+    }
+
+    fn select_down(&mut self) {
+        if let State(Some((cat_idx, group_idx))) = self.state {
+            let current_cat_len = self
+                .categorized_groups
+                .get(cat_idx)
+                .map_or(0, |(_, groups)| groups.len());
+
+            let next_indices = if group_idx >= current_cat_len.saturating_sub(1) {
+                // move select to the next category if there is one
+                let num_cats = self.categorized_groups.len();
+                if cat_idx < num_cats.saturating_sub(2) {
+                    (cat_idx + 2, 0)
+                } else {
+                    (cat_idx, group_idx)
+                }
+            } else {
+                (cat_idx, group_idx + 1)
+            };
+
+            self.state = State(Some(next_indices));
+        } else {
+            self.state = State(Some((0, 0)));
+        }
+    }
+
+    fn select_up(&mut self) {
+        if let State(Some((cat_idx, group_idx))) = self.state {
+            let next_indices = if cat_idx == 0 && group_idx == 0 {
+                (cat_idx, group_idx)
+            } else if group_idx == 0 && cat_idx > 1 {
+                let next_cat_len = self
+                    .categorized_groups
+                    .get(cat_idx.saturating_sub(2))
+                    .map_or(cat_idx, |(_, groups)| groups.len());
+
+                (cat_idx.saturating_sub(2), next_cat_len.saturating_sub(1))
+            } else {
+                (cat_idx, group_idx.saturating_sub(1))
+            };
+
+            self.state = State(Some(next_indices));
+        } else {
+            let last_cat_length = self
+                .categorized_groups
+                .last()
+                .map_or(0, |(_, groups)| groups.len());
+
+            let num_cats = self.categorized_groups.len();
+
+            self.state = State(Some((
+                num_cats.saturating_sub(1),
+                last_cat_length.saturating_sub(1),
+            )));
+        }
+    }
+
+    fn select_right(&mut self) {
+        if let State(Some((cat_idx, group_idx))) = self.state {
+            let num_cats = self.categorized_groups.len();
+
+            let next_indices = if cat_idx % 2 == 0 && cat_idx < num_cats.saturating_sub(1) {
+                let next_cat_len = self
+                    .categorized_groups
+                    .get(cat_idx + 1)
+                    .map_or(cat_idx, |(_, groups)| groups.len());
+
+                // try to move directly to the left.
+                // if the category to the left has fewer groups, just go to the last one
+                (cat_idx + 1, group_idx.min(next_cat_len.saturating_sub(1)))
+            } else {
+                (cat_idx, group_idx)
+            };
+
+            self.state = State(Some(next_indices));
+        } else {
+            self.state = State(Some((0, 0)));
+        }
+    }
+
+    fn select_left(&mut self) {
+        if let State(Some((cat_idx, group_idx))) = self.state {
+            let next_indices = if cat_idx % 2 == 1 {
+                let next_cat_len = self
+                    .categorized_groups
+                    .get(cat_idx.saturating_sub(1))
+                    .map_or(cat_idx, |(_, groups)| groups.len());
+
+                (
+                    cat_idx.saturating_sub(1),
+                    group_idx.min(next_cat_len.saturating_sub(1)),
+                )
+            } else {
+                (cat_idx, group_idx)
+            };
+
+            self.state = State(Some(next_indices));
+        } else {
+            let num_cats = self.categorized_groups.len();
+            if num_cats > 1 {
+                self.state = State(Some((1, 0)));
+            } else {
+                self.state = State(Some((0, 0)));
+            }
+        }
+    }
+
+    /// returns a unique `Command` in the current-selected `CommandGroup`.
+    /// returns `None` if no group is selected or if the selected group has more
+    /// than one `Command`
+    // TODO: remove attribute when using this in production
+    #[cfg(test)]
+    fn selected_cmd(&self) -> Option<Command> {
+        let State(state) = self.state;
+        let (cat_idx, group_idx) = state?;
+
+        let (_, groups) = self.categorized_groups.get(cat_idx)?;
+        let group = groups.get(group_idx)?;
+        if group.commands.len() == 1 {
+            group.commands.first().copied()
+        } else {
+            None
+        }
     }
 }
 
@@ -88,15 +219,13 @@ impl Component for HelpModal {
         // keeps track of where the next row of the grid should be
         let mut sub_area = content_area;
 
-        // counts how many cells we've drawn in total, so we can decide when
-        // to move the subarea and whether to draw each cell in the left or the
-        // right column
-        let mut grid_cells_drawn = 0;
-
         //
         let mut grid_row_height = 0;
 
-        for (category, groups) in &self.categorized_groups {
+        // the index counts how many cells we've drawn in total, so we can
+        // decide when to move the subarea and whether to draw each cell in the
+        // left or the right column
+        for (grid_cells_drawn, (category, groups)) in self.categorized_groups.iter().enumerate() {
             let grid_cell_area = {
                 let sub_area_layout = Layout::horizontal(vec![
                     Constraint::Fill(1),
@@ -159,24 +288,41 @@ impl Component for HelpModal {
 
                 grid_row_height = 0;
             }
-
-            grid_cells_drawn += 1;
         }
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
-        // FIXME: need to work on navigation / state management, then add this back in
-        // CommandGroup::new(vec![Command::NavUp, Command::NavDown], "navigate"),
-        vec![CommandGroup::new(vec![Command::Back], "close").in_cat(CommandCategory::StatusBarOnly)]
+        vec![
+            CommandGroup::new(
+                vec![
+                    Command::NavLeft,
+                    Command::NavDown,
+                    Command::NavUp,
+                    Command::NavRight,
+                ],
+                "navigate",
+            ),
+            CommandGroup::new(vec![Command::Back], "close").in_cat(CommandCategory::StatusBarOnly),
+        ]
     }
 
     fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
         match command {
             Command::Back => vec![Message::to_app(AppAction::CloseHelpModal).into()],
-            Command::NavUp => {
+            Command::NavLeft => {
+                self.select_left();
                 vec![Event::ListSelectionChanged.into()]
             }
             Command::NavDown => {
+                self.select_down();
+                vec![Event::ListSelectionChanged.into()]
+            }
+            Command::NavUp => {
+                self.select_up();
+                vec![Event::ListSelectionChanged.into()]
+            }
+            Command::NavRight => {
+                self.select_right();
                 vec![Event::ListSelectionChanged.into()]
             }
             _ => vec![],
@@ -186,8 +332,229 @@ impl Component for HelpModal {
     fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
         if matches!(event, Event::HelpModalToggled) {
             self.compute_cats();
+            self.state = State::default();
         }
 
         vec![]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::testing::ComponentTestHarness;
+
+    #[test]
+    fn select_down_within_one_category() {
+        let component = HelpModal {
+            categorized_groups: vec![(
+                CommandCategory::DocActions,
+                vec![
+                    CommandGroup::new(vec![Command::CreateNew], "new"),
+                    CommandGroup::new(vec![Command::Edit], "edit"),
+                ],
+            )],
+            ..Default::default()
+        };
+
+        let mut test = ComponentTestHarness::new(component);
+
+        // nothing selected initially
+        assert_eq!(test.component().selected_cmd(), None);
+
+        // select first command
+        test.given_command(Command::NavDown);
+        assert_eq!(test.component().selected_cmd(), Some(Command::CreateNew));
+
+        // move down to select next group
+        test.given_command(Command::NavDown);
+        assert_eq!(test.component().selected_cmd(), Some(Command::Edit));
+
+        // moving down shouldn't change anything
+        test.given_command(Command::NavDown);
+        assert_eq!(test.component().selected_cmd(), Some(Command::Edit));
+    }
+
+    #[test]
+    fn select_up_within_one_catgory() {
+        let component = HelpModal {
+            categorized_groups: vec![(
+                CommandCategory::DocActions,
+                vec![
+                    CommandGroup::new(vec![Command::CreateNew], "new"),
+                    CommandGroup::new(vec![Command::Edit], "edit"),
+                ],
+            )],
+            ..Default::default()
+        };
+
+        let mut test = ComponentTestHarness::new(component);
+
+        // nothing selected initially
+        assert_eq!(test.component().selected_cmd(), None);
+
+        // select last command
+        test.given_command(Command::NavUp);
+        assert_eq!(test.component().selected_cmd(), Some(Command::Edit));
+
+        // move up
+        test.given_command(Command::NavUp);
+        assert_eq!(test.component().selected_cmd(), Some(Command::CreateNew));
+
+        // moving up again shouldn't change anything
+        test.given_command(Command::NavUp);
+        assert_eq!(test.component().selected_cmd(), Some(Command::CreateNew));
+    }
+
+    #[test]
+    fn select_down_through_multiple_categories() {
+        let component = HelpModal {
+            categorized_groups: vec![
+                (
+                    CommandCategory::DocActions,
+                    vec![
+                        CommandGroup::new(vec![Command::CreateNew], "new"),
+                        CommandGroup::new(vec![Command::Edit], "edit"),
+                    ],
+                ),
+                (
+                    CommandCategory::DocNav,
+                    vec![CommandGroup::new(vec![Command::ExpandCollapse], "exp/coll")],
+                ),
+                (
+                    CommandCategory::AppNav,
+                    vec![CommandGroup::new(vec![Command::FocusUp], "focus up")],
+                ),
+            ],
+            ..Default::default()
+        };
+
+        let mut test = ComponentTestHarness::new(component);
+
+        // nothing selected initially
+        assert_eq!(test.component().selected_cmd(), None);
+
+        // select first group in first category
+        test.given_command(Command::NavDown);
+        assert_eq!(test.component().selected_cmd(), Some(Command::CreateNew));
+
+        // select second group in first category
+        test.given_command(Command::NavDown);
+        assert_eq!(test.component().selected_cmd(), Some(Command::Edit));
+
+        // move down to select the *third* category, since the second cat is to
+        // the right of the first
+        test.given_command(Command::NavDown);
+        assert_eq!(test.component().selected_cmd(), Some(Command::FocusUp));
+
+        // moving down again shouldn't change anything
+        test.given_command(Command::NavDown);
+        assert_eq!(test.component().selected_cmd(), Some(Command::FocusUp));
+    }
+
+    #[test]
+    fn select_up_through_multiple_categories() {
+        let component = HelpModal {
+            categorized_groups: vec![
+                (
+                    CommandCategory::DocActions,
+                    vec![CommandGroup::new(vec![Command::CreateNew], "new")],
+                ),
+                (
+                    CommandCategory::DocNav,
+                    vec![CommandGroup::new(vec![Command::ExpandCollapse], "exp/coll")],
+                ),
+                (
+                    CommandCategory::AppNav,
+                    vec![
+                        CommandGroup::new(vec![Command::FocusUp], "focus up"),
+                        CommandGroup::new(vec![Command::FocusDown], "focus down"),
+                    ],
+                ),
+            ],
+            ..Default::default()
+        };
+
+        let mut test = ComponentTestHarness::new(component);
+
+        // nothing selected initially
+        assert_eq!(test.component().selected_cmd(), None);
+
+        // select last group in last category
+        test.given_command(Command::NavUp);
+        assert_eq!(test.component().selected_cmd(), Some(Command::FocusDown));
+
+        // select first group in last category
+        test.given_command(Command::NavUp);
+        assert_eq!(test.component().selected_cmd(), Some(Command::FocusUp));
+
+        // move up to select the *first* category, skipping the second since
+        // it's in a different column
+        test.given_command(Command::NavUp);
+        assert_eq!(test.component().selected_cmd(), Some(Command::CreateNew));
+
+        // moving up again shouldn't change anything
+        test.given_command(Command::NavUp);
+        assert_eq!(test.component().selected_cmd(), Some(Command::CreateNew));
+    }
+
+    #[test]
+    fn select_laterally_through_multiple_categories() {
+        let component = HelpModal {
+            categorized_groups: vec![
+                (
+                    CommandCategory::DocActions,
+                    vec![
+                        CommandGroup::new(vec![Command::CreateNew], "new"),
+                        CommandGroup::new(vec![Command::Edit], "edit"),
+                    ],
+                ),
+                (
+                    CommandCategory::DocNav,
+                    vec![CommandGroup::new(vec![Command::Reset], "reset")],
+                ),
+                (
+                    CommandCategory::AppNav,
+                    vec![
+                        CommandGroup::new(vec![Command::FocusUp], "focus up"),
+                        CommandGroup::new(vec![Command::FocusDown], "focus down"),
+                    ],
+                ),
+            ],
+            ..Default::default()
+        };
+
+        let mut test = ComponentTestHarness::new(component);
+
+        // nothing selected initially
+        assert_eq!(test.component().selected_cmd(), None);
+
+        // moving right starts in the top left (first group of first category)
+        test.given_command(Command::NavRight);
+        assert_eq!(test.component().selected_cmd(), Some(Command::CreateNew));
+
+        // move down
+        test.given_command(Command::NavDown);
+        assert_eq!(test.component().selected_cmd(), Some(Command::Edit));
+
+        // move right to the second category; the first element should be selected
+        test.given_command(Command::NavRight);
+        assert_eq!(test.component().selected_cmd(), Some(Command::Reset));
+
+        // moving right again should do nothing
+        test.given_command(Command::NavRight);
+        assert_eq!(test.component().selected_cmd(), Some(Command::Reset));
+
+        // moving up should also do nothing
+        test.given_command(Command::NavUp);
+        assert_eq!(test.component().selected_cmd(), Some(Command::Reset));
+
+        // move left back to the first category
+        test.given_command(Command::NavLeft);
+        assert_eq!(test.component().selected_cmd(), Some(Command::CreateNew));
+
+        // moving left again should do nothing
+        test.given_command(Command::NavLeft);
+        assert_eq!(test.component().selected_cmd(), Some(Command::CreateNew));
     }
 }
