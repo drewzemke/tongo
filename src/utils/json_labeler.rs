@@ -254,28 +254,4 @@ mod tests {
             ]
         );
     }
-
-    // FIXME: doesn't work with json5-based parsing. so delete? or revisit?
-    #[test]
-    #[ignore]
-    fn parse_bad_json() {
-        let parser = JsonLabeler::new();
-        let json = "{\"key\" xxx :3}";
-        let parsed = parser.label_line(json).unwrap();
-
-        assert_eq!(
-            parsed,
-            vec![
-                ("{\"".to_string(), JsonLabel::Punctuation),
-                ("key".to_string(), JsonLabel::Key),
-                ("\"".to_string(), JsonLabel::Punctuation),
-                (" ".to_string(), JsonLabel::Whitespace),
-                ("xxx".to_string(), JsonLabel::Error),
-                (" ".to_string(), JsonLabel::Whitespace),
-                (":".to_string(), JsonLabel::Punctuation),
-                ("3".to_string(), JsonLabel::Number),
-                ("}".to_string(), JsonLabel::Punctuation),
-            ]
-        );
-    }
 }
