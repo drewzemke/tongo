@@ -15,12 +15,16 @@ use crate::{
     },
     utils::storage::FileStorage,
 };
+use layout::Flex;
 use ratatui::{
     prelude::*,
     widgets::{Block, Clear},
 };
 use serde::{Deserialize, Serialize};
 use std::{cell::Cell, rc::Rc};
+
+const CONN_EDITOR_WIDTH: u16 = 60;
+const CONN_EDITOR_HEIGHT: u16 = 12;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ConnScrFocus {
@@ -211,23 +215,17 @@ impl Component for ConnectionScreen {
         if self.internal_focus() == Some(ConnScrFocus::NameIn)
             || self.internal_focus() == Some(ConnScrFocus::StringIn)
         {
-            let overlay_layout = Layout::default()
-                .constraints([Constraint::Fill(1)])
-                .horizontal_margin(3)
-                .vertical_margin(2)
+            let horiz_layout = Layout::horizontal([CONN_EDITOR_WIDTH])
+                .flex(Flex::Center)
                 .split(area);
-            let overlay = overlay_layout[0];
+            let vert_layout = Layout::vertical([CONN_EDITOR_HEIGHT])
+                .flex(Flex::Center)
+                .split(horiz_layout[0]);
+            let overlay = vert_layout[0];
 
-            let inputs_layout = Layout::default()
-                .constraints(vec![
-                    Constraint::Fill(1),
-                    Constraint::Length(3),
-                    Constraint::Fill(1),
-                    Constraint::Length(3),
-                    Constraint::Fill(1),
-                ])
-                .horizontal_margin(2)
-                .split(overlay);
+            let inputs_layout = Layout::vertical(vec![3, 2, 3])
+                .flex(Flex::Center)
+                .split(overlay.inner(Margin::new(2, 2)));
 
             let title = if self.editing_conn.is_some() {
                 "Edit Connection"
@@ -242,8 +240,8 @@ impl Component for ConnectionScreen {
                 .style(Style::default().green());
             frame.render_widget(block, overlay);
 
-            self.conn_name_input.render(frame, inputs_layout[1]);
-            self.conn_str_input.render(frame, inputs_layout[3]);
+            self.conn_name_input.render(frame, inputs_layout[0]);
+            self.conn_str_input.render(frame, inputs_layout[2]);
         }
     }
 
