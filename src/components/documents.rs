@@ -1,6 +1,7 @@
 use super::{confirm_modal::ConfirmKind, primary_screen::PrimScrFocus, tab::TabFocus, Component};
 use crate::{
     client::PAGE_SIZE,
+    model::collection::Collection,
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandCategory, CommandGroup},
@@ -14,6 +15,7 @@ use crate::{
         mongo_tree::{top_level_document, MongoKey},
     },
 };
+use layout::Flex;
 use mongodb::bson::{doc, oid::ObjectId, Bson, Document};
 use ratatui::{
     prelude::*,
@@ -32,6 +34,8 @@ pub struct Documents<'a> {
     #[expect(clippy::struct_field_names)]
     documents: Vec<Bson>,
 
+    collection: Option<Collection>,
+
     page: usize,
     count: u64,
 }
@@ -43,6 +47,7 @@ impl Clone for Documents<'_> {
             state: TreeState::default(),
             items: self.items.clone(),
             documents: self.documents.clone(),
+            collection: None,
             page: self.page,
             count: self.count,
         };
@@ -324,6 +329,15 @@ impl Component for Documents<'_> {
                     self.items = vec![];
                 }
             }
+            Event::CollectionSelected(coll) => {
+                self.collection = Some(coll.clone());
+            }
+
+            Event::ConnectionSelected(_)
+            | Event::ConnectionCreated(_)
+            | Event::DatabaseSelected(_) => {
+                self.collection = None;
+            }
 
             _ => (),
         }
@@ -337,17 +351,33 @@ impl Component for Documents<'_> {
             (Color::White, Color::Gray)
         };
 
+        // if no collection is selected, render a "no data" message
+        let Some(coll) = &self.collection else {
+            let block = Block::bordered()
+                .title(" Documents ")
+                .border_style(Style::default().fg(border_color));
+            frame.render_widget(block, area);
+
+            let layout = Layout::vertical([1]).flex(Flex::Center).split(area);
+            let widget = Line::from("(no collection selected)".gray()).centered();
+            frame.render_widget(widget, layout[0]);
+
+            return;
+        };
+
         let start = self.page * PAGE_SIZE + 1;
         #[expect(clippy::cast_possible_truncation)]
         let end = (start + PAGE_SIZE - 1).min(self.count as usize);
 
-        let title = format!("Documents ({start}-{end} of {})", self.count);
+        let title_left = format!("Documents in '{}'", coll.name);
+        let title_right = format!("{start}-{end} of {}", self.count);
 
         let widget = Tree::new(&self.items)
             .expect("all item identifiers are unique")
             .block(
                 Block::bordered()
-                    .title(format!(" {title} "))
+                    .title(Line::from(format!(" {title_left} ")).left_aligned())
+                    .title(Line::from(format!(" {title_right} ")).right_aligned())
                     .border_style(Style::default().fg(border_color)),
             )
             .experimental_scrollbar(Some(
@@ -367,6 +397,7 @@ pub struct PersistedDocuments {
     selection: Vec<MongoKey>,
     page: usize,
     docs: Vec<Bson>,
+    collection: Option<Collection>,
     count: u64,
 }
 
@@ -378,6 +409,7 @@ impl PersistedComponent for Documents<'_> {
             selection: self.state.selected().to_vec(),
             page: self.page,
             docs: self.documents.clone(),
+            collection: self.collection.clone(),
             count: self.count,
         }
     }
@@ -386,6 +418,7 @@ impl PersistedComponent for Documents<'_> {
         self.page = storage.page;
         self.count = storage.count;
         self.set_docs(&storage.docs, true);
+        self.collection = storage.collection;
 
         // FIXME: get this working again
         // (tests will pass with this stuff uncommented, but the stored selection
@@ -398,7 +431,10 @@ impl PersistedComponent for Documents<'_> {
 mod tests {
 
     use super::*;
-    use crate::testing::ComponentTestHarness;
+    use crate::{
+        model::{connection::Connection, database::Database},
+        testing::ComponentTestHarness,
+    };
     use mongodb::bson::bson;
 
     #[test]
@@ -420,11 +456,36 @@ mod tests {
     }
 
     #[test]
+    fn record_collection_changes() {
+        let mut test = ComponentTestHarness::new(Documents::default());
+
+        let collection = Collection::new("test".to_string());
+        test.given_event(Event::CollectionSelected(collection.clone()));
+
+        assert!(test
+            .component()
+            .collection
+            .as_ref()
+            .is_some_and(|c| c.name == "test"));
+
+        test.given_event(Event::ConnectionSelected(Connection::default()));
+
+        assert!(test.component().collection.is_none());
+
+        test.given_event(Event::CollectionSelected(collection));
+        test.given_event(Event::DatabaseSelected(Database::default()));
+
+        assert!(test.component().collection.is_none());
+    }
+
+    #[test]
     fn persisting_and_hydrate() {
         let doc = bson!({ "_id": "document-id" });
         let docs = vec![doc];
+        let coll = Collection::new("test!".to_string());
         let mut component = Documents {
             documents: docs,
+            collection: Some(coll),
             ..Default::default()
         };
         component
@@ -437,6 +498,7 @@ mod tests {
         new_component.hydrate(persisted_component);
 
         assert_eq!(component.documents, new_component.documents);
+        assert_eq!(component.collection, new_component.collection);
 
         // FIXME: restore this
         // assert_eq!(component.state.selected(), new_component.state.selected());
