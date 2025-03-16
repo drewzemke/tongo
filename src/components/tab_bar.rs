@@ -113,30 +113,40 @@ impl TabBar {
 
 impl Component for TabBar {
     fn commands(&self) -> Vec<CommandGroup> {
-        vec![
+        let mut out = vec![
             CommandGroup::new(vec![Command::NewTab], "new tab").in_cat(CommandCategory::TabActions),
-            CommandGroup::new(vec![Command::NextTab, Command::PreviousTab], "change tab")
-                .in_cat(CommandCategory::TabActions),
             CommandGroup::new(vec![Command::DuplicateTab], "duplicate tab")
                 .in_cat(CommandCategory::TabActions),
-            CommandGroup::new(vec![Command::CloseTab], "close tab")
+        ];
+
+        if self.tabs.len() > 1 {
+            out.append(&mut vec![
+                CommandGroup::new(
+                    vec![Command::PreviousTab, Command::NextTab],
+                    "previous/next tab",
+                )
                 .in_cat(CommandCategory::TabActions),
-            CommandGroup::new(
-                vec![
-                    Command::GotoTab(1),
-                    Command::GotoTab(2),
-                    Command::GotoTab(3),
-                    Command::GotoTab(4),
-                    Command::GotoTab(5),
-                    Command::GotoTab(6),
-                    Command::GotoTab(7),
-                    Command::GotoTab(8),
-                    Command::GotoTab(9),
-                ],
-                "goto tab",
-            )
-            .in_cat(CommandCategory::TabActions),
-        ]
+                CommandGroup::new(vec![Command::CloseTab], "close tab")
+                    .in_cat(CommandCategory::TabActions),
+                CommandGroup::new(
+                    vec![
+                        Command::GotoTab(1),
+                        Command::GotoTab(2),
+                        Command::GotoTab(3),
+                        Command::GotoTab(4),
+                        Command::GotoTab(5),
+                        Command::GotoTab(6),
+                        Command::GotoTab(7),
+                        Command::GotoTab(8),
+                        Command::GotoTab(9),
+                    ],
+                    "goto tab",
+                )
+                .in_cat(CommandCategory::TabActions),
+            ]);
+        }
+
+        out
     }
 
     fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
