@@ -379,6 +379,9 @@ impl Component for App<'_> {
                 self.mode = Mode::Normal;
                 return vec![Event::HelpModalToggled.into()];
             }
+            Some(AppAction::DoCommand(command)) => {
+                return self.handle_command(command);
+            }
             _ => {
                 let index = self.current_tab_idx();
                 if let Some(tab) = self.tabs.get_mut(index) {

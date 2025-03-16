@@ -92,4 +92,12 @@ impl<C: Component> ComponentTestHarness<C> {
             self.messages
         );
     }
+
+    pub fn expect_no_messages(&self) {
+        assert!(
+            self.messages.is_empty(),
+            "Message list not empty. These message were recorded:\n{:?}",
+            self.messages
+        );
+    }
 }

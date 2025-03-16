@@ -4,10 +4,15 @@ use crate::{
 };
 use mongodb::bson::Document;
 
+use super::command::Command;
+
 #[derive(Debug, Clone, strum_macros::Display)]
 pub enum AppAction {
-    /// Tells `App` to stop showing hte help modal.
+    /// Tells `App` to stop showing the help modal.
     CloseHelpModal,
+
+    /// Tells `App` to pass a command through the system.
+    DoCommand(Command),
 
     /// Tells `App` to start recording user input as raw keystrokes instead of
     /// mapping to commands.

@@ -167,8 +167,6 @@ impl HelpModal {
     /// returns a unique `Command` in the current-selected `CommandGroup`.
     /// returns `None` if no group is selected or if the selected group has more
     /// than one `Command`
-    // TODO: remove attribute when using this in production
-    #[cfg(test)]
     fn selected_cmd(&self) -> Option<Command> {
         let State(state) = self.state;
         let (cat_idx, group_idx) = state?;
@@ -308,19 +306,28 @@ impl Component for HelpModal {
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
-        vec![
-            CommandGroup::new(
-                vec![
-                    Command::NavLeft,
-                    Command::NavDown,
-                    Command::NavUp,
-                    Command::NavRight,
-                ],
-                "navigate",
-            )
-            .in_cat(CommandCategory::StatusBarOnly),
+        let mut out = vec![CommandGroup::new(
+            vec![
+                Command::NavLeft,
+                Command::NavDown,
+                Command::NavUp,
+                Command::NavRight,
+            ],
+            "navigate",
+        )
+        .in_cat(CommandCategory::StatusBarOnly)];
+
+        if self.selected_cmd().is_some() {
+            out.push(
+                CommandGroup::new(vec![Command::Confirm], "do selected")
+                    .in_cat(CommandCategory::StatusBarOnly),
+            );
+        }
+
+        out.push(
             CommandGroup::new(vec![Command::Back], "close").in_cat(CommandCategory::StatusBarOnly),
-        ]
+        );
+        out
     }
 
     fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
@@ -342,6 +349,12 @@ impl Component for HelpModal {
                 self.select_right();
                 vec![Event::ListSelectionChanged.into()]
             }
+            Command::Confirm => self.selected_cmd().map_or_else(Vec::new, |cmd| {
+                vec![
+                    Message::to_app(AppAction::CloseHelpModal).into(),
+                    Message::to_app(AppAction::DoCommand(cmd)).into(),
+                ]
+            }),
             _ => vec![],
         }
     }
@@ -573,5 +586,50 @@ mod tests {
         // moving left again should do nothing
         test.given_command(Command::NavLeft);
         assert_eq!(test.component().selected_cmd(), Some(Command::CreateNew));
+    }
+
+    #[test]
+    fn execute_selected_cmd() {
+        let component = HelpModal {
+            categorized_groups: vec![(
+                CommandCategory::DocActions,
+                vec![CommandGroup::new(vec![Command::CreateNew], "new")],
+            )],
+            ..Default::default()
+        };
+
+        let mut test = ComponentTestHarness::new(component);
+
+        test.given_command(Command::NavDown);
+        test.given_command(Command::Confirm);
+
+        test.expect_message(|m| matches!(m.read_as_app(), Some(AppAction::CloseHelpModal)));
+        test.expect_message(|m| {
+            matches!(
+                m.read_as_app(),
+                Some(AppAction::DoCommand(c)) if *c == Command::CreateNew
+            )
+        });
+    }
+
+    #[test]
+    fn cannot_execute_groups_with_more_than_one_command() {
+        let component = HelpModal {
+            categorized_groups: vec![(
+                CommandCategory::DocActions,
+                vec![CommandGroup::new(
+                    vec![Command::NavUp, Command::NavDown],
+                    "nav",
+                )],
+            )],
+            ..Default::default()
+        };
+
+        let mut test = ComponentTestHarness::new(component);
+
+        test.given_command(Command::NavDown);
+        test.given_command(Command::Confirm);
+
+        test.expect_no_messages();
     }
 }
