@@ -5,11 +5,7 @@ use crate::{
 use anyhow::{anyhow, bail, Result};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use itertools::Itertools;
-use ratatui::{
-    style::{Color, Modifier, Style},
-    text::Span,
-};
-use std::collections::HashMap;
+use std::{collections::HashMap, ops::Not};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Key {
@@ -30,41 +26,64 @@ impl From<KeyEvent> for Key {
     fn from(event: KeyEvent) -> Self {
         Self {
             code: event.code,
-            modifiers: event.modifiers,
+            modifiers: event
+                .modifiers
+                .intersection(KeyModifiers::not(KeyModifiers::SHIFT)),
         }
     }
 }
 
 impl std::fmt::Display for Key {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.code)
+        let code_str = match self.code {
+            KeyCode::Enter => "enter",
+            KeyCode::Left => "←",
+            KeyCode::Right => "→",
+            KeyCode::Up => "↑",
+            KeyCode::Down => "↓",
+            KeyCode::Home => "home",
+            KeyCode::End => "end",
+            KeyCode::Tab => "tab",
+            KeyCode::Delete => "del",
+            KeyCode::Esc => "esc",
+            KeyCode::CapsLock => "caps",
+            KeyCode::Char(c) => match c {
+                ' ' => "space",
+                c => &c.to_string(),
+            },
+            _ => "?",
+        };
+
+        write!(f, "{code_str}")
     }
 }
 
-/// # Errors
-/// If the input key is not recognized.
-pub fn key_code_from_str(s: &str) -> Result<Key> {
-    let key_code = match s {
-        "enter" | "Enter" | "return" | "Return" => KeyCode::Enter,
-        "esc" | "Esc" => KeyCode::Esc,
-        "up" | "Up" => KeyCode::Up,
-        "down" | "Down" => KeyCode::Down,
-        "left" | "Left" => KeyCode::Left,
-        "right" | "Right" => KeyCode::Right,
-        "space" | "Space" => KeyCode::Char(' '),
-        "bksp" | "backspace" | "Backspace" => KeyCode::Backspace,
-        "tab" | "Tab" => KeyCode::Tab,
+impl TryFrom<&str> for Key {
+    type Error = anyhow::Error;
 
-        // just assume that any string of length 1 should refer to that character
-        s if s.len() == 1 => KeyCode::Char(
-            s.chars()
-                .next()
-                .ok_or_else(|| anyhow!("Key not recognized: \"{s}\""))?,
-        ),
-        _ => bail!("Key not recognized: \"{s}\""),
-    };
+    fn try_from(s: &str) -> std::result::Result<Self, Self::Error> {
+        let key_code = match s {
+            "enter" | "Enter" | "return" | "Return" => KeyCode::Enter,
+            "esc" | "Esc" => KeyCode::Esc,
+            "up" | "Up" => KeyCode::Up,
+            "down" | "Down" => KeyCode::Down,
+            "left" | "Left" => KeyCode::Left,
+            "right" | "Right" => KeyCode::Right,
+            "space" | "Space" => KeyCode::Char(' '),
+            "bksp" | "backspace" | "Backspace" => KeyCode::Backspace,
+            "tab" | "Tab" => KeyCode::Tab,
 
-    Ok(key_code.into())
+            // just assume that any string of length 1 should refer to that character
+            s if s.len() == 1 => KeyCode::Char(
+                s.chars()
+                    .next()
+                    .ok_or_else(|| anyhow!("Key not recognized: \"{s}\""))?,
+            ),
+            _ => bail!("Key not recognized: \"{s}\""),
+        };
+
+        Ok(key_code.into())
+    }
 }
 
 fn string_to_command(value: &str) -> Result<Command> {
@@ -184,11 +203,16 @@ impl KeyMap {
 
         for (command_str, key_str) in &config.keys {
             let command = string_to_command(command_str)?;
-            let key = key_code_from_str(key_str)?;
+            let key = Key::try_from(key_str.as_str())?;
             key_map.map.insert(command, key);
         }
 
         Ok(key_map)
+    }
+
+    #[must_use]
+    pub fn key_for_command(&self, command: Command) -> Option<Key> {
+        self.map.get(&command).copied()
     }
 
     /// Gets the command corresponding to a key based on the loaded keymap,
@@ -223,52 +247,6 @@ impl KeyMap {
                 }
             })
             .copied()
-    }
-
-    // TODO: use impl of Display for Key instead
-    #[must_use]
-    pub fn command_to_key_str(&self, command: Command) -> String {
-        let Some(key) = self.map.get(&command) else {
-            return "?".into();
-        };
-
-        match key.code {
-            KeyCode::Enter => "enter".to_string(),
-            KeyCode::Left => "←".to_string(),
-            KeyCode::Right => "→".to_string(),
-            KeyCode::Up => "↑".to_string(),
-            KeyCode::Down => "↓".to_string(),
-            KeyCode::Home => "home".to_string(),
-            KeyCode::End => "end".to_string(),
-            KeyCode::Tab => "tab".to_string(),
-            KeyCode::Delete => "del".to_string(),
-            KeyCode::Esc => "esc".to_string(),
-            KeyCode::CapsLock => "caps".to_string(),
-            KeyCode::Char(c) => match c {
-                ' ' => "space".to_string(),
-                c => c.to_string(),
-            },
-            _ => "?".to_string(),
-        }
-    }
-
-    /// Uses the current key configuration to build a string from a command group.
-    /// Used for displaying key hints in the status bar.
-    #[must_use]
-    pub fn cmd_group_to_span(&self, group: &CommandGroup) -> Vec<Span> {
-        let hint_style = Style::default();
-        let key_hint: String = group
-            .commands
-            .iter()
-            .map(|c| self.command_to_key_str(*c))
-            .collect();
-
-        vec![
-            Span::styled(key_hint, hint_style.add_modifier(Modifier::BOLD)),
-            Span::styled(": ", hint_style),
-            Span::styled(group.name, hint_style.fg(Color::Gray)),
-            Span::raw("  "),
-        ]
     }
 }
 

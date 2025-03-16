@@ -1,6 +1,6 @@
 use crate::{
     components::Component,
-    key_map::key_code_from_str,
+    key_map::Key,
     system::{command::Command, event::Event, message::Message, Signal},
 };
 use crossterm::event::KeyCode;
@@ -38,8 +38,8 @@ impl<C: Component> ComponentTestHarness<C> {
     }
 
     pub fn given_key(&mut self, string: &str) {
-        let key_code = key_code_from_str(string).expect("key codes in tests should be correct");
-        let raw_event = CrosstermEvent::Key(KeyEvent::new(key_code.code, KeyModifiers::empty()));
+        let key = Key::try_from(string).expect("key codes in tests should be correct");
+        let raw_event = CrosstermEvent::Key(KeyEvent::new(key.code, KeyModifiers::empty()));
         let signals = self.component.handle_raw_event(&raw_event);
         self.process_signals(signals);
     }

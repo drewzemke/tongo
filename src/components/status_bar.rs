@@ -107,7 +107,17 @@ impl Component for StatusBar {
                     .groups()
                     .into_iter()
                     .filter(|group| group.category == CommandCategory::StatusBarOnly)
-                    .flat_map(|group| self.key_map.cmd_group_to_span(&group))
+                    .flat_map(|group| {
+                        let key_hint: String = group
+                            .commands
+                            .iter()
+                            .map(|c| self.key_map.key_for_command(*c))
+                            .map(|k| k.map(|k| format!("{k}")))
+                            .map(Option::unwrap_or_default)
+                            .collect();
+
+                        vec![key_hint.bold(), ": ".into(), group.name.gray(), "  ".into()]
+                    })
                     .collect::<Vec<Span>>(),
             );
 

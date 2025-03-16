@@ -260,7 +260,9 @@ impl Component for HelpModal {
                 let key_hint: String = group
                     .commands
                     .iter()
-                    .map(|c| self.key_map.command_to_key_str(*c))
+                    .map(|c| self.key_map.key_for_command(*c))
+                    .map(|k| k.map(|k| format!("{k}")))
+                    .map(Option::unwrap_or_default)
                     .collect();
 
                 Row::new(vec![key_hint.bold(), group.name.gray()])
