@@ -331,7 +331,7 @@ impl Component for App<'_> {
             // making sure it's one of the currently-available commands
             let command = self
                 .key_map
-                .command_for_key(key.code, &self.command_manager.groups());
+                .command_for_key((*key).into(), &self.command_manager.groups());
 
             // handle the command
             if let Some(command) = command {

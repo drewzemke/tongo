@@ -2,8 +2,8 @@ use crate::{
     config::Config,
     system::command::{Command, CommandGroup},
 };
-use anyhow::{bail, Result};
-use crossterm::event::KeyCode;
+use anyhow::{anyhow, bail, Result};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use itertools::Itertools;
 use ratatui::{
     style::{Color, Modifier, Style},
@@ -11,30 +11,60 @@ use ratatui::{
 };
 use std::collections::HashMap;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Key {
+    pub code: KeyCode,
+    pub modifiers: KeyModifiers,
+}
+
+impl From<KeyCode> for Key {
+    fn from(code: KeyCode) -> Self {
+        Self {
+            code,
+            modifiers: KeyModifiers::empty(),
+        }
+    }
+}
+
+impl From<KeyEvent> for Key {
+    fn from(event: KeyEvent) -> Self {
+        Self {
+            code: event.code,
+            modifiers: event.modifiers,
+        }
+    }
+}
+
+impl std::fmt::Display for Key {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.code)
+    }
+}
+
 /// # Errors
 /// If the input key is not recognized.
-#[expect(clippy::missing_panics_doc)]
-pub fn key_code_from_str(s: &str) -> Result<KeyCode> {
-    match s {
-        "enter" | "Enter" | "return" | "Return" => Ok(KeyCode::Enter),
-        "esc" | "Esc" => Ok(KeyCode::Esc),
-        "up" | "Up" => Ok(KeyCode::Up),
-        "down" | "Down" => Ok(KeyCode::Down),
-        "left" | "Left" => Ok(KeyCode::Left),
-        "right" | "Right" => Ok(KeyCode::Right),
-        "space" | "Space" => Ok(KeyCode::Char(' ')),
-        "bksp" | "backspace" | "Backspace" => Ok(KeyCode::Backspace),
-        "tab" | "Tab" => Ok(KeyCode::Tab),
+pub fn key_code_from_str(s: &str) -> Result<Key> {
+    let key_code = match s {
+        "enter" | "Enter" | "return" | "Return" => KeyCode::Enter,
+        "esc" | "Esc" => KeyCode::Esc,
+        "up" | "Up" => KeyCode::Up,
+        "down" | "Down" => KeyCode::Down,
+        "left" | "Left" => KeyCode::Left,
+        "right" | "Right" => KeyCode::Right,
+        "space" | "Space" => KeyCode::Char(' '),
+        "bksp" | "backspace" | "Backspace" => KeyCode::Backspace,
+        "tab" | "Tab" => KeyCode::Tab,
 
-        // just assume that any string of length 1 should
-        // refer to that character
-        s if s.len() == 1 => Ok(KeyCode::Char(
+        // just assume that any string of length 1 should refer to that character
+        s if s.len() == 1 => KeyCode::Char(
             s.chars()
                 .next()
-                .expect("strings of len 1 have a first char"),
-        )),
-        _ => bail!(format!("Key not recognized: \"{s}\"")),
-    }
+                .ok_or_else(|| anyhow!("Key not recognized: \"{s}\""))?,
+        ),
+        _ => bail!("Key not recognized: \"{s}\""),
+    };
+
+    Ok(key_code.into())
 }
 
 fn string_to_command(value: &str) -> Result<Command> {
@@ -92,7 +122,7 @@ fn string_to_command(value: &str) -> Result<Command> {
 
 #[derive(Debug, Clone)]
 pub struct KeyMap {
-    map: HashMap<Command, KeyCode>,
+    map: HashMap<Command, Key>,
 }
 
 impl Default for KeyMap {
@@ -100,44 +130,44 @@ impl Default for KeyMap {
     // when a command isn't mapped here
     fn default() -> Self {
         let map = [
-            (Command::ShowHelpModal, KeyCode::Char('?')),
-            (Command::NavUp, KeyCode::Up),
-            (Command::NavDown, KeyCode::Down),
-            (Command::NavLeft, KeyCode::Left),
-            (Command::NavRight, KeyCode::Right),
-            (Command::FocusUp, KeyCode::Char('K')),
-            (Command::FocusDown, KeyCode::Char('J')),
-            (Command::FocusLeft, KeyCode::Char('H')),
-            (Command::FocusRight, KeyCode::Char('L')),
-            (Command::CreateNew, KeyCode::Char('A')),
-            (Command::Edit, KeyCode::Char('E')),
-            (Command::Confirm, KeyCode::Enter),
-            (Command::Reset, KeyCode::Char('R')),
-            (Command::Refresh, KeyCode::Char('r')),
-            (Command::ExpandCollapse, KeyCode::Char(' ')),
-            (Command::NextPage, KeyCode::Char('n')),
-            (Command::PreviousPage, KeyCode::Char('p')),
-            (Command::FirstPage, KeyCode::Char('P')),
-            (Command::LastPage, KeyCode::Char('N')),
-            (Command::Delete, KeyCode::Char('D')),
-            (Command::Back, KeyCode::Esc),
-            (Command::Quit, KeyCode::Char('q')),
-            (Command::DuplicateDoc, KeyCode::Char('C')),
-            (Command::Yank, KeyCode::Char('y')),
-            (Command::NewTab, KeyCode::Char('T')),
-            (Command::NextTab, KeyCode::Char(']')), // TODO: make these "tab" and "shift+tab" once modifiers are a thing
-            (Command::PreviousTab, KeyCode::Char('[')),
-            (Command::CloseTab, KeyCode::Char('X')),
-            (Command::DuplicateTab, KeyCode::Char('S')), // ctrl+shift T or something?
-            (Command::GotoTab(1), KeyCode::Char('1')),
-            (Command::GotoTab(2), KeyCode::Char('2')),
-            (Command::GotoTab(3), KeyCode::Char('3')),
-            (Command::GotoTab(4), KeyCode::Char('4')),
-            (Command::GotoTab(5), KeyCode::Char('5')),
-            (Command::GotoTab(6), KeyCode::Char('6')),
-            (Command::GotoTab(7), KeyCode::Char('7')),
-            (Command::GotoTab(8), KeyCode::Char('8')),
-            (Command::GotoTab(9), KeyCode::Char('9')),
+            (Command::ShowHelpModal, KeyCode::Char('?').into()),
+            (Command::NavUp, KeyCode::Up.into()),
+            (Command::NavDown, KeyCode::Down.into()),
+            (Command::NavLeft, KeyCode::Left.into()),
+            (Command::NavRight, KeyCode::Right.into()),
+            (Command::FocusUp, KeyCode::Char('K').into()),
+            (Command::FocusDown, KeyCode::Char('J').into()),
+            (Command::FocusLeft, KeyCode::Char('H').into()),
+            (Command::FocusRight, KeyCode::Char('L').into()),
+            (Command::CreateNew, KeyCode::Char('A').into()),
+            (Command::Edit, KeyCode::Char('E').into()),
+            (Command::Confirm, KeyCode::Enter.into()),
+            (Command::Reset, KeyCode::Char('R').into()),
+            (Command::Refresh, KeyCode::Char('r').into()),
+            (Command::ExpandCollapse, KeyCode::Char(' ').into()),
+            (Command::NextPage, KeyCode::Char('n').into()),
+            (Command::PreviousPage, KeyCode::Char('p').into()),
+            (Command::FirstPage, KeyCode::Char('P').into()),
+            (Command::LastPage, KeyCode::Char('N').into()),
+            (Command::Delete, KeyCode::Char('D').into()),
+            (Command::Back, KeyCode::Esc.into()),
+            (Command::Quit, KeyCode::Char('q').into()),
+            (Command::DuplicateDoc, KeyCode::Char('C').into()),
+            (Command::Yank, KeyCode::Char('y').into()),
+            (Command::NewTab, KeyCode::Char('T').into()),
+            (Command::NextTab, KeyCode::Char(']').into()), // TODO: make these "tab" and "shift+tab" once modifiers are a thing
+            (Command::PreviousTab, KeyCode::Char('[').into()),
+            (Command::CloseTab, KeyCode::Char('X').into()),
+            (Command::DuplicateTab, KeyCode::Char('S').into()), // ctrl+shift T or something?
+            (Command::GotoTab(1), KeyCode::Char('1').into()),
+            (Command::GotoTab(2), KeyCode::Char('2').into()),
+            (Command::GotoTab(3), KeyCode::Char('3').into()),
+            (Command::GotoTab(4), KeyCode::Char('4').into()),
+            (Command::GotoTab(5), KeyCode::Char('5').into()),
+            (Command::GotoTab(6), KeyCode::Char('6').into()),
+            (Command::GotoTab(7), KeyCode::Char('7').into()),
+            (Command::GotoTab(8), KeyCode::Char('8').into()),
+            (Command::GotoTab(9), KeyCode::Char('9').into()),
         ]
         .into();
 
@@ -166,7 +196,7 @@ impl KeyMap {
     /// component will respond to
     #[cfg(test)]
     #[must_use]
-    pub fn command_for_key_unfiltered(&self, key: KeyCode) -> Option<&Command> {
+    pub fn command_for_key_unfiltered(&self, key: Key) -> Option<&Command> {
         self.map
             .iter()
             .find_map(|(cmd, &k)| if k == key { Some(cmd) } else { None })
@@ -178,7 +208,7 @@ impl KeyMap {
     #[must_use]
     pub fn command_for_key(
         &self,
-        key: KeyCode,
+        key: Key,
         available_commands: &[CommandGroup],
     ) -> Option<Command> {
         let commands = available_commands.iter().flat_map(|group| &group.commands);
@@ -195,13 +225,14 @@ impl KeyMap {
             .copied()
     }
 
+    // TODO: use impl of Display for Key instead
     #[must_use]
     pub fn command_to_key_str(&self, command: Command) -> String {
         let Some(key) = self.map.get(&command) else {
             return "?".into();
         };
 
-        match key {
+        match key.code {
             KeyCode::Enter => "enter".to_string(),
             KeyCode::Left => "←".to_string(),
             KeyCode::Right => "→".to_string(),
@@ -254,10 +285,13 @@ mod tests {
         let key_map = KeyMap::try_from_config(&config).unwrap();
 
         assert_eq!(
-            key_map.command_for_key_unfiltered(KeyCode::Up),
+            key_map.command_for_key_unfiltered(KeyCode::Up.into()),
             Some(&Command::NavUp)
         );
-        assert_eq!(key_map.command_for_key_unfiltered(KeyCode::Char('k')), None);
+        assert_eq!(
+            key_map.command_for_key_unfiltered(KeyCode::Char('k').into()),
+            None
+        );
     }
 
     #[test]
@@ -267,9 +301,11 @@ mod tests {
         };
         let key_map = KeyMap::try_from_config(&config).unwrap();
 
-        assert_eq!(key_map.command_for_key_unfiltered(KeyCode::Up), None);
+        assert!(key_map
+            .command_for_key_unfiltered(KeyCode::Up.into())
+            .is_none(),);
         assert_eq!(
-            key_map.command_for_key_unfiltered(KeyCode::Char('k')),
+            key_map.command_for_key_unfiltered(KeyCode::Char('k').into()),
             Some(&Command::NavUp)
         );
     }

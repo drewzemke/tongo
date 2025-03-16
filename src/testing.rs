@@ -39,7 +39,7 @@ impl<C: Component> ComponentTestHarness<C> {
 
     pub fn given_key(&mut self, string: &str) {
         let key_code = key_code_from_str(string).expect("key codes in tests should be correct");
-        let raw_event = CrosstermEvent::Key(KeyEvent::new(key_code, KeyModifiers::empty()));
+        let raw_event = CrosstermEvent::Key(KeyEvent::new(key_code.code, KeyModifiers::empty()));
         let signals = self.component.handle_raw_event(&raw_event);
         self.process_signals(signals);
     }
