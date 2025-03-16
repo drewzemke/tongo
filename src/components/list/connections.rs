@@ -79,11 +79,11 @@ impl Component for Connections {
         out.append(&mut vec![
             CommandGroup::new(vec![Command::Confirm], "connect")
                 .in_cat(CommandCategory::CollActions),
-            CommandGroup::new(vec![Command::CreateNew], "new conn.")
+            CommandGroup::new(vec![Command::CreateNew], "new connection")
                 .in_cat(CommandCategory::CollActions),
-            CommandGroup::new(vec![Command::Edit], "edit conn.")
+            CommandGroup::new(vec![Command::Edit], "edit connection")
                 .in_cat(CommandCategory::CollActions),
-            CommandGroup::new(vec![Command::Delete], "delete conn.")
+            CommandGroup::new(vec![Command::Delete], "delete connection")
                 .in_cat(CommandCategory::CollActions),
         ]);
         out

@@ -63,11 +63,12 @@ impl Component for Collections {
     fn commands(&self) -> Vec<CommandGroup> {
         let mut out = InnerList::base_commands();
         out.append(&mut vec![
-            CommandGroup::new(vec![Command::Confirm], "connect")
+            CommandGroup::new(vec![Command::Confirm], "select collection")
                 .in_cat(CommandCategory::ConnActions),
             CommandGroup::new(vec![Command::CreateNew], "new collection")
                 .in_cat(CommandCategory::ConnActions),
-            CommandGroup::new(vec![Command::Delete], "drop").in_cat(CommandCategory::ConnActions),
+            CommandGroup::new(vec![Command::Delete], "drop collection")
+                .in_cat(CommandCategory::ConnActions),
         ]);
         out
     }

@@ -232,7 +232,7 @@ impl Component for App<'_> {
     fn commands(&self) -> Vec<CommandGroup> {
         let mut out = match self.mode {
             Mode::Normal => vec![
-                CommandGroup::new(vec![Command::ShowHelpModal], "show help")
+                CommandGroup::new(vec![Command::ShowHelpModal], "show commands")
                     .in_cat(CommandCategory::StatusBarOnly),
                 CommandGroup::new(vec![Command::Quit], "quit")
                     .in_cat(CommandCategory::StatusBarOnly),

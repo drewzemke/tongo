@@ -49,7 +49,7 @@ impl Component for ConnStrInput {
         vec![
             CommandGroup::new(vec![Command::Confirm], "confirm")
                 .in_cat(CommandCategory::StatusBarOnly),
-            CommandGroup::new(vec![Command::Back], "prev field")
+            CommandGroup::new(vec![Command::Back], "previous field")
                 .in_cat(CommandCategory::StatusBarOnly),
         ]
     }

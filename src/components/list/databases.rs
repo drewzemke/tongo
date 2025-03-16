@@ -63,10 +63,12 @@ impl Component for Databases {
     fn commands(&self) -> Vec<CommandGroup> {
         let mut out = InnerList::base_commands();
         out.append(&mut vec![
-            CommandGroup::new(vec![Command::Confirm], "select").in_cat(CommandCategory::DbActions),
+            CommandGroup::new(vec![Command::Confirm], "select database")
+                .in_cat(CommandCategory::DbActions),
             CommandGroup::new(vec![Command::CreateNew], "new database")
                 .in_cat(CommandCategory::DbActions),
-            CommandGroup::new(vec![Command::Delete], "drop").in_cat(CommandCategory::DbActions),
+            CommandGroup::new(vec![Command::Delete], "drop database")
+                .in_cat(CommandCategory::DbActions),
         ]);
         out
     }

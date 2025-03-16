@@ -60,11 +60,11 @@ impl std::fmt::Display for CommandCategory {
         match self {
             Self::DocNav => write!(f, "Document Navigation"),
             Self::DocActions => write!(f, "Document Actions"),
-            Self::CollActions => write!(f, "Collection"),
-            Self::DbActions => write!(f, "Database"),
-            Self::FilterInputActions => write!(f, "Filter"),
-            Self::ConnActions => write!(f, "Connection"),
-            Self::TabActions => write!(f, "Tab"),
+            Self::CollActions => write!(f, "Collections List"),
+            Self::DbActions => write!(f, "Databases List"),
+            Self::FilterInputActions => write!(f, "Filter Input"),
+            Self::ConnActions => write!(f, "Connections List"),
+            Self::TabActions => write!(f, "Tabs"),
             Self::AppNav => write!(f, "Navigation"),
             _ => write!(f, ""),
         }

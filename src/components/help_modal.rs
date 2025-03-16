@@ -15,7 +15,7 @@ use ratatui::{
 };
 use std::rc::Rc;
 
-const HELP_MODAL_WIDTH: u16 = 60;
+const HELP_MODAL_WIDTH: u16 = 70;
 
 /// represents the location of the selected command. first usize is the category,
 /// second usize is the group
@@ -319,13 +319,14 @@ impl Component for HelpModal {
 
         if self.selected_cmd().is_some() {
             out.push(
-                CommandGroup::new(vec![Command::Confirm], "do selected")
+                CommandGroup::new(vec![Command::Confirm], "execute selected command")
                     .in_cat(CommandCategory::StatusBarOnly),
             );
         }
 
         out.push(
-            CommandGroup::new(vec![Command::Back], "close").in_cat(CommandCategory::StatusBarOnly),
+            CommandGroup::new(vec![Command::Back], "close menu")
+                .in_cat(CommandCategory::StatusBarOnly),
         );
         out
     }

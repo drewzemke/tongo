@@ -140,8 +140,8 @@ impl Component for Documents<'_> {
             CommandGroup::new(
                 vec![
                     Command::NavLeft,
-                    Command::NavUp,
                     Command::NavDown,
+                    Command::NavUp,
                     Command::NavRight,
                 ],
                 "navigate",
@@ -150,8 +150,8 @@ impl Component for Documents<'_> {
             CommandGroup::new(vec![Command::ExpandCollapse], "expand/collapse")
                 .in_cat(CommandCategory::DocNav),
             CommandGroup::new(
-                vec![Command::NextPage, Command::PreviousPage],
-                "next/prev page",
+                vec![Command::PreviousPage, Command::NextPage],
+                "previous/next page",
             )
             .in_cat(CommandCategory::DocNav),
             CommandGroup::new(
@@ -159,16 +159,17 @@ impl Component for Documents<'_> {
                 "first/last page",
             )
             .in_cat(CommandCategory::DocNav),
-            CommandGroup::new(vec![Command::Refresh], "refresh")
+            CommandGroup::new(vec![Command::Refresh], "refresh queries")
                 .in_cat(CommandCategory::DocActions),
-            CommandGroup::new(vec![Command::Yank], "yank selected")
+            CommandGroup::new(vec![Command::Yank], "copy to clipboard")
                 .in_cat(CommandCategory::DocActions),
-            CommandGroup::new(vec![Command::Edit], "edit doc").in_cat(CommandCategory::DocActions),
-            CommandGroup::new(vec![Command::CreateNew], "insert doc")
+            CommandGroup::new(vec![Command::Edit], "edit document")
                 .in_cat(CommandCategory::DocActions),
-            CommandGroup::new(vec![Command::DuplicateDoc], "duplicate doc")
+            CommandGroup::new(vec![Command::CreateNew], "insert document")
                 .in_cat(CommandCategory::DocActions),
-            CommandGroup::new(vec![Command::Delete], "delete doc")
+            CommandGroup::new(vec![Command::DuplicateDoc], "duplicate document")
+                .in_cat(CommandCategory::DocActions),
+            CommandGroup::new(vec![Command::Delete], "delete document")
                 .in_cat(CommandCategory::DocActions),
         ]
     }

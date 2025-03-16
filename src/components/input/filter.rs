@@ -65,7 +65,7 @@ impl Component for FilterInput {
     fn commands(&self) -> Vec<CommandGroup> {
         if self.input.is_editing() {
             vec![
-                CommandGroup::new(vec![Command::Confirm], "execute query")
+                CommandGroup::new(vec![Command::Confirm], "run query")
                     .in_cat(CommandCategory::StatusBarOnly),
                 CommandGroup::new(vec![Command::Back], "cancel")
                     .in_cat(CommandCategory::StatusBarOnly),
