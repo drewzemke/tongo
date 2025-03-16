@@ -339,7 +339,7 @@ impl Component for Documents<'_> {
             .expect("all item identifiers are unique")
             .block(
                 Block::bordered()
-                    .title(title)
+                    .title(format!(" {title} "))
                     .border_style(Style::default().fg(border_color)),
             )
             .experimental_scrollbar(Some(

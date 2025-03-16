@@ -70,7 +70,7 @@ impl InnerList {
         let list = List::new(items)
             .block(
                 Block::bordered()
-                    .title(self.title)
+                    .title(format!(" {} ", self.title))
                     .border_style(Style::default().fg(border_color)),
             )
             .highlight_style(Style::default().bold().black().bg(highlight_color));

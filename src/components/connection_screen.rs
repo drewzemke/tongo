@@ -229,10 +229,16 @@ impl Component for ConnectionScreen {
                 .horizontal_margin(2)
                 .split(overlay);
 
+            let title = if self.editing_conn.is_some() {
+                "Edit Connection"
+            } else {
+                "New Connection"
+            };
+
             // render container for the inputs
             frame.render_widget(Clear, overlay);
             let block = Block::bordered()
-                .title("New Connection")
+                .title(format!(" {title} "))
                 .style(Style::default().green());
             frame.render_widget(block, overlay);
 

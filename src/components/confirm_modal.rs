@@ -106,7 +106,7 @@ impl Component for ConfirmModal {
 
         let content = Paragraph::new(message).wrap(Wrap { trim: true }).block(
             Block::bordered()
-                .title(title)
+                .title(format!(" {title} "))
                 .border_style(Style::default().fg(Color::Magenta)),
         );
 

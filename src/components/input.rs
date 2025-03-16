@@ -90,7 +90,7 @@ where
         #[expect(clippy::cast_possible_truncation)]
         let input_widget = Paragraph::new(text).scroll((0, input_scroll as u16)).block(
             Block::default()
-                .title(self.title)
+                .title(format!(" {} ", self.title))
                 .border_style(Style::default().fg(border_color))
                 .padding(Padding::horizontal(1))
                 .borders(Borders::ALL),
