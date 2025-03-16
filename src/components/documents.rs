@@ -136,7 +136,7 @@ impl Component for Documents<'_> {
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
-        vec![
+        let mut out = vec![
             CommandGroup::new(
                 vec![
                     Command::NavLeft,
@@ -161,17 +161,24 @@ impl Component for Documents<'_> {
             .in_cat(CommandCategory::DocNav),
             CommandGroup::new(vec![Command::Refresh], "refresh queries")
                 .in_cat(CommandCategory::DocActions),
-            CommandGroup::new(vec![Command::Yank], "copy to clipboard")
-                .in_cat(CommandCategory::DocActions),
-            CommandGroup::new(vec![Command::Edit], "edit document")
-                .in_cat(CommandCategory::DocActions),
             CommandGroup::new(vec![Command::CreateNew], "insert document")
                 .in_cat(CommandCategory::DocActions),
-            CommandGroup::new(vec![Command::DuplicateDoc], "duplicate document")
-                .in_cat(CommandCategory::DocActions),
-            CommandGroup::new(vec![Command::Delete], "delete document")
-                .in_cat(CommandCategory::DocActions),
-        ]
+        ];
+
+        if self.selected_doc().is_some() {
+            out.append(&mut vec![
+                CommandGroup::new(vec![Command::DuplicateDoc], "duplicate document")
+                    .in_cat(CommandCategory::DocActions),
+                CommandGroup::new(vec![Command::Delete], "delete document")
+                    .in_cat(CommandCategory::DocActions),
+                CommandGroup::new(vec![Command::Edit], "edit document")
+                    .in_cat(CommandCategory::DocActions),
+                CommandGroup::new(vec![Command::Yank], "copy to clipboard")
+                    .in_cat(CommandCategory::DocActions),
+            ]);
+        }
+
+        out
     }
 
     #[expect(clippy::too_many_lines)]
