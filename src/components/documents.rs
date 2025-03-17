@@ -11,55 +11,21 @@ use crate::{
     },
     utils::{
         clipboard::send_bson_to_clipboard,
+        doc_searcher::DocSearcher,
         edit_doc::edit_doc,
         mongo_tree::{top_level_document, MongoKey},
     },
 };
 use layout::Flex;
 use mongodb::bson::{doc, oid::ObjectId, Bson, Document};
-use nucleo::Nucleo;
 use ratatui::{
     prelude::*,
     widgets::{Block, Scrollbar, ScrollbarOrientation},
 };
 use serde::{Deserialize, Serialize};
-use std::{cell::Cell, rc::Rc, sync::Arc};
+use std::{cell::Cell, rc::Rc};
 use tui_input::{backend::crossterm::EventHandler, Input};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
-
-// HACK: just did this to get some trait impls while playing around with nucleo
-//  probably need to move this to another file
-struct NucleoWrapper {
-    nucleo: Nucleo<Bson>,
-}
-
-impl std::ops::Deref for NucleoWrapper {
-    type Target = Nucleo<Bson>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.nucleo
-    }
-}
-
-impl std::ops::DerefMut for NucleoWrapper {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.nucleo
-    }
-}
-
-impl Default for NucleoWrapper {
-    fn default() -> Self {
-        Self {
-            nucleo: Nucleo::new(nucleo::Config::DEFAULT, Arc::new(|| {}), None, 1),
-        }
-    }
-}
-
-impl std::fmt::Debug for NucleoWrapper {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Nucleo!")
-    }
-}
 
 #[derive(Debug, Default)]
 enum Mode {
@@ -80,12 +46,13 @@ pub struct Documents<'a> {
 
     collection: Option<Collection>,
 
-    mode: Mode,
-    search: Input,
-    nucleo: NucleoWrapper,
-
     page: usize,
     count: u64,
+
+    // search things
+    mode: Mode,
+    search_input: Input,
+    searcher: DocSearcher,
 }
 
 impl Clone for Documents<'_> {
@@ -97,8 +64,8 @@ impl Clone for Documents<'_> {
             documents: self.documents.clone(),
             collection: None,
             mode: Mode::Normal,
-            search: Input::default(),
-            nucleo: NucleoWrapper::default(),
+            search_input: Input::default(),
+            searcher: DocSearcher::default(),
             page: self.page,
             count: self.count,
         };
@@ -376,13 +343,6 @@ impl Component for Documents<'_> {
             }
             Command::Search => {
                 self.mode = Mode::SearchInput;
-
-                for doc in &self.documents {
-                    self.nucleo.injector().push(doc.clone(), |doc, cols| {
-                        cols[0] = doc.to_string().into();
-                    });
-                }
-
                 out.push(Message::to_app(AppAction::EnterRawMode).into());
             }
 
@@ -398,12 +358,12 @@ impl Component for Documents<'_> {
             Command::Back => match self.mode {
                 Mode::SearchInput => {
                     self.mode = Mode::Normal;
-                    self.search = Input::default();
+                    self.search_input = Input::default();
                     out.push(Message::to_app(AppAction::ExitRawMode).into());
                     out.push(Event::DocSearchUpdated.into());
                 }
                 Mode::SearchReview => {
-                    self.search = Input::default();
+                    self.search_input = Input::default();
                     self.mode = Mode::Normal;
                     out.push(Event::DocSearchUpdated.into());
                 }
@@ -416,17 +376,13 @@ impl Component for Documents<'_> {
 
     fn handle_raw_event(&mut self, event: &crossterm::event::Event) -> Vec<Signal> {
         if matches!(self.mode, Mode::SearchInput) {
-            self.search.handle_event(event);
-            let search = self.search.value();
-            self.nucleo.pattern.reparse(
-                0,
-                search,
-                nucleo::pattern::CaseMatching::Smart,
-                nucleo::pattern::Normalization::Smart,
-                false,
-            );
+            self.search_input.handle_event(event);
+            self.searcher.update_pattern(self.search_input.value());
 
-            self.nucleo.tick(10);
+            // QUESTION: is this the right place for this?
+            if let Some(keys) = self.searcher.nth_match(0) {
+                self.state.select(keys.clone());
+            }
 
             vec![Event::DocSearchUpdated.into()]
         } else {
@@ -438,6 +394,7 @@ impl Component for Documents<'_> {
         let mut out = vec![];
         match event {
             Event::DocumentsUpdated { docs, reset_state } => {
+                self.searcher.load_docs(docs);
                 self.set_docs(docs, *reset_state);
                 out.push(Event::ListSelectionChanged.into());
             }
@@ -511,10 +468,10 @@ impl Component for Documents<'_> {
             .border_style(Style::default().fg(border_color));
 
         if matches!(self.mode, Mode::SearchInput | Mode::SearchReview) {
-            let matches = self.nucleo.snapshot().matched_item_count();
+            let matches = self.searcher.num_matches();
             block = block
                 .title_bottom(
-                    Line::from(format!(" search: {} ", self.search.value()))
+                    Line::from(format!(" search: {} ", self.search_input.value()))
                         .left_aligned()
                         .cyan(),
                 )
