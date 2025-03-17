@@ -6,7 +6,7 @@ use crate::{
     system::{
         command::{Command, CommandCategory, CommandGroup},
         event::Event,
-        message::{ClientAction, Message, TabAction},
+        message::{AppAction, ClientAction, Message, TabAction},
         Signal,
     },
     utils::{
@@ -17,13 +17,57 @@ use crate::{
 };
 use layout::Flex;
 use mongodb::bson::{doc, oid::ObjectId, Bson, Document};
+use nucleo::Nucleo;
 use ratatui::{
     prelude::*,
     widgets::{Block, Scrollbar, ScrollbarOrientation},
 };
 use serde::{Deserialize, Serialize};
-use std::{cell::Cell, rc::Rc};
+use std::{cell::Cell, rc::Rc, sync::Arc};
+use tui_input::{backend::crossterm::EventHandler, Input};
 use tui_tree_widget::{Tree, TreeItem, TreeState};
+
+// HACK: just did this to get some trait impls while playing around with nucleo
+//  probably need to move this to another file
+struct NucleoWrapper {
+    nucleo: Nucleo<Bson>,
+}
+
+impl std::ops::Deref for NucleoWrapper {
+    type Target = Nucleo<Bson>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.nucleo
+    }
+}
+
+impl std::ops::DerefMut for NucleoWrapper {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.nucleo
+    }
+}
+
+impl Default for NucleoWrapper {
+    fn default() -> Self {
+        Self {
+            nucleo: Nucleo::new(nucleo::Config::DEFAULT, Arc::new(|| {}), None, 1),
+        }
+    }
+}
+
+impl std::fmt::Debug for NucleoWrapper {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Nucleo!")
+    }
+}
+
+#[derive(Debug, Default)]
+enum Mode {
+    #[default]
+    Normal,
+    SearchInput,
+    SearchReview,
+}
 
 #[derive(Debug, Default)]
 pub struct Documents<'a> {
@@ -35,6 +79,10 @@ pub struct Documents<'a> {
     documents: Vec<Bson>,
 
     collection: Option<Collection>,
+
+    mode: Mode,
+    search: Input,
+    nucleo: NucleoWrapper,
 
     page: usize,
     count: u64,
@@ -48,6 +96,9 @@ impl Clone for Documents<'_> {
             items: self.items.clone(),
             documents: self.documents.clone(),
             collection: None,
+            mode: Mode::Normal,
+            search: Input::default(),
+            nucleo: NucleoWrapper::default(),
             page: self.page,
             count: self.count,
         };
@@ -141,34 +192,61 @@ impl Component for Documents<'_> {
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
-        let mut out = vec![
-            CommandGroup::new(
-                vec![
-                    Command::NavLeft,
-                    Command::NavDown,
-                    Command::NavUp,
-                    Command::NavRight,
-                ],
-                "navigate",
-            )
-            .in_cat(CommandCategory::DocNav),
-            CommandGroup::new(vec![Command::ExpandCollapse], "expand/collapse")
+        // handle search input mode separately
+        if matches!(self.mode, Mode::SearchInput) {
+            return vec![
+                CommandGroup::new(vec![Command::Confirm], "end search")
+                    .in_cat(CommandCategory::StatusBarOnly),
+                CommandGroup::new(vec![Command::Back], "cancel")
+                    .in_cat(CommandCategory::StatusBarOnly),
+            ];
+        }
+
+        let mut out = if matches!(self.mode, Mode::Normal) {
+            vec![
+                CommandGroup::new(
+                    vec![
+                        Command::NavLeft,
+                        Command::NavDown,
+                        Command::NavUp,
+                        Command::NavRight,
+                    ],
+                    "navigate",
+                )
                 .in_cat(CommandCategory::DocNav),
-            CommandGroup::new(
-                vec![Command::PreviousPage, Command::NextPage],
-                "previous/next page",
-            )
-            .in_cat(CommandCategory::DocNav),
-            CommandGroup::new(
-                vec![Command::FirstPage, Command::LastPage],
-                "first/last page",
-            )
-            .in_cat(CommandCategory::DocNav),
-            CommandGroup::new(vec![Command::Refresh], "refresh queries")
-                .in_cat(CommandCategory::DocActions),
+                CommandGroup::new(vec![Command::ExpandCollapse], "expand/collapse")
+                    .in_cat(CommandCategory::DocNav),
+                CommandGroup::new(
+                    vec![Command::PreviousPage, Command::NextPage],
+                    "previous/next page",
+                )
+                .in_cat(CommandCategory::DocNav),
+                CommandGroup::new(
+                    vec![Command::FirstPage, Command::LastPage],
+                    "first/last page",
+                )
+                .in_cat(CommandCategory::DocNav),
+                CommandGroup::new(vec![Command::Search], "fuzzy search")
+                    .in_cat(CommandCategory::DocActions),
+            ]
+        } else {
+            vec![
+                CommandGroup::new(
+                    vec![Command::PreviousPage, Command::NextPage],
+                    "previous/next result",
+                )
+                .in_cat(CommandCategory::DocNav),
+                CommandGroup::new(vec![Command::Back], "clear search")
+                    .in_cat(CommandCategory::StatusBarOnly),
+                CommandGroup::new(vec![Command::Back], "clear search")
+                    .in_cat(CommandCategory::DocNav),
+            ]
+        };
+
+        out.push(
             CommandGroup::new(vec![Command::CreateNew], "insert document")
                 .in_cat(CommandCategory::DocActions),
-        ];
+        );
 
         if self.selected_doc().is_some() {
             out.append(&mut vec![
@@ -296,9 +374,64 @@ impl Component for Documents<'_> {
                     }
                 }
             }
+            Command::Search => {
+                self.mode = Mode::SearchInput;
+
+                for doc in &self.documents {
+                    self.nucleo.injector().push(doc.clone(), |doc, cols| {
+                        cols[0] = doc.to_string().into();
+                    });
+                }
+
+                out.push(Message::to_app(AppAction::EnterRawMode).into());
+            }
+
+            // only in search input mode
+            Command::Confirm => {
+                if matches!(self.mode, Mode::SearchInput) {
+                    self.mode = Mode::SearchReview;
+                    out.push(Message::to_app(AppAction::ExitRawMode).into());
+                }
+            }
+
+            // search input mode or search review mode
+            Command::Back => match self.mode {
+                Mode::SearchInput => {
+                    self.mode = Mode::Normal;
+                    self.search = Input::default();
+                    out.push(Message::to_app(AppAction::ExitRawMode).into());
+                    out.push(Event::DocSearchUpdated.into());
+                }
+                Mode::SearchReview => {
+                    self.search = Input::default();
+                    self.mode = Mode::Normal;
+                    out.push(Event::DocSearchUpdated.into());
+                }
+                Mode::Normal => {}
+            },
             _ => {}
         }
         out
+    }
+
+    fn handle_raw_event(&mut self, event: &crossterm::event::Event) -> Vec<Signal> {
+        if matches!(self.mode, Mode::SearchInput) {
+            self.search.handle_event(event);
+            let search = self.search.value();
+            self.nucleo.pattern.reparse(
+                0,
+                search,
+                nucleo::pattern::CaseMatching::Smart,
+                nucleo::pattern::Normalization::Smart,
+                false,
+            );
+
+            self.nucleo.tick(10);
+
+            vec![Event::DocSearchUpdated.into()]
+        } else {
+            vec![]
+        }
     }
 
     fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
@@ -372,14 +505,29 @@ impl Component for Documents<'_> {
         let title_left = format!("Documents in '{}'", coll.name);
         let title_right = format!("{start}-{end} of {}", self.count);
 
+        let mut block = Block::bordered()
+            .title(Line::from(format!(" {title_left} ")).left_aligned())
+            .title(Line::from(format!(" {title_right} ")).right_aligned())
+            .border_style(Style::default().fg(border_color));
+
+        if matches!(self.mode, Mode::SearchInput | Mode::SearchReview) {
+            let matches = self.nucleo.snapshot().matched_item_count();
+            block = block
+                .title_bottom(
+                    Line::from(format!(" search: {} ", self.search.value()))
+                        .left_aligned()
+                        .cyan(),
+                )
+                .title_bottom(
+                    Line::from(format!(" {matches} matches "))
+                        .right_aligned()
+                        .cyan(),
+                );
+        }
+
         let widget = Tree::new(&self.items)
             .expect("all item identifiers are unique")
-            .block(
-                Block::bordered()
-                    .title(Line::from(format!(" {title_left} ")).left_aligned())
-                    .title(Line::from(format!(" {title_right} ")).right_aligned())
-                    .border_style(Style::default().fg(border_color)),
-            )
+            .block(block)
             .experimental_scrollbar(Some(
                 Scrollbar::new(ScrollbarOrientation::VerticalRight)
                     .begin_symbol(None)

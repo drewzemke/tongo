@@ -161,15 +161,11 @@ impl Component for PrimaryScreen<'_> {
                     self.db_list.focus();
                     out.push(Event::FocusedChanged.into());
                 }
-                Some(PrimScrFocus::DocTree) => {
-                    self.coll_list.focus();
-                    out.push(Event::FocusedChanged.into());
-                }
                 Some(PrimScrFocus::FilterIn) => {
                     self.doc_tree.focus();
                     out.push(Event::FocusedChanged.into());
                 }
-                None => {}
+                _ => {}
             },
             _ => {}
         }

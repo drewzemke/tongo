@@ -97,6 +97,9 @@ pub enum Event {
     /// in the Mongo server.
     DocInsertComplete,
 
+    /// Emitted when the search string in the documents view is updated.
+    DocSearchUpdated,
+
     /// Emitted when a document has been successfully updated in the Mongo
     /// server.
     DocUpdateComplete,

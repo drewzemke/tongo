@@ -142,6 +142,7 @@ fn string_to_command(value: &str) -> Result<Command> {
         "last_page" => Ok(Command::LastPage),
 
         "delete" => Ok(Command::Delete),
+        "search" => Ok(Command::Search),
         "back" => Ok(Command::Back),
         "quit" => Ok(Command::Quit),
 
@@ -197,6 +198,7 @@ impl Default for KeyMap {
             (Command::FirstPage, KeyCode::Char('P').into()),
             (Command::LastPage, KeyCode::Char('N').into()),
             (Command::Delete, KeyCode::Char('D').into()),
+            (Command::Search, KeyCode::Char('/').into()),
             (Command::Back, KeyCode::Esc.into()),
             (Command::Quit, KeyCode::Char('q').into()),
             (Command::DuplicateDoc, KeyCode::Char('C').into()),

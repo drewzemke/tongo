@@ -25,6 +25,7 @@ pub enum Command {
     CreateNew,
     Edit,
     Delete,
+    Search,
     Back,
     Quit,
 
