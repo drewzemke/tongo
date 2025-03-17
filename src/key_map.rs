@@ -44,6 +44,7 @@ impl std::fmt::Display for Key {
             KeyCode::Home => "home",
             KeyCode::End => "end",
             KeyCode::Tab => "tab",
+            KeyCode::BackTab => "bktab",
             KeyCode::Delete => "del",
             KeyCode::Esc => "esc",
             KeyCode::CapsLock => "caps",
@@ -54,7 +55,19 @@ impl std::fmt::Display for Key {
             _ => "?",
         };
 
-        write!(f, "{code_str}")
+        let alt_str = if self.modifiers.contains(KeyModifiers::ALT) {
+            "A-"
+        } else {
+            ""
+        };
+
+        let ctrl_str = if self.modifiers.contains(KeyModifiers::CONTROL) {
+            "C-"
+        } else {
+            ""
+        };
+
+        write!(f, "{ctrl_str}{alt_str}{code_str}")
     }
 }
 
@@ -86,6 +99,7 @@ impl TryFrom<&str> for Key {
             "space" | "Space" => KeyCode::Char(' '),
             "bksp" | "backspace" | "Backspace" => KeyCode::Backspace,
             "tab" | "Tab" => KeyCode::Tab,
+            "backtab" | "BackTab" => KeyCode::BackTab,
 
             // just assume that any string of length 1 should refer to that character
             s if s.len() == 1 => KeyCode::Char(
@@ -353,31 +367,61 @@ mod tests {
     }
 
     #[test]
-    fn parse_keys_with_modifiers() {
-        let key = Key::try_from("C-enter").expect("should be able to parse key");
+    fn parse_keys_with_control_modifier() {
         assert_eq!(
-            key,
+            Key::try_from("C-enter").expect("should be able to parse key"),
             Key {
                 code: KeyCode::Enter,
                 modifiers: KeyModifiers::CONTROL
             }
         );
 
-        let key = Key::try_from("A-C-k").expect("should be able to parse key");
         assert_eq!(
-            key,
+            Key::try_from("C-K").expect("should be able to parse key"),
             Key {
-                code: KeyCode::Char('k'),
-                modifiers: KeyModifiers::CONTROL | KeyModifiers::ALT
+                code: KeyCode::Char('K'),
+                modifiers: KeyModifiers::CONTROL
+            }
+        );
+    }
+
+    #[test]
+    fn parse_keys_with_alt_modifier() {
+        assert_eq!(
+            Key::try_from("A-enter").expect("should be able to parse key"),
+            Key {
+                code: KeyCode::Enter,
+                modifiers: KeyModifiers::ALT
             }
         );
 
-        let key = Key::try_from("A-L").expect("should be able to parse key");
         assert_eq!(
-            key,
+            Key::try_from("A-L").expect("should be able to parse key"),
             Key {
                 code: KeyCode::Char('L'),
                 modifiers: KeyModifiers::ALT
+            }
+        );
+    }
+
+    #[test]
+    fn parse_keys_with_shift_modifier() {
+        assert_eq!(
+            Key::try_from("A").expect("should be able to parse key"),
+            Key {
+                code: KeyCode::Char('A'),
+                modifiers: KeyModifiers::empty()
+            }
+        );
+    }
+
+    #[test]
+    fn parse_keys_with_multiple_modifiers() {
+        assert_eq!(
+            Key::try_from("A-C-k").expect("should be able to parse key"),
+            Key {
+                code: KeyCode::Char('k'),
+                modifiers: KeyModifiers::CONTROL | KeyModifiers::ALT
             }
         );
     }
