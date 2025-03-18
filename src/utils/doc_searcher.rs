@@ -65,15 +65,20 @@ impl std::fmt::Debug for DocSearcher {
 
 impl DocSearcher {
     pub fn load_docs(&mut self, docs: &[Bson]) {
-        for doc in docs {
-            for item in flatten_doc(doc) {
-                self.nucleo.injector().push(item, |item, cols| {
-                    // TODO: also put the path into the searchable text
-                    // needs a helper function to convert vecs of mongo keys into strings
-                    cols[0] = item.1.to_string().into();
-                });
+        let docs = docs.to_vec();
+        let injector = self.nucleo.injector();
+
+        tokio::spawn(async move {
+            for doc in docs {
+                for item in flatten_doc(&doc) {
+                    injector.push(item, |item, cols| {
+                        // TODO: also put the path into the searchable text
+                        // needs a helper function to convert vecs of mongo keys into strings
+                        cols[0] = item.1.to_string().into();
+                    });
+                }
             }
-        }
+        });
     }
 
     pub fn update_pattern(&mut self, pat: &str) {

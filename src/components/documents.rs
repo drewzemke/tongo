@@ -98,6 +98,7 @@ impl Documents<'_> {
 
     fn set_docs(&mut self, docs: &Vec<Bson>, reset_state: bool) {
         self.documents.clone_from(docs);
+        self.searcher.load_docs(docs);
 
         let items: Vec<_> = docs
             .iter()
@@ -409,7 +410,6 @@ impl Component for Documents<'_> {
         let mut out = vec![];
         match event {
             Event::DocumentsUpdated { docs, reset_state } => {
-                self.searcher.load_docs(docs);
                 self.set_docs(docs, *reset_state);
                 out.push(Event::ListSelectionChanged.into());
             }
