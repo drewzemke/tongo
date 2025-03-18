@@ -43,6 +43,18 @@ impl From<&Bson> for MongoKey {
     }
 }
 
+impl From<String> for MongoKey {
+    fn from(value: String) -> Self {
+        Self::String(value)
+    }
+}
+
+impl From<usize> for MongoKey {
+    fn from(value: usize) -> Self {
+        Self::Usize(value)
+    }
+}
+
 impl Default for MongoKey {
     fn default() -> Self {
         Self::ObjectId(ObjectId::default())
@@ -125,7 +137,7 @@ fn key_to_span<'a>(key: &MongoKey) -> Span<'a> {
     let string = match key {
         MongoKey::String(s) => s.clone(),
         MongoKey::ObjectId(id) => format!("ObjectId({id})"),
-        MongoKey::Usize(n) => format!("[{n}]"),
+        MongoKey::Usize(n) => format!("{n}"),
     };
     Span::styled(string, Style::default().white())
 }

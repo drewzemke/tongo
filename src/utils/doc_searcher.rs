@@ -14,33 +14,35 @@ fn flatten_doc(doc: &Bson) -> Vec<SearchItem> {
 
     doc.clone()
         .into_iter()
-        .flat_map(|(key, bson)| flatten_bson(key, bson))
-        .map(|SearchItem(keys, bson)| {
-            let mut new_keys = vec![id.clone()];
-            new_keys.extend(keys);
-            SearchItem(new_keys, bson)
-        })
+        .flat_map(|(key, bson)| flatten_bson(key.into(), bson))
+        .map(|SearchItem(keys, bson)| prepend_key(id.clone(), keys, bson))
         .collect()
 }
 
-fn flatten_bson(key: String, bson: Bson) -> Vec<SearchItem> {
-    let key = MongoKey::String(key);
+fn flatten_bson(key: MongoKey, bson: Bson) -> Vec<SearchItem> {
     match bson {
         Bson::Document(doc) => doc
             .into_iter()
-            .flat_map(|(key, bson)| flatten_bson(key, bson))
-            .map(|SearchItem(keys, bson)| {
-                let mut new_keys = vec![key.clone()];
-                new_keys.extend(keys);
-                SearchItem(new_keys, bson)
-            })
+            .flat_map(|(key, bson)| flatten_bson(key.into(), bson))
+            .map(|SearchItem(keys, bson)| prepend_key(key.clone(), keys, bson))
             .collect(),
 
         // TODO:
-        Bson::Array(_arr) => vec![],
+        Bson::Array(arr) => arr
+            .into_iter()
+            .enumerate()
+            .flat_map(|(idx, bson)| flatten_bson(idx.into(), bson))
+            .map(|SearchItem(keys, bson)| prepend_key(key.clone(), keys, bson))
+            .collect(),
 
         bson => vec![SearchItem(vec![key], bson)],
     }
+}
+
+fn prepend_key(key: MongoKey, keys: Vec<MongoKey>, bson: Bson) -> SearchItem {
+    let mut new_keys = vec![key];
+    new_keys.extend(keys);
+    SearchItem(new_keys, bson)
 }
 
 pub struct DocSearcher {

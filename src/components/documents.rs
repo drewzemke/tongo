@@ -381,7 +381,22 @@ impl Component for Documents<'_> {
 
             // QUESTION: is this the right place for this?
             if let Some(keys) = self.searcher.nth_match(0) {
+                tracing::trace!("selecting {keys:?}");
                 self.state.select(keys.clone());
+
+                // open the selected key and every parent so that the selected
+                // item is visible
+                for idx in (0..keys.len()).rev() {
+                    let suffix = keys[0..idx].to_vec();
+                    tracing::trace!("opening {suffix:?}");
+
+                    let was_open = self.state.open(suffix);
+                    if was_open {
+                        break;
+                    }
+                }
+
+                self.state.open(keys.clone());
             }
 
             vec![Event::DocSearchUpdated.into()]
