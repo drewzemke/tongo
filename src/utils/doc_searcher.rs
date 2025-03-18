@@ -25,28 +25,36 @@ fn flatten_doc(doc: &Bson) -> Vec<SearchItem> {
 }
 
 fn flatten_bson(key: MongoKey, bson: Bson) -> Vec<SearchItem> {
-    let mut flattened_docs: Vec<_> = match bson {
-        Bson::Document(doc) => doc
-            .into_iter()
-            .flat_map(|(key, bson)| flatten_bson(key.into(), bson))
-            .map(|SearchItem(keys, bson)| prepend_key(key.clone(), keys, bson))
-            .collect(),
+    match bson {
+        Bson::Document(doc) => {
+            let mut flattened_docs: Vec<_> = doc
+                .into_iter()
+                .flat_map(|(key, bson)| flatten_bson(key.into(), bson))
+                .map(|SearchItem(keys, bson)| prepend_key(key.clone(), keys, bson))
+                .collect();
 
-        // TODO:
-        Bson::Array(arr) => arr
-            .into_iter()
-            .enumerate()
-            .flat_map(|(idx, bson)| flatten_bson(idx.into(), bson))
-            .map(|SearchItem(keys, bson)| prepend_key(key.clone(), keys, bson))
-            .collect(),
+            // include just the key with an empty bson so that search can target the key too
+            flattened_docs.push(SearchItem(vec![key], Bson::String(String::default())));
 
-        bson => vec![SearchItem(vec![key.clone()], bson)],
-    };
+            flattened_docs
+        }
 
-    // include just the key with an empty bson so that search can target the key too
-    flattened_docs.push(SearchItem(vec![key], Bson::String(String::default())));
+        Bson::Array(arr) => {
+            let mut flattened_docs: Vec<_> = arr
+                .into_iter()
+                .enumerate()
+                .flat_map(|(idx, bson)| flatten_bson(idx.into(), bson))
+                .map(|SearchItem(keys, bson)| prepend_key(key.clone(), keys, bson))
+                .collect();
 
-    flattened_docs
+            // include just the key with an empty bson so that search can target the key too
+            flattened_docs.push(SearchItem(vec![key], Bson::String(String::default())));
+
+            flattened_docs
+        }
+
+        bson => vec![SearchItem(vec![key], bson)],
+    }
 }
 
 fn prepend_key(key: MongoKey, keys: Vec<MongoKey>, bson: Bson) -> SearchItem {
@@ -61,12 +69,14 @@ fn mongo_key_path_to_str(path: &[MongoKey]) -> String {
 
 pub struct DocSearcher {
     nucleo: Nucleo<SearchItem>,
+    match_idx: u32,
 }
 
 impl Default for DocSearcher {
     fn default() -> Self {
         Self {
             nucleo: Nucleo::new(nucleo::Config::DEFAULT, Arc::new(|| {}), None, 1),
+            match_idx: 0,
         }
     }
 }
@@ -80,6 +90,7 @@ impl std::fmt::Debug for DocSearcher {
 impl DocSearcher {
     pub fn load_docs(&mut self, docs: &[Bson]) {
         let docs = docs.to_vec();
+        self.nucleo.restart(true);
         let injector = self.nucleo.injector();
 
         tokio::spawn(async move {
@@ -94,6 +105,7 @@ impl DocSearcher {
     }
 
     pub fn update_pattern(&mut self, pat: &str) {
+        self.match_idx = 0;
         self.nucleo.pattern.reparse(
             0,
             pat,
@@ -106,15 +118,40 @@ impl DocSearcher {
     }
 
     #[must_use]
+    pub const fn match_idx(&self) -> u32 {
+        self.match_idx
+    }
+
+    #[must_use]
     pub fn num_matches(&self) -> u32 {
         self.nucleo.snapshot().matched_item_count()
     }
 
     #[must_use]
-    pub fn nth_match(&self, n: u32) -> Option<&Vec<MongoKey>> {
+    pub fn current_match(&self) -> Option<&Vec<MongoKey>> {
+        let idx = self.match_idx;
+        tracing::debug!("current match idx: {idx}");
         self.nucleo
             .snapshot()
-            .get_matched_item(n)
+            .get_matched_item(idx)
             .map(|item| &item.data.0)
+    }
+
+    pub fn next_match(&mut self) {
+        let num_matches = self.num_matches();
+        if num_matches <= 1 {
+            return;
+        }
+
+        self.match_idx = (self.match_idx + 1) % num_matches;
+    }
+
+    pub fn prev_match(&mut self) {
+        let num_matches = self.num_matches();
+        if num_matches <= 1 {
+            return;
+        }
+
+        self.match_idx = (self.match_idx + num_matches - 1) % num_matches;
     }
 }

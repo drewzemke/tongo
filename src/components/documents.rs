@@ -148,6 +148,27 @@ impl Documents<'_> {
 
         Some(bson)
     }
+
+    fn set_selection_to_search_match(&mut self) {
+        if let Some(keys) = self.searcher.current_match() {
+            tracing::trace!("selecting {keys:?}");
+            self.state.select(keys.clone());
+
+            // open the selected key and every parent so that the selected
+            // item is visible
+            for idx in (0..keys.len()).rev() {
+                let suffix = keys[0..idx].to_vec();
+                tracing::trace!("opening {suffix:?}");
+
+                let not_already_open = self.state.open(suffix);
+                if !not_already_open {
+                    break;
+                }
+            }
+
+            self.state.open(keys.clone());
+        }
+    }
 }
 
 impl Component for Documents<'_> {
@@ -198,6 +219,7 @@ impl Component for Documents<'_> {
                     .in_cat(CommandCategory::DocActions),
             ]
         } else {
+            // self.mode == Mode::SearchReview
             vec![
                 CommandGroup::new(
                     vec![Command::PreviousPage, Command::NextPage],
@@ -208,6 +230,8 @@ impl Component for Documents<'_> {
                     .in_cat(CommandCategory::StatusBarOnly),
                 CommandGroup::new(vec![Command::Back], "clear search")
                     .in_cat(CommandCategory::DocNav),
+                CommandGroup::new(vec![Command::Search], "fuzzy search")
+                    .in_cat(CommandCategory::DocActions),
             ]
         };
 
@@ -261,21 +285,37 @@ impl Component for Documents<'_> {
                     out.push(Event::ListSelectionChanged.into());
                 }
             }
-            Command::NextPage => {
-                let end = (self.page + 1) * PAGE_SIZE;
+            Command::NextPage => match self.mode {
+                Mode::Normal => {
+                    let end = (self.page + 1) * PAGE_SIZE;
 
-                #[expect(clippy::cast_possible_truncation)]
-                if end < self.count as usize {
-                    self.page += 1;
-                    out.push(Event::DocumentPageChanged(self.page).into());
+                    #[expect(clippy::cast_possible_truncation)]
+                    if end < self.count as usize {
+                        self.page += 1;
+                        out.push(Event::DocumentPageChanged(self.page).into());
+                    }
                 }
-            }
-            Command::PreviousPage => {
-                if self.page > 0 {
-                    self.page -= 1;
-                    out.push(Event::DocumentPageChanged(self.page).into());
+                Mode::SearchReview => {
+                    self.searcher.next_match();
+                    self.set_selection_to_search_match();
+                    out.push(Event::ListSelectionChanged.into());
                 }
-            }
+                Mode::SearchInput => {}
+            },
+            Command::PreviousPage => match self.mode {
+                Mode::Normal => {
+                    if self.page > 0 {
+                        self.page -= 1;
+                        out.push(Event::DocumentPageChanged(self.page).into());
+                    }
+                }
+                Mode::SearchReview => {
+                    self.searcher.prev_match();
+                    self.set_selection_to_search_match();
+                    out.push(Event::ListSelectionChanged.into());
+                }
+                Mode::SearchInput => {}
+            },
             Command::FirstPage => {
                 self.page = 0;
                 out.push(Event::DocumentPageChanged(self.page).into());
@@ -364,10 +404,10 @@ impl Component for Documents<'_> {
                     out.push(Event::DocSearchUpdated.into());
                 }
                 Mode::SearchReview => {
-                    self.search_input = Input::default();
                     self.mode = Mode::Normal;
                     out.push(Event::DocSearchUpdated.into());
                 }
+                // TODO: move focus back to collections?
                 Mode::Normal => {}
             },
             _ => {}
@@ -379,27 +419,7 @@ impl Component for Documents<'_> {
         if matches!(self.mode, Mode::SearchInput) {
             self.search_input.handle_event(event);
             self.searcher.update_pattern(self.search_input.value());
-
-            // QUESTION: is this the right place for this?
-            if let Some(keys) = self.searcher.nth_match(0) {
-                tracing::trace!("selecting {keys:?}");
-                self.state.select(keys.clone());
-
-                // open the selected key and every parent so that the selected
-                // item is visible
-                for idx in (0..keys.len()).rev() {
-                    let suffix = keys[0..idx].to_vec();
-                    tracing::trace!("opening {suffix:?}");
-
-                    let not_already_open = self.state.open(suffix);
-                    if !not_already_open {
-                        break;
-                    }
-                }
-
-                self.state.open(keys.clone());
-            }
-
+            self.set_selection_to_search_match();
             vec![Event::DocSearchUpdated.into()]
         } else {
             vec![]
@@ -482,20 +502,34 @@ impl Component for Documents<'_> {
             .title(Line::from(format!(" {title_right} ")).right_aligned())
             .border_style(Style::default().fg(border_color));
 
-        if matches!(self.mode, Mode::SearchInput | Mode::SearchReview) {
-            let matches = self.searcher.num_matches();
-            block = block
+        let match_n = self.searcher.match_idx() + 1;
+        let num_matches = self.searcher.num_matches();
+        let match_word = if num_matches == 1 { "match" } else { "matches" };
+        block = match self.mode {
+            Mode::Normal => block,
+            Mode::SearchInput => block
                 .title_bottom(
-                    Line::from(format!(" search: {} ", self.search_input.value()))
+                    Line::from(format!(" search: \"{}\" ", self.search_input.value()))
                         .left_aligned()
                         .cyan(),
                 )
                 .title_bottom(
-                    Line::from(format!(" {matches} matches "))
+                    Line::from(format!(" {num_matches} {match_word} "))
                         .right_aligned()
                         .cyan(),
-                );
-        }
+                ),
+            Mode::SearchReview => block
+                .title_bottom(
+                    Line::from(format!(" search: \"{}\" ", self.search_input.value()))
+                        .left_aligned()
+                        .cyan(),
+                )
+                .title_bottom(
+                    Line::from(format!(" match {match_n} of {num_matches} "))
+                        .right_aligned()
+                        .cyan(),
+                ),
+        };
 
         let widget = Tree::new(&self.items)
             .expect("all item identifiers are unique")
