@@ -391,8 +391,8 @@ impl Component for Documents<'_> {
                     let suffix = keys[0..idx].to_vec();
                     tracing::trace!("opening {suffix:?}");
 
-                    let was_open = self.state.open(suffix);
-                    if was_open {
+                    let not_already_open = self.state.open(suffix);
+                    if !not_already_open {
                         break;
                     }
                 }

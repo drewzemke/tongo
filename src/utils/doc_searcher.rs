@@ -1,4 +1,5 @@
 use super::mongo_tree::MongoKey;
+use itertools::Itertools;
 use mongodb::bson::Bson;
 use nucleo::Nucleo;
 use std::sync::Arc;
@@ -12,15 +13,19 @@ fn flatten_doc(doc: &Bson) -> Vec<SearchItem> {
         .expect("all mongo documents should have an '_id' field");
     let id = MongoKey::from(id);
 
-    doc.clone()
+    let mut flattened_docs: Vec<_> = doc
+        .clone()
         .into_iter()
         .flat_map(|(key, bson)| flatten_bson(key.into(), bson))
         .map(|SearchItem(keys, bson)| prepend_key(id.clone(), keys, bson))
-        .collect()
+        .collect();
+    flattened_docs.push(SearchItem(vec![id], Bson::String(String::default())));
+
+    flattened_docs
 }
 
 fn flatten_bson(key: MongoKey, bson: Bson) -> Vec<SearchItem> {
-    match bson {
+    let mut flattened_docs: Vec<_> = match bson {
         Bson::Document(doc) => doc
             .into_iter()
             .flat_map(|(key, bson)| flatten_bson(key.into(), bson))
@@ -35,14 +40,23 @@ fn flatten_bson(key: MongoKey, bson: Bson) -> Vec<SearchItem> {
             .map(|SearchItem(keys, bson)| prepend_key(key.clone(), keys, bson))
             .collect(),
 
-        bson => vec![SearchItem(vec![key], bson)],
-    }
+        bson => vec![SearchItem(vec![key.clone()], bson)],
+    };
+
+    // include just the key with an empty bson so that search can target the key too
+    flattened_docs.push(SearchItem(vec![key], Bson::String(String::default())));
+
+    flattened_docs
 }
 
 fn prepend_key(key: MongoKey, keys: Vec<MongoKey>, bson: Bson) -> SearchItem {
     let mut new_keys = vec![key];
     new_keys.extend(keys);
     SearchItem(new_keys, bson)
+}
+
+fn mongo_key_path_to_str(path: &[MongoKey]) -> String {
+    path.iter().map(MongoKey::to_string).join(".")
 }
 
 pub struct DocSearcher {
@@ -72,9 +86,7 @@ impl DocSearcher {
             for doc in docs {
                 for item in flatten_doc(&doc) {
                     injector.push(item, |item, cols| {
-                        // TODO: also put the path into the searchable text
-                        // needs a helper function to convert vecs of mongo keys into strings
-                        cols[0] = item.1.to_string().into();
+                        cols[0] = format!("{}:{}", mongo_key_path_to_str(&item.0), item.1).into();
                     });
                 }
             }
