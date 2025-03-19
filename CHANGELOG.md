@@ -6,6 +6,71 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.0](https://github.com/drewzemke/tongo/compare/v0.13.0...v0.14.0) - 2025-03-19
+
+### Added
+
+- *(fuzzy-search)* cycle through results in search review mode
+- *(fuzzy-search)* search using document keys and key paths
+- *(fuzzy-search)* works with nested arrays
+- *(fuzzy-search)* fuzzy search selects the top match
+- *(key-map)* support and control and alt in keybindings
+- *(documents)* clear data when selected connection is invalidated
+- *(help)* enable executing the selected command :)
+- *(help)* show cursor in help modal
+- *(help)* cursor movement logic in help modal
+- *(status-bar)* show app name and version in the bottom right corner
+- *(status-bar)* only show certain commands in the status bar
+- *(help)* give categories to every command
+- *(help)* much-improved layout of the help popup
+- *(help)* a little more styling on the help menu
+- *(help)* add categories to commands, WIP (and I mean it) of rendering commands grouped by category in the modal
+- *(help)* super basic impl of a help modal that shows all currently-available commands
+- *(help)* initial impl of a help modal
+- *(databases)* create and drop databases
+- *(collections)* add collections to a db
+
+### Fixed
+
+- *(fuzzy-search)* don't use tokio to inject docs if no runtime is present (eg. in tests)
+- *(key-map)* render key mappings with modifiers in app
+- *(tabs)* correct tab name when starting app with `--connection`
+- *(tabs)* only allow some tab commands if there's more than one tab
+- *(documents)* only make doc-specific command available when a document is selected
+- *(connections)* constrain size of connection editor
+- *(lints)* turn clippy pedantic lints back on, and fix (almost) all of them
+
+### Other
+
+- *(fuzzy-search)* load docs into `nucleo` concurrently
+- *(fuzzy-search)* starter impl of fuzzy search in docs
+- *(key-map)* convert some functions into trait implementations
+- *(key_map)* replace `KeyCode` with a `Key` type that encapsulates it
+- *(json-labeler)* remove obsolete test
+- *(commands)* touch up help modal text
+- *(components)* add extra spaces around block titles
+- *(help)* use a vec instead of a hashmap to store cached categorized groups
+- *(help)* remove state from help modal (for now)
+- *(commands)* move string->command function into `key_map` module
+- *(commands)* introduce `CommandManager` to manage command statee
+- *(model)* use simpler `Collection` and `Database` structs instead of `CollectionSpecification` and `DatabaseSpecification` from mongodb
+- *(modules)* move `connection` into new `model` module
+- *(components)* convert `Tab.focus` into a `Cell`
+- *(components)* remove the `ComponentCommand` enum
+- *(components)* add `handle_raw_event` fn to `Component` trait
+- *(messages)* change one last event into a message, also add doc comments for all the messages
+- *(events)* more doc comments and some renaming of events
+- *(components)* add default impls for all `Component` trait functions
+- *(events)* doc comments for some of the events
+- *(messages)* change events that are target at `Tab` and `ConnectionScreen` into messages
+- *(messages)* make message creation/reading more idiomatic
+- *(messages)* change events that are targeted at `Client` into messages
+- *(messages)* change events that are target at `App` into messages
+- *(message)* introduce `Message` and `Signal` to help organize component comms system
+- *(system)* add some comments in planning for event/message refactor
+- *(collections)* most of the impl for creating new collections; just missing the mongo part
+- *(collections)* small test for dropping collection
+
 ## [0.13.0](https://github.com/drewzemke/tongo/compare/v0.12.3...v0.13.0) - 2025-03-03
 
 ### Added
