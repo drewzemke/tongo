@@ -93,7 +93,7 @@ impl DocSearcher {
         self.nucleo.restart(true);
         let injector = self.nucleo.injector();
 
-        tokio::spawn(async move {
+        let future = async move {
             for doc in docs {
                 for item in flatten_doc(&doc) {
                     injector.push(item, |item, cols| {
@@ -101,9 +101,14 @@ impl DocSearcher {
                     });
                 }
             }
-        });
-    }
+        };
 
+        if let Ok(runtime) = tokio::runtime::Handle::try_current() {
+            runtime.spawn(future);
+        } else {
+            futures::executor::block_on(future);
+        }
+    }
     pub fn update_pattern(&mut self, pat: &str) {
         self.match_idx = 0;
         self.nucleo.pattern.reparse(
