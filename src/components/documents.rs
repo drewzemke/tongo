@@ -232,9 +232,21 @@ impl Component for Documents<'_> {
                     "previous/next result",
                 )
                 .in_cat(CommandCategory::DocNav),
-                CommandGroup::new(vec![Command::Back], "clear search")
+                CommandGroup::new(
+                    vec![
+                        Command::NavLeft,
+                        Command::NavDown,
+                        Command::NavUp,
+                        Command::NavRight,
+                    ],
+                    "navigate",
+                )
+                .in_cat(CommandCategory::DocNav),
+                CommandGroup::new(vec![Command::ExpandCollapse], "expand/collapse")
+                    .in_cat(CommandCategory::DocNav),
+                CommandGroup::new(vec![Command::Back], "exit search")
                     .in_cat(CommandCategory::StatusBarOnly),
-                CommandGroup::new(vec![Command::Back], "clear search")
+                CommandGroup::new(vec![Command::Back], "exit search")
                     .in_cat(CommandCategory::DocNav),
                 CommandGroup::new(vec![Command::Refresh], "refresh")
                     .in_cat(CommandCategory::DocActions),
@@ -416,8 +428,7 @@ impl Component for Documents<'_> {
                     self.reset_search();
                     out.push(Event::DocSearchUpdated.into());
                 }
-                // TODO: move focus back to collections?
-                Mode::Normal => {}
+                Mode::Normal => self.focus.set(TabFocus::PrimScr(PrimScrFocus::CollList)),
             },
             _ => {}
         }
