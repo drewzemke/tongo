@@ -215,8 +215,10 @@ impl Component for Documents<'_> {
                     "first/last page",
                 )
                 .in_cat(CommandCategory::DocNav),
-                CommandGroup::new(vec![Command::Search], "fuzzy search")
+                CommandGroup::new(vec![Command::Refresh], "refresh")
                     .in_cat(CommandCategory::DocActions),
+                CommandGroup::new(vec![Command::Search], "fuzzy search")
+                    .in_cat(CommandCategory::DocNav),
             ]
         } else {
             // self.mode == Mode::SearchReview
@@ -230,8 +232,10 @@ impl Component for Documents<'_> {
                     .in_cat(CommandCategory::StatusBarOnly),
                 CommandGroup::new(vec![Command::Back], "clear search")
                     .in_cat(CommandCategory::DocNav),
-                CommandGroup::new(vec![Command::Search], "fuzzy search")
+                CommandGroup::new(vec![Command::Refresh], "refresh")
                     .in_cat(CommandCategory::DocActions),
+                CommandGroup::new(vec![Command::Search], "fuzzy search")
+                    .in_cat(CommandCategory::DocNav),
             ]
         };
 
