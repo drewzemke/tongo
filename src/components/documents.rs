@@ -57,15 +57,19 @@ pub struct Documents<'a> {
 
 impl Clone for Documents<'_> {
     fn clone(&self) -> Self {
+        let documents = self.documents.clone();
+        let mut searcher = DocSearcher::default();
+        searcher.load_docs(&documents);
+
         let mut documents = Self {
             focus: self.focus.clone(),
             state: TreeState::default(),
             items: self.items.clone(),
-            documents: self.documents.clone(),
-            collection: None,
+            documents,
+            collection: self.collection.clone(),
             mode: Mode::Normal,
             search_input: Input::default(),
-            searcher: DocSearcher::default(),
+            searcher,
             page: self.page,
             count: self.count,
         };
