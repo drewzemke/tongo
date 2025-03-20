@@ -169,6 +169,10 @@ impl Documents<'_> {
             self.state.open(keys.clone());
         }
     }
+
+    fn reset_search(&mut self) {
+        self.search_input = Input::default();
+    }
 }
 
 impl Component for Documents<'_> {
@@ -403,12 +407,13 @@ impl Component for Documents<'_> {
             Command::Back => match self.mode {
                 Mode::SearchInput => {
                     self.mode = Mode::Normal;
-                    self.search_input = Input::default();
+                    self.reset_search();
                     out.push(Message::to_app(AppAction::ExitRawMode).into());
                     out.push(Event::DocSearchUpdated.into());
                 }
                 Mode::SearchReview => {
                     self.mode = Mode::Normal;
+                    self.reset_search();
                     out.push(Event::DocSearchUpdated.into());
                 }
                 // TODO: move focus back to collections?
