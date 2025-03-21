@@ -1,5 +1,5 @@
 use crate::{
-    config::Config,
+    config::RawConfig,
     system::command::{Command, CommandGroup},
 };
 use anyhow::{anyhow, bail, Result};
@@ -228,7 +228,7 @@ impl KeyMap {
     /// # Errors
     /// If the key part of the config cannot be parsed into valid keys and
     /// commands
-    pub fn try_from_config(config: &Config) -> Result<Self> {
+    pub fn try_from_config(config: &RawConfig) -> Result<Self> {
         let mut key_map = Self::default();
 
         for (command_str, key_str) in &config.keys {
@@ -287,9 +287,7 @@ mod tests {
 
     #[test]
     fn create_default_key_map() {
-        let config = Config {
-            keys: HashMap::new(),
-        };
+        let config = RawConfig::default();
         let key_map = KeyMap::try_from_config(&config).unwrap();
 
         assert_eq!(
@@ -304,7 +302,7 @@ mod tests {
 
     #[test]
     fn create_overridden_key_map() {
-        let config = Config {
+        let config = RawConfig {
             keys: HashMap::from([("nav_up".to_string(), "k".to_string())]),
         };
         let key_map = KeyMap::try_from_config(&config).unwrap();
@@ -334,7 +332,7 @@ mod tests {
             })
             .join("\n");
 
-        let config = Config::read_from_string(&file).unwrap();
+        let config = RawConfig::try_from(&*file).unwrap();
         let key_map_res = KeyMap::try_from_config(&config);
 
         assert!(key_map_res.is_ok());
@@ -353,14 +351,14 @@ mod tests {
 
     #[test]
     fn bad_config_files() {
-        let config = Config {
+        let config = RawConfig {
             keys: HashMap::from([("not-a-command".to_string(), "k".to_string())]),
         };
 
         let key_map_res = KeyMap::try_from_config(&config);
         assert!(key_map_res.is_err());
 
-        let config = Config {
+        let config = RawConfig {
             keys: HashMap::from([("nav_up".to_string(), "not-a-key".to_string())]),
         };
 

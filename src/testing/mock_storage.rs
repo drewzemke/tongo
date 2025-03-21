@@ -1,4 +1,6 @@
-use crate::{app::PersistedApp, config::Config, model::connection::Connection, utils::storage::Storage};
+use crate::{
+    app::PersistedApp, config::RawConfig, model::connection::Connection, utils::storage::Storage,
+};
 use anyhow::{anyhow, Result};
 
 #[cfg(test)]
@@ -6,7 +8,7 @@ use anyhow::{anyhow, Result};
 pub struct MockStorage {
     pub connections: Vec<Connection>,
     pub persisted_app: Option<PersistedApp>,
-    pub config: Config,
+    pub config: RawConfig,
 }
 
 #[cfg(test)]
@@ -29,7 +31,7 @@ impl Storage for MockStorage {
             .ok_or_else(|| anyhow!("No persisted app in mock"))
     }
 
-    fn read_config(&self) -> Result<Config> {
+    fn read_config(&self) -> Result<RawConfig> {
         Ok(self.config.clone())
     }
 }

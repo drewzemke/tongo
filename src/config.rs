@@ -1,14 +1,18 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
-pub struct Config {
+pub struct RawConfig {
+    // FIXME: make this optional
     pub keys: HashMap<String, String>,
 }
 
-impl Config {
-    pub fn read_from_string(str: &str) -> Result<Self> {
-        toml::from_str(str).context("Error while parsing `config.toml`")
+impl TryFrom<&str> for RawConfig {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &str) -> Result<Self> {
+        let config = toml::from_str(value)?;
+        Ok(config)
     }
 }

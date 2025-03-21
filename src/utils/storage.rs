@@ -5,7 +5,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use crate::{app::PersistedApp, config::Config, model::connection::Connection};
+use crate::{app::PersistedApp, config::RawConfig, model::connection::Connection};
 
 const APP_DIR_NAME: &str = "tongo";
 const CONNECTIONS_FILE_NAME: &str = "connections.json";
@@ -65,7 +65,7 @@ pub trait Storage: Debug {
     /// # Errors
     /// If something goes wrong while reading from the filesystem or parsing
     /// the config.
-    fn read_config(&self) -> Result<Config>;
+    fn read_config(&self) -> Result<RawConfig>;
 }
 
 #[derive(Debug, Clone, Default)]
@@ -104,7 +104,7 @@ impl Storage for FileStorage {
         Ok(session)
     }
 
-    fn read_config(&self) -> Result<Config> {
+    fn read_config(&self) -> Result<RawConfig> {
         let config_path = Path::new(&get_app_config_path()?).join(CONFIG_FILE_NAME);
 
         if !config_path.exists() {
@@ -114,8 +114,10 @@ impl Storage for FileStorage {
             )?;
         }
 
-        let file = self.read_from_config_dir(CONFIG_FILE_NAME.into())?;
-        Config::read_from_string(&file)
+        let file = self
+            .read_from_config_dir(CONFIG_FILE_NAME.into())
+            .unwrap_or_default();
+        RawConfig::try_from(&*file).context(format!("Could not parse `{CONFIG_FILE_NAME}`"))
     }
 }
 

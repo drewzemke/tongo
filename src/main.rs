@@ -50,8 +50,8 @@ async fn main() -> Result<()> {
     let storage = FileStorage::init()?;
 
     // load config
-    let config = storage.read_config().unwrap_or_default();
-    let key_map = KeyMap::try_from_config(&config).context("Parsing key map")?;
+    let config = storage.read_config()?;
+    let key_map = KeyMap::try_from_config(&config).context("Could not parse key map")?;
 
     // load connections
     let stored_connections = storage.read_connections().unwrap_or_default();
