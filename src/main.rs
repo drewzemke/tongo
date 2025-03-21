@@ -91,7 +91,7 @@ async fn main() -> Result<()> {
     restore_terminal(terminal)?;
 
     if let Err(err) = res {
-        println!("{err:?}");
+        println!("{err}");
     }
 
     Ok(())

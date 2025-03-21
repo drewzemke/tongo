@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct RawConfig {
-    // FIXME: make this optional
+    #[serde(default)]
     pub keys: HashMap<String, String>,
 }
 
