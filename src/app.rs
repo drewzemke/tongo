@@ -18,7 +18,7 @@ use crate::{
     utils::storage::{FileStorage, Storage},
 };
 use anyhow::Result;
-use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
+use crossterm::event::{Event as CrosstermEvent, KeyCode};
 use ratatui::{backend::Backend, prelude::*};
 use serde::{Deserialize, Serialize};
 use std::{
@@ -308,16 +308,8 @@ impl Component for App<'_> {
     fn handle_raw_event(&mut self, event: &CrosstermEvent) -> Vec<Signal> {
         // NOTE: for now we only deal with key events
         if let CrosstermEvent::Key(key) = event {
-            // always quit on Control-C
-            if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
-                self.exiting = true;
-                return vec![];
-            }
-
             // if in raw mode, check for enter or escape
             // otherwise just pass the whole event
-            //
-            // FIXME: these should be configurable!
             if matches!(self.mode, Mode::Raw) {
                 if key.code == KeyCode::Enter {
                     return self.handle_command(&Command::Confirm);
@@ -337,7 +329,7 @@ impl Component for App<'_> {
                 .key_map
                 .command_for_key((*key).into(), &self.command_manager.groups());
 
-            // handle the command
+            // pass the command through the component system
             if let Some(command) = command {
                 return self.handle_command(&command);
             }
