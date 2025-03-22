@@ -6,6 +6,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.1](https://github.com/drewzemke/tongo/compare/v0.14.0...v0.14.1) - 2025-03-22
+
+### Added
+
+- *(fuzzy-search)* allow doc navigation in search review mode
+
+### Fixed
+
+- *(keys)* don't always quit on ctrl-c
+- *(cli)* restrict using `--last` in conjunction with `--connection` or `--url`
+- *(connection)* correctly set selected connection when loading with `-c`
+- *(navigation)* "back" command focuses coll list from documents component (when in normal mode)
+- *(app)* process commands on hydrate so they're available for the first draw
+- *(config)* allow empty config file
+- *(documents)* properly setup component when cloning
+- *(documents)* restore refresh command
+
+### Other
+
+- *(config)* rename `Config` -> `RawConfig`, improve some error messaging
+- *(fuzzy-search)* reset search when done searching
+
 ## [0.14.0](https://github.com/drewzemke/tongo/compare/v0.13.0...v0.14.0) - 2025-03-19
 
 ### Added
