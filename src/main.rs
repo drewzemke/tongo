@@ -11,28 +11,30 @@ use tongo::{
 
 use tongo::persistence::PersistedComponent;
 
-/// A TUI for viewing mongo databases.
+/// A TUI for viewing and interacting with `MongoDB` databases.
 #[derive(Parser)]
 #[command(author)]
 pub struct Args {
     #[clap(flatten)]
-    auto_connect: Option<AutoConnectArgs>,
+    load_options: Option<LoadOptions>,
+}
 
+/// Detemines how (if at all) the app will automatically load a connection
+/// on startup
+#[derive(Debug, clap::Args, Clone)]
+#[group(required = false, multiple = false)]
+pub struct LoadOptions {
     /// Restore the most-recently-closed session
     #[arg(long, short)]
     last: bool,
-}
-
-#[derive(Debug, clap::Args)]
-#[group(required = false, multiple = false)]
-pub struct AutoConnectArgs {
-    /// Automatically connect to a given connection string
-    #[arg(long, short)]
-    url: Option<String>,
 
     /// Automatically connect to a (previously stored) connection
     #[arg(long, short)]
     connection: Option<String>,
+
+    /// Automatically connect to a given connection string
+    #[arg(long, short)]
+    url: Option<String>,
 }
 
 #[tokio::main]
@@ -57,16 +59,17 @@ async fn main() -> Result<()> {
     let stored_connections = storage.read_connections().unwrap_or_default();
 
     // connect to a connection based on command line argument (if applicable)
-    let connection = args
-        .auto_connect
-        .and_then(|group| match (group.url, group.connection) {
-            (Some(url), _) => Some(Connection::new("Unnamed Connection".to_string(), url)),
-            (_, Some(conn_name)) => stored_connections
-                .iter()
-                .find(|c| c.name.to_lowercase() == conn_name.to_lowercase())
-                .cloned(),
-            _ => unreachable!(),
-        });
+    let connection =
+        args.load_options
+            .clone()
+            .and_then(|group| match (group.url, group.connection) {
+                (Some(url), _) => Some(Connection::new("Unnamed Connection".to_string(), url)),
+                (_, Some(conn_name)) => stored_connections
+                    .iter()
+                    .find(|c| c.name.to_lowercase() == conn_name.to_lowercase())
+                    .cloned(),
+                _ => None,
+            });
 
     let mut terminal = setup_terminal()?;
     let mut app = App::new(
@@ -78,7 +81,10 @@ async fn main() -> Result<()> {
 
     // load stored app state
 
-    if args.last {
+    if args
+        .load_options
+        .is_some_and(|loading_args| loading_args.last)
+    {
         if let Ok(session) = storage.read_last_session() {
             tracing::info!("Loading previous app state");
             app.hydrate(session);
