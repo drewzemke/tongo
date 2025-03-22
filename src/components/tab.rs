@@ -74,10 +74,7 @@ impl Tab<'_> {
         connection_manager: ConnectionManager,
         cursor_pos: Rc<Cell<(u16, u16)>>,
     ) -> Tab<'static> {
-        let client = Client::default();
-
-        let initial_focus = if let Some(conn) = selected_connection {
-            client.connect(conn.connection_str);
+        let initial_focus = if selected_connection.is_some() {
             TabFocus::PrimScr(PrimScrFocus::DbList)
         } else {
             TabFocus::ConnScr(ConnScrFocus::ConnList)
@@ -91,7 +88,14 @@ impl Tab<'_> {
 
         let primary_screen = PrimaryScreen::new(focus.clone(), cursor_pos.clone());
 
-        let connection_list = Connections::new(focus.clone(), connection_manager.clone());
+        let client = Client::default();
+        let mut connection_list = Connections::new(focus.clone(), connection_manager.clone());
+
+        if let Some(conn) = selected_connection {
+            client.connect(conn.connection_str.clone());
+            connection_list.select_conn(&conn);
+        }
+
         let conn_screen = ConnectionScreen::new(
             connection_list,
             focus.clone(),

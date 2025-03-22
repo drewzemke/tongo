@@ -51,6 +51,15 @@ impl Connections {
         Ref::filter_map(self.connection_manager.connections(), |v| v.get(index)).ok()
     }
 
+    pub fn select_conn(&mut self, conn: &Connection) {
+        let index = self
+            .connection_manager
+            .connections()
+            .iter()
+            .position(|c| c == conn);
+        self.list.state.select(index);
+    }
+
     fn mask_password(conn_str: &str) -> String {
         let Some((before_slashes, after_slashes)) = conn_str.split_once("//") else {
             return String::from(conn_str);
@@ -190,12 +199,7 @@ impl PersistedComponent for Connections {
         self.connection_manager.set_connections(storage.connections);
 
         if let Some(conn) = storage.selected_conn {
-            let index = self
-                .connection_manager
-                .connections()
-                .iter()
-                .position(|c| *c == conn);
-            self.list.state.select(index);
+            self.select_conn(&conn);
         }
     }
 }
