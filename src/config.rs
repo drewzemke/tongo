@@ -1,8 +1,9 @@
 use anyhow::Result;
+use key_map::KeyMap;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, rc::Rc};
 
-use crate::key_map::KeyMap;
+pub mod key_map;
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct RawConfig {

@@ -326,7 +326,7 @@ mod tests {
 
     #[test]
     fn create_key_map_from_default_config_file() {
-        let file = include_str!("../assets/default-config.toml");
+        let file = include_str!("../../assets/default-config.toml");
 
         // uncomment every line in the file under the [keys] header
         let file = file

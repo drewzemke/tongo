@@ -1,6 +1,6 @@
 use crate::{
     components::Component,
-    key_map::Key,
+    config::key_map::Key,
     system::{command::Command, event::Event, message::Message, Signal},
 };
 use crossterm::event::KeyCode;
