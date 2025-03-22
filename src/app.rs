@@ -136,6 +136,10 @@ impl App<'_> {
         self.tab_bar.current_tab_idx()
     }
 
+    fn update_commands(&self) {
+        self.command_manager.set_commands(self.commands());
+    }
+
     /// Starts and runs the main app loop until the user exits the program.
     ///
     /// # Errors
@@ -214,7 +218,7 @@ impl App<'_> {
         }
 
         // recompute the app's available commands
-        self.command_manager.set_commands(self.commands());
+        self.update_commands();
 
         should_render
     }
@@ -464,5 +468,7 @@ impl PersistedComponent for App<'_> {
         }
 
         self.tab_bar.hydrate(storage.tab_bar);
+
+        self.update_commands();
     }
 }
