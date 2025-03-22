@@ -1,16 +1,14 @@
+use ratatui::prelude::*;
+use std::time::{Duration, Instant};
+
 use crate::{
     components::Component,
-    key_map::KeyMap,
+    config::Config,
     system::{
         command::{CommandCategory, CommandManager},
         event::Event,
         Signal,
     },
-};
-use ratatui::prelude::*;
-use std::{
-    rc::Rc,
-    time::{Duration, Instant},
 };
 
 const DEBUG_RENDER_COUNT: bool = false;
@@ -67,16 +65,16 @@ pub struct StatusBar {
     command_manager: CommandManager,
     message: Option<Message>,
 
-    key_map: Rc<KeyMap>,
+    config: Config,
 
-    // DEBUG:
+    // NOTE: used for debugging
     renders: usize,
 }
 impl StatusBar {
-    pub fn new(command_manager: CommandManager, key_map: Rc<KeyMap>) -> Self {
+    pub fn new(command_manager: CommandManager, config: Config) -> Self {
         Self {
             command_manager,
-            key_map,
+            config,
             ..Default::default()
         }
     }
@@ -111,7 +109,7 @@ impl Component for StatusBar {
                         let key_hint: String = group
                             .commands
                             .iter()
-                            .map(|c| self.key_map.key_for_command(*c))
+                            .map(|c| self.config.key_map.key_for_command(*c))
                             .map(|k| k.map(|k| format!("{k}")))
                             .map(Option::unwrap_or_default)
                             .collect();

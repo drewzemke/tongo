@@ -1,11 +1,9 @@
-use crate::{
-    config::RawConfig,
-    system::command::{Command, CommandGroup},
-};
 use anyhow::{anyhow, bail, Result};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use itertools::Itertools;
 use std::{collections::HashMap, ops::Not};
+
+use crate::system::command::{Command, CommandGroup};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Key {
@@ -173,6 +171,22 @@ pub struct KeyMap {
     map: HashMap<Command, Key>,
 }
 
+impl TryFrom<HashMap<String, String>> for KeyMap {
+    type Error = anyhow::Error;
+
+    fn try_from(map: HashMap<String, String>) -> Result<Self, Self::Error> {
+        let mut key_map = Self::default();
+
+        for (command_str, key_str) in &map {
+            let command = string_to_command(command_str)?;
+            let key = Key::try_from(key_str.as_str())?;
+            key_map.map.insert(command, key);
+        }
+
+        Ok(key_map)
+    }
+}
+
 impl Default for KeyMap {
     // TODO: find a way to make this typesafe, so that an error is shown
     // when a command isn't mapped here
@@ -225,21 +239,6 @@ impl Default for KeyMap {
 }
 
 impl KeyMap {
-    /// # Errors
-    /// If the key part of the config cannot be parsed into valid keys and
-    /// commands
-    pub fn try_from_config(config: &RawConfig) -> Result<Self> {
-        let mut key_map = Self::default();
-
-        for (command_str, key_str) in &config.keys {
-            let command = string_to_command(command_str)?;
-            let key = Key::try_from(key_str.as_str())?;
-            key_map.map.insert(command, key);
-        }
-
-        Ok(key_map)
-    }
-
     #[must_use]
     pub fn key_for_command(&self, command: Command) -> Option<Key> {
         self.map.get(&command).copied()
@@ -285,10 +284,12 @@ impl KeyMap {
 mod tests {
     use super::*;
 
+    use crate::config::RawConfig;
+
     #[test]
     fn create_default_key_map() {
         let config = RawConfig::default();
-        let key_map = KeyMap::try_from_config(&config).unwrap();
+        let key_map = KeyMap::try_from(config.keys).unwrap();
 
         assert_eq!(
             key_map.command_for_key_unfiltered(KeyCode::Up.into()),
@@ -305,7 +306,7 @@ mod tests {
         let config = RawConfig {
             keys: HashMap::from([("nav_up".to_string(), "k".to_string())]),
         };
-        let key_map = KeyMap::try_from_config(&config).unwrap();
+        let key_map = KeyMap::try_from(config.keys).unwrap();
 
         assert!(key_map
             .command_for_key_unfiltered(KeyCode::Up.into())
@@ -333,7 +334,7 @@ mod tests {
             .join("\n");
 
         let config = RawConfig::try_from(&*file).unwrap();
-        let key_map_res = KeyMap::try_from_config(&config);
+        let key_map_res = KeyMap::try_from(config.keys);
 
         assert!(key_map_res.is_ok());
         let key_map = key_map_res.unwrap();
@@ -355,14 +356,14 @@ mod tests {
             keys: HashMap::from([("not-a-command".to_string(), "k".to_string())]),
         };
 
-        let key_map_res = KeyMap::try_from_config(&config);
+        let key_map_res = KeyMap::try_from(config.keys);
         assert!(key_map_res.is_err());
 
         let config = RawConfig {
             keys: HashMap::from([("nav_up".to_string(), "not-a-key".to_string())]),
         };
 
-        let key_map_res = KeyMap::try_from_config(&config);
+        let key_map_res = KeyMap::try_from(config.keys);
         assert!(key_map_res.is_err());
     }
 

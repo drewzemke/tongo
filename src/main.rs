@@ -1,15 +1,15 @@
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::Parser;
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::{io::Stdout, path::PathBuf, rc::Rc};
+
 use tongo::{
     app::App,
-    key_map::KeyMap,
+    config::Config,
     model::connection::Connection,
+    persistence::PersistedComponent,
     utils::storage::{get_app_data_path, FileStorage, Storage},
 };
-
-use tongo::persistence::PersistedComponent;
 
 /// A TUI for viewing and interacting with `MongoDB` databases.
 #[derive(Parser)]
@@ -52,8 +52,7 @@ async fn main() -> Result<()> {
     let storage = FileStorage::init()?;
 
     // load config
-    let config = storage.read_config()?;
-    let key_map = KeyMap::try_from_config(&config).context("Could not parse key map")?;
+    let config: Config = storage.read_config()?.try_into()?;
 
     // load connections
     let stored_connections = storage.read_connections().unwrap_or_default();
@@ -75,7 +74,7 @@ async fn main() -> Result<()> {
     let mut app = App::new(
         connection,
         stored_connections,
-        key_map,
+        config,
         Rc::new(storage.clone()),
     );
 

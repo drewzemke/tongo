@@ -1,6 +1,6 @@
 use crate::{
     components::Component,
-    key_map::KeyMap,
+    config::Config,
     system::{
         command::{Command, CommandCategory, CommandGroup, CommandManager},
         event::Event,
@@ -13,7 +13,6 @@ use ratatui::{
     prelude::*,
     widgets::{Block, Clear, Row, Table, TableState},
 };
-use std::rc::Rc;
 
 const HELP_MODAL_WIDTH: u16 = 70;
 
@@ -25,16 +24,16 @@ struct State(Option<(usize, usize)>);
 #[derive(Debug, Default, Clone)]
 pub struct HelpModal {
     command_manager: CommandManager,
-    key_map: Rc<KeyMap>,
+    config: Config,
     categorized_groups: Vec<(CommandCategory, Vec<CommandGroup>)>,
     state: State,
 }
 
 impl HelpModal {
-    pub fn new(command_manager: CommandManager, key_map: Rc<KeyMap>) -> Self {
+    pub fn new(command_manager: CommandManager, config: Config) -> Self {
         Self {
             command_manager,
-            key_map,
+            config,
             categorized_groups: vec![],
             state: State::default(),
         }
@@ -260,7 +259,7 @@ impl Component for HelpModal {
                 let key_hint: String = group
                     .commands
                     .iter()
-                    .map(|c| self.key_map.key_for_command(*c))
+                    .map(|c| self.config.key_map.key_for_command(*c))
                     .map(|k| k.map(|k| format!("{k}")))
                     .map(Option::unwrap_or_default)
                     .collect();

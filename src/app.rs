@@ -6,7 +6,7 @@ use crate::{
         tab_bar::{PersistedTabBar, TabBar},
         Component,
     },
-    key_map::KeyMap,
+    config::Config,
     model::connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
     system::{
@@ -51,7 +51,7 @@ pub struct App<'a> {
     command_manager: CommandManager,
 
     // config
-    key_map: Rc<KeyMap>,
+    config: Config,
 
     // flags
     mode: Mode,
@@ -61,19 +61,19 @@ pub struct App<'a> {
 
 impl Default for App<'_> {
     fn default() -> Self {
-        let key_map = Rc::new(KeyMap::default());
         let storage = Rc::new(FileStorage::default());
         let command_manager = CommandManager::default();
+        let config = Config::default();
         Self {
             tabs: vec![Tab::default()],
             tab_bar: TabBar::default(),
             status_bar: StatusBar::default(),
-            help_modal: HelpModal::new(command_manager.clone(), key_map.clone()),
+            help_modal: HelpModal::new(command_manager.clone(), config.clone()),
             cursor_pos: Rc::new(Cell::new((0, 0))),
             connection_manager: ConnectionManager::new(vec![], storage.clone()),
             command_manager,
             storage,
-            key_map,
+            config,
             mode: Mode::Normal,
             force_clear: false,
             exiting: false,
@@ -87,13 +87,12 @@ impl App<'_> {
     pub fn new(
         selected_connection: Option<Connection>,
         connections: Vec<Connection>,
-        key_map: KeyMap,
+        config: Config,
         storage: Rc<dyn Storage>,
     ) -> Self {
         // initialize shared data
         let cursor_pos = Rc::new(Cell::new((0, 0)));
         let connection_manager = ConnectionManager::new(connections, storage.clone());
-        let key_map = Rc::new(key_map);
         let command_manager = CommandManager::default();
 
         // initialize components
@@ -103,8 +102,8 @@ impl App<'_> {
             cursor_pos.clone(),
         );
         let tab_bar = TabBar::new(selected_connection);
-        let status_bar = StatusBar::new(command_manager.clone(), key_map.clone());
-        let help_modal = HelpModal::new(command_manager.clone(), key_map.clone());
+        let status_bar = StatusBar::new(command_manager.clone(), config.clone());
+        let help_modal = HelpModal::new(command_manager.clone(), config.clone());
 
         Self {
             tabs: vec![tab],
@@ -112,7 +111,7 @@ impl App<'_> {
             status_bar,
             help_modal,
 
-            key_map,
+            config,
             cursor_pos,
             storage,
             connection_manager,
@@ -326,6 +325,7 @@ impl Component for App<'_> {
             // map the key to a command if we're not in raw mode,
             // making sure it's one of the currently-available commands
             let command = self
+                .config
                 .key_map
                 .command_for_key((*key).into(), &self.command_manager.groups());
 
