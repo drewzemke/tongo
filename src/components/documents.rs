@@ -6,7 +6,7 @@ use crate::{
     system::{
         command::{Command, CommandCategory, CommandGroup},
         event::Event,
-        message::{AppAction, ClientAction, Message, TabAction},
+        message::{AppAction, ClientAction, Message, PrimScreenAction, TabAction},
         Signal,
     },
     utils::{
@@ -432,7 +432,12 @@ impl Component for Documents<'_> {
                     self.reset_search();
                     out.push(Event::DocSearchUpdated.into());
                 }
-                Mode::Normal => self.focus.set(TabFocus::PrimScr(PrimScrFocus::CollList)),
+                Mode::Normal => {
+                    out.push(
+                        Message::to_prim_scr(PrimScreenAction::SetFocus(PrimScrFocus::CollList))
+                            .into(),
+                    );
+                }
             },
             _ => {}
         }

@@ -162,11 +162,13 @@ impl Component for ConnectionScreen {
                 self.conn_name_input.focus();
                 self.conn_name_input.start_editing();
                 self.conn_str_input.stop_editing();
+                out.push(Event::FocusedChanged.into());
             }
             Some(ConnScreenAction::FocusConnStrInput) => {
                 self.conn_name_input.stop_editing();
                 self.conn_str_input.focus();
                 self.conn_str_input.start_editing();
+                out.push(Event::FocusedChanged.into());
             }
             Some(ConnScreenAction::FinishEditingConn) => {
                 if let Some(mut editing_conn) = self.editing_conn.take() {

@@ -15,6 +15,7 @@ use crate::{
     system::{
         command::{Command, CommandCategory, CommandGroup},
         event::Event,
+        message::{Message, PrimScreenAction},
         Signal,
     },
 };
@@ -192,6 +193,20 @@ impl Component for PrimaryScreen<'_> {
         out.append(&mut self.db_list.handle_event(event));
         out.append(&mut self.coll_list.handle_event(event));
         out.append(&mut self.doc_tree.handle_event(event));
+        out
+    }
+
+    fn handle_message(&mut self, message: &Message) -> Vec<Signal> {
+        let mut out = vec![];
+
+        match message.read_as_prim_scr() {
+            Some(PrimScreenAction::SetFocus(focus)) => {
+                self.focus.set(TabFocus::PrimScr(*focus));
+                out.push(Event::FocusedChanged.into());
+            }
+            None => {}
+        }
+
         out
     }
 

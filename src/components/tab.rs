@@ -181,6 +181,8 @@ impl Component for Tab<'_> {
             self.client.handle_message(message)
         } else if message.read_as_conn_scr().is_some() {
             self.conn_screen.handle_message(message)
+        } else if message.read_as_prim_scr().is_some() {
+            self.primary_screen.handle_message(message)
         } else {
             match message.read_as_tab() {
                 Some(TabAction::RequestConfirmation(kind)) => {

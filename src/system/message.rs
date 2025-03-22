@@ -1,5 +1,7 @@
 use crate::{
-    components::{confirm_modal::ConfirmKind, input::input_modal::InputKind},
+    components::{
+        confirm_modal::ConfirmKind, input::input_modal::InputKind, primary_screen::PrimScrFocus,
+    },
     model::{collection::Collection, connection::Connection, database::Database},
 };
 use mongodb::bson::Document;
@@ -85,10 +87,17 @@ pub enum ConnScreenAction {
 }
 
 #[derive(Debug, Clone, strum_macros::Display)]
+pub enum PrimScreenAction {
+    /// Tells `PrimaryScreenAction` to focus a specific component
+    SetFocus(PrimScrFocus),
+}
+
+#[derive(Debug, Clone, strum_macros::Display)]
 enum Action {
     App(AppAction),
     Client(ClientAction),
     ConnScreen(ConnScreenAction),
+    PrimScreen(PrimScreenAction),
     Tab(TabAction),
 }
 
@@ -102,6 +111,7 @@ impl std::fmt::Display for Message {
             Action::Tab(tab_action) => write!(f, "{tab_action}"),
             Action::Client(client_action) => write!(f, "{client_action}"),
             Action::ConnScreen(conn_screen_action) => write!(f, "{conn_screen_action}"),
+            Action::PrimScreen(prim_screen_action) => write!(f, "{prim_screen_action}"),
         }
     }
 }
@@ -121,6 +131,10 @@ impl Message {
 
     pub const fn to_conn_scr(action: ConnScreenAction) -> Self {
         Self(Action::ConnScreen(action))
+    }
+
+    pub const fn to_prim_scr(action: PrimScreenAction) -> Self {
+        Self(Action::PrimScreen(action))
     }
 
     pub const fn read_as_app(&self) -> Option<&AppAction> {
@@ -149,6 +163,14 @@ impl Message {
 
     pub const fn read_as_conn_scr(&self) -> Option<&ConnScreenAction> {
         if let Action::ConnScreen(action) = &self.0 {
+            Some(action)
+        } else {
+            None
+        }
+    }
+
+    pub const fn read_as_prim_scr(&self) -> Option<&PrimScreenAction> {
+        if let Action::PrimScreen(action) = &self.0 {
             Some(action)
         } else {
             None
