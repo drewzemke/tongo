@@ -1,6 +1,6 @@
 use std::{cell::RefCell, rc::Rc};
 
-#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, strum_macros::EnumIter)]
 pub enum Command {
     NavUp,
     NavDown,

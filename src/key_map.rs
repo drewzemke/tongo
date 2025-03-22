@@ -2,6 +2,7 @@ use anyhow::{anyhow, bail, Result};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use itertools::Itertools;
 use std::{collections::HashMap, ops::Not};
+use strum::IntoEnumIterator;
 
 use crate::system::command::{Command, CommandGroup};
 
@@ -188,51 +189,57 @@ impl TryFrom<HashMap<String, String>> for KeyMap {
 }
 
 impl Default for KeyMap {
-    // TODO: find a way to make this typesafe, so that an error is shown
-    // when a command isn't mapped here
     fn default() -> Self {
-        let map = [
-            (Command::ShowHelpModal, KeyCode::Char('?').into()),
-            (Command::NavUp, KeyCode::Up.into()),
-            (Command::NavDown, KeyCode::Down.into()),
-            (Command::NavLeft, KeyCode::Left.into()),
-            (Command::NavRight, KeyCode::Right.into()),
-            (Command::FocusUp, KeyCode::Char('K').into()),
-            (Command::FocusDown, KeyCode::Char('J').into()),
-            (Command::FocusLeft, KeyCode::Char('H').into()),
-            (Command::FocusRight, KeyCode::Char('L').into()),
-            (Command::CreateNew, KeyCode::Char('A').into()),
-            (Command::Edit, KeyCode::Char('E').into()),
-            (Command::Confirm, KeyCode::Enter.into()),
-            (Command::Reset, KeyCode::Char('R').into()),
-            (Command::Refresh, KeyCode::Char('r').into()),
-            (Command::ExpandCollapse, KeyCode::Char(' ').into()),
-            (Command::NextPage, KeyCode::Char('n').into()),
-            (Command::PreviousPage, KeyCode::Char('p').into()),
-            (Command::FirstPage, KeyCode::Char('P').into()),
-            (Command::LastPage, KeyCode::Char('N').into()),
-            (Command::Delete, KeyCode::Char('D').into()),
-            (Command::Search, KeyCode::Char('/').into()),
-            (Command::Back, KeyCode::Esc.into()),
-            (Command::Quit, KeyCode::Char('q').into()),
-            (Command::DuplicateDoc, KeyCode::Char('C').into()),
-            (Command::Yank, KeyCode::Char('y').into()),
-            (Command::NewTab, KeyCode::Char('T').into()),
-            (Command::NextTab, KeyCode::Char(']').into()), // TODO: make these "tab" and "shift+tab" once modifiers are a thing
-            (Command::PreviousTab, KeyCode::Char('[').into()),
-            (Command::CloseTab, KeyCode::Char('X').into()),
-            (Command::DuplicateTab, KeyCode::Char('S').into()), // ctrl+shift T or something?
-            (Command::GotoTab(1), KeyCode::Char('1').into()),
-            (Command::GotoTab(2), KeyCode::Char('2').into()),
-            (Command::GotoTab(3), KeyCode::Char('3').into()),
-            (Command::GotoTab(4), KeyCode::Char('4').into()),
-            (Command::GotoTab(5), KeyCode::Char('5').into()),
-            (Command::GotoTab(6), KeyCode::Char('6').into()),
-            (Command::GotoTab(7), KeyCode::Char('7').into()),
-            (Command::GotoTab(8), KeyCode::Char('8').into()),
-            (Command::GotoTab(9), KeyCode::Char('9').into()),
-        ]
-        .into();
+        let mut map = HashMap::default();
+
+        // NOTE: creating the default map by iterating and matching like this
+        // guarantees that every command is mapped to a key
+        for command in Command::iter() {
+            let key_code = match command {
+                Command::ShowHelpModal => KeyCode::Char('?'),
+                Command::NavUp => KeyCode::Up,
+                Command::NavDown => KeyCode::Down,
+                Command::NavLeft => KeyCode::Left,
+                Command::NavRight => KeyCode::Right,
+                Command::FocusUp => KeyCode::Char('K'),
+                Command::FocusDown => KeyCode::Char('J'),
+                Command::FocusLeft => KeyCode::Char('H'),
+                Command::FocusRight => KeyCode::Char('L'),
+                Command::CreateNew => KeyCode::Char('A'),
+                Command::Edit => KeyCode::Char('E'),
+                Command::Confirm => KeyCode::Enter,
+                Command::Reset => KeyCode::Char('R'),
+                Command::Refresh => KeyCode::Char('r'),
+                Command::ExpandCollapse => KeyCode::Char(' '),
+                Command::NextPage => KeyCode::Char('n'),
+                Command::PreviousPage => KeyCode::Char('p'),
+                Command::FirstPage => KeyCode::Char('P'),
+                Command::LastPage => KeyCode::Char('N'),
+                Command::Delete => KeyCode::Char('D'),
+                Command::Search => KeyCode::Char('/'),
+                Command::Back => KeyCode::Esc,
+                Command::Quit => KeyCode::Char('q'),
+                Command::DuplicateDoc => KeyCode::Char('C'),
+                Command::Yank => KeyCode::Char('y'),
+                Command::NewTab => KeyCode::Char('T'),
+                Command::NextTab => KeyCode::Char(']'),
+                Command::PreviousTab => KeyCode::Char('['),
+                Command::CloseTab => KeyCode::Char('X'),
+                Command::DuplicateTab => KeyCode::Char('S'),
+                Command::GotoTab(1) => KeyCode::Char('1'),
+                Command::GotoTab(2) => KeyCode::Char('2'),
+                Command::GotoTab(3) => KeyCode::Char('3'),
+                Command::GotoTab(4) => KeyCode::Char('4'),
+                Command::GotoTab(5) => KeyCode::Char('5'),
+                Command::GotoTab(6) => KeyCode::Char('6'),
+                Command::GotoTab(7) => KeyCode::Char('7'),
+                Command::GotoTab(8) => KeyCode::Char('8'),
+                Command::GotoTab(9) => KeyCode::Char('9'),
+                Command::GotoTab(_) => KeyCode::Null,
+            };
+
+            map.insert(command, key_code.into());
+        }
 
         Self { map }
     }
