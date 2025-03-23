@@ -115,7 +115,7 @@ impl<'a> MongoTreeBuilder<'a> {
         let text = Line::from(vec![
             Span::styled(
                 key.to_string(),
-                Style::default().fg(self.config.color_map.get(&ColorKey::DocumentsKey)),
+                Style::default().fg(self.config.color_map.get(&ColorKey::Key)),
             ),
             Span::from(" "),
         ]);
@@ -132,7 +132,7 @@ impl<'a> MongoTreeBuilder<'a> {
         let text = Line::from(vec![
             Span::styled(
                 key.to_string(),
-                Style::default().fg(self.config.color_map.get(&ColorKey::DocumentsKey)),
+                Style::default().fg(self.config.color_map.get(&ColorKey::Key)),
             ),
             Span::from(" "),
             Span::styled(
@@ -152,7 +152,7 @@ impl<'a> MongoTreeBuilder<'a> {
                     self.key_to_span(&key),
                     Span::styled(
                         ": ",
-                        Style::default().fg(self.config.color_map.get(&ColorKey::DocumentsNote)),
+                        Style::default().fg(self.config.color_map.get(&ColorKey::Punctuation)),
                     ),
                     self.value_to_span(bson),
                 ]);
@@ -169,7 +169,7 @@ impl<'a> MongoTreeBuilder<'a> {
         };
         Span::styled(
             string,
-            Style::default().fg(self.config.color_map.get(&ColorKey::DocumentsKey)),
+            Style::default().fg(self.config.color_map.get(&ColorKey::Key)),
         )
     }
 
@@ -194,15 +194,13 @@ impl<'a> MongoTreeBuilder<'a> {
         };
 
         let color = match bson {
-            Bson::ObjectId(_) => self.config.color_map.get(&ColorKey::DocumentsObjectId),
-            Bson::String(_) => self.config.color_map.get(&ColorKey::DocumentsString),
-            Bson::Boolean(_) => self.config.color_map.get(&ColorKey::DocumentsBoolean),
+            Bson::ObjectId(_) => self.config.color_map.get(&ColorKey::ObjectId),
+            Bson::String(_) => self.config.color_map.get(&ColorKey::String),
+            Bson::Boolean(_) => self.config.color_map.get(&ColorKey::Boolean),
             Bson::Double(_) | Bson::Decimal128(_) | Bson::Int32(_) | Bson::Int64(_) => {
-                self.config.color_map.get(&ColorKey::DocumentsNumber)
+                self.config.color_map.get(&ColorKey::Number)
             }
-            Bson::Timestamp(_) | Bson::DateTime(_) => {
-                self.config.color_map.get(&ColorKey::DocumentsDate)
-            }
+            Bson::Timestamp(_) | Bson::DateTime(_) => self.config.color_map.get(&ColorKey::Date),
             _ => self.config.color_map.get(&ColorKey::DocumentsNote),
         };
 
