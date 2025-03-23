@@ -10,7 +10,8 @@ use crate::{app::PersistedApp, config::RawConfig, model::connection::Connection}
 const APP_DIR_NAME: &str = "tongo";
 const CONNECTIONS_FILE_NAME: &str = "connections.json";
 const LAST_SESSION_FILE_NAME: &str = "last-session.json";
-const CONFIG_FILE_NAME: &str = "config.toml";
+pub const CONFIG_FILE_NAME: &str = "config.toml";
+pub const THEME_FILE_NAME: &str = "theme.toml";
 
 // NOTE: stole this from `gitui`
 /// # Errors
@@ -114,10 +115,9 @@ impl Storage for FileStorage {
             )?;
         }
 
-        let file = self
-            .read_from_config_dir(CONFIG_FILE_NAME.into())
-            .unwrap_or_default();
-        RawConfig::try_from(&*file).context(format!("Could not parse `{CONFIG_FILE_NAME}`"))
+        let config_file = self.read_from_config_dir(CONFIG_FILE_NAME.into()).ok();
+        let theme_file = self.read_from_config_dir(THEME_FILE_NAME.into()).ok();
+        RawConfig::try_from((config_file, theme_file)).context("Could not load configuration")
     }
 }
 

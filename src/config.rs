@@ -1,21 +1,43 @@
-use anyhow::Result;
+use anyhow::{Context, Result};
+use color_map::RawColorMap;
 use key_map::KeyMap;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, rc::Rc};
 
+use crate::utils::storage::{CONFIG_FILE_NAME, THEME_FILE_NAME};
+
+pub mod color_map;
 pub mod key_map;
+
+type RawKeyMap = HashMap<String, String>;
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct RawConfig {
     #[serde(default)]
-    pub keys: HashMap<String, String>,
+    pub keys: RawKeyMap,
+
+    #[serde(default)]
+    pub theme: Option<RawColorMap>,
 }
 
-impl TryFrom<&str> for RawConfig {
+impl TryFrom<(Option<String>, Option<String>)> for RawConfig {
     type Error = anyhow::Error;
 
-    fn try_from(value: &str) -> Result<Self> {
-        let config = toml::from_str(value)?;
+    fn try_from((config_file, theme_file): (Option<String>, Option<String>)) -> Result<Self> {
+        let config_file = config_file.unwrap_or_default();
+        let mut config: Self = toml::from_str(&config_file)
+            .context(format!("Could not parse `{CONFIG_FILE_NAME}`"))?;
+
+        // if no theme was provided in the config file, try to parse the theme file
+        if config.theme.is_none() {
+            if let Some(theme_file) = theme_file {
+                let theme = toml::from_str(&theme_file)
+                    .context(format!("Could not parse `{THEME_FILE_NAME}`"))?;
+
+                config.theme = theme;
+            }
+        }
+
         Ok(config)
     }
 }

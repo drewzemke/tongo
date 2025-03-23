@@ -312,6 +312,7 @@ mod tests {
     fn create_overridden_key_map() {
         let config = RawConfig {
             keys: HashMap::from([("nav_up".to_string(), "k".to_string())]),
+            ..Default::default()
         };
         let key_map = KeyMap::try_from(config.keys).unwrap();
 
@@ -340,7 +341,7 @@ mod tests {
             })
             .join("\n");
 
-        let config = RawConfig::try_from(&*file).unwrap();
+        let config = RawConfig::try_from((Some(file), None)).unwrap();
         let key_map_res = KeyMap::try_from(config.keys);
 
         assert!(key_map_res.is_ok());
@@ -361,6 +362,7 @@ mod tests {
     fn bad_config_files() {
         let config = RawConfig {
             keys: HashMap::from([("not-a-command".to_string(), "k".to_string())]),
+            ..Default::default()
         };
 
         let key_map_res = KeyMap::try_from(config.keys);
@@ -368,6 +370,7 @@ mod tests {
 
         let config = RawConfig {
             keys: HashMap::from([("nav_up".to_string(), "not-a-key".to_string())]),
+            ..Default::default()
         };
 
         let key_map_res = KeyMap::try_from(config.keys);
