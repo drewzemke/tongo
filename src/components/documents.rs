@@ -512,13 +512,13 @@ impl Component for Documents<'_> {
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         let (border_color, bg_color) = if self.is_focused() {
             (
-                self.config.color_map.get(&ColorKey::FocusedPanelBorder),
-                self.config.color_map.get(&ColorKey::FocusedPanelBg),
+                self.config.color_map.get(&ColorKey::PanelFocusedBorder),
+                self.config.color_map.get(&ColorKey::PanelFocusedBg),
             )
         } else {
             (
-                self.config.color_map.get(&ColorKey::UnfocusedPanelBorder),
-                self.config.color_map.get(&ColorKey::UnfocusedPanelBg),
+                self.config.color_map.get(&ColorKey::PanelUnfocusedBorder),
+                self.config.color_map.get(&ColorKey::PanelUnfocusedBg),
             )
         };
 
@@ -526,6 +526,7 @@ impl Component for Documents<'_> {
         let Some(coll) = &self.collection else {
             let block = Block::bordered()
                 .title(" Documents ")
+                .bg(bg_color)
                 .border_style(Style::default().fg(border_color));
             frame.render_widget(block, area);
 
@@ -590,7 +591,7 @@ impl Component for Documents<'_> {
                     .track_symbol(None)
                     .end_symbol(None),
             ))
-            .style(Style::default().fg(self.config.color_map.get(&ColorKey::Fg)))
+            .style(Style::default().fg(self.config.color_map.get(&ColorKey::FgPrimary)))
             .highlight_style(
                 Style::default()
                     .bold()

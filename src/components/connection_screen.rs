@@ -54,7 +54,7 @@ impl Default for ConnectionScreen {
         let config = Config::default();
 
         let connection_manager = ConnectionManager::new(vec![], storage);
-        let conn_list = Connections::new(focus.clone(), connection_manager.clone());
+        let conn_list = Connections::new(focus.clone(), config.clone(), connection_manager.clone());
         let conn_name_input = ConnNameInput::new(focus.clone(), cursor_pos.clone(), config.clone());
         let conn_str_input = ConnStrInput::new(focus.clone(), cursor_pos, config);
 

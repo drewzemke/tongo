@@ -4,6 +4,7 @@ use crate::{
         confirm_modal::ConfirmKind, input::input_modal::InputKind, primary_screen::PrimScrFocus,
         tab::TabFocus, Component,
     },
+    config::Config,
     model::collection::Collection,
     persistence::PersistedComponent,
     system::{
@@ -25,10 +26,10 @@ pub struct Collections {
 }
 
 impl Collections {
-    pub fn new(focus: Rc<Cell<TabFocus>>) -> Self {
+    pub fn new(focus: Rc<Cell<TabFocus>>, config: Config) -> Self {
         Self {
             focus,
-            list: InnerList::new("Collections"),
+            list: InnerList::new("Collections", config),
             ..Default::default()
         }
     }

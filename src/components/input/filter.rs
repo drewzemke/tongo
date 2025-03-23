@@ -191,7 +191,7 @@ impl FilterInputFormatter {
             JsonLabel::Value => ColorKey::String,
             JsonLabel::Constant => ColorKey::Boolean,
             JsonLabel::DollarSignKey => ColorKey::MongoOperator,
-            JsonLabel::Error => ColorKey::Fg,
+            JsonLabel::Error => ColorKey::FgPrimary,
             JsonLabel::Whitespace => return Style::default(),
         };
 

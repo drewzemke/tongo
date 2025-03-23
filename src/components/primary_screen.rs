@@ -48,8 +48,8 @@ impl PrimaryScreen<'_> {
         cursor_pos: Rc<Cell<(u16, u16)>>,
         config: Config,
     ) -> Self {
-        let db_list = Databases::new(focus.clone());
-        let coll_list = Collections::new(focus.clone());
+        let db_list = Databases::new(focus.clone(), config.clone());
+        let coll_list = Collections::new(focus.clone(), config.clone());
         let doc_tree = Documents::new(focus.clone(), config.clone());
         let filter_input = FilterInput::new(focus.clone(), cursor_pos, config);
         Self {

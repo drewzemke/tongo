@@ -8,6 +8,7 @@ use crate::{
     components::{
         confirm_modal::ConfirmKind, connection_screen::ConnScrFocus, tab::TabFocus, Component,
     },
+    config::{color_map::ColorKey, Config},
     model::connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
     system::{
@@ -25,6 +26,7 @@ pub struct Connections {
     pub focus: Rc<Cell<TabFocus>>,
     pub connection_manager: ConnectionManager,
     pub list: InnerList,
+    pub config: Config,
 }
 
 impl Default for Connections {
@@ -33,16 +35,22 @@ impl Default for Connections {
             focus: Rc::new(Cell::new(TabFocus::default())),
             connection_manager: ConnectionManager::default(),
             list: InnerList::default(),
+            config: Config::default(),
         }
     }
 }
 
 impl Connections {
-    pub fn new(focus: Rc<Cell<TabFocus>>, connection_manager: ConnectionManager) -> Self {
+    pub fn new(
+        focus: Rc<Cell<TabFocus>>,
+        config: Config,
+        connection_manager: ConnectionManager,
+    ) -> Self {
         Self {
             focus,
             connection_manager,
-            list: InnerList::new("Connections"),
+            list: InnerList::new("Connections", config.clone()),
+            config,
         }
     }
 
@@ -168,8 +176,10 @@ impl Component for Connections {
                 let masked_conn_str = Self::mask_password(&item.connection_str);
 
                 let text = Text::from(vec![
-                    Line::from(item.name.clone()),
-                    Line::from(format!(" {masked_conn_str}")).gray(),
+                    Line::from(item.name.clone())
+                        .fg(self.config.color_map.get(&ColorKey::FgPrimary)),
+                    Line::from(format!(" {masked_conn_str}"))
+                        .fg(self.config.color_map.get(&ColorKey::FgSecondary)),
                 ]);
                 ListItem::new(text)
             })

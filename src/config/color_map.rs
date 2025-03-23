@@ -25,13 +25,14 @@ pub struct RawColorMap {
 #[derive(Debug, Hash, PartialEq, Eq, strum_macros::EnumIter)]
 pub enum ColorKey {
     // general ui
-    Fg,
-    FocusedPanelBg,
-    FocusedPanelBorder,
+    FgPrimary,
+    FgSecondary,
+    PanelFocusedBg,
+    PanelFocusedBorder,
+    PanelUnfocusedBg,
+    PanelUnfocusedBorder,
     SelectionBg,
     SelectionFg,
-    UnfocusedPanelBg,
-    UnfocusedPanelBorder,
 
     // data
     Boolean,
@@ -66,13 +67,14 @@ impl Default for ColorMap {
             #[expect(clippy::match_same_arms)]
             let color = match key {
                 // general ui
-                ColorKey::Fg => Color::White,
-                ColorKey::FocusedPanelBg => Color::Reset,
-                ColorKey::FocusedPanelBorder => Color::Green,
+                ColorKey::FgPrimary => Color::White,
+                ColorKey::FgSecondary => Color::Gray,
+                ColorKey::PanelFocusedBg => Color::Reset,
+                ColorKey::PanelFocusedBorder => Color::Green,
                 ColorKey::SelectionBg => Color::White,
                 ColorKey::SelectionFg => Color::Black,
-                ColorKey::UnfocusedPanelBg => Color::Reset,
-                ColorKey::UnfocusedPanelBorder => Color::White,
+                ColorKey::PanelUnfocusedBg => Color::Reset,
+                ColorKey::PanelUnfocusedBorder => Color::White,
 
                 //data
                 ColorKey::Boolean => Color::Cyan,
@@ -125,13 +127,14 @@ impl TryFrom<RawColorMap> for ColorMap {
         let mut color_map = Self::default();
         for (key_str, color_str) in &map.ui {
             let key = match key_str as &str {
-                "fg" => ColorKey::Fg,
-                "focused_panel_bg" => ColorKey::FocusedPanelBg,
-                "focused_panel_border" => ColorKey::FocusedPanelBorder,
-                "selection_bg" => ColorKey::SelectionBg,
-                "selection_fg" => ColorKey::SelectionFg,
-                "unfocused_panel_bg" => ColorKey::UnfocusedPanelBg,
-                "unfocused_panel_border" => ColorKey::UnfocusedPanelBorder,
+                "fg-primary" => ColorKey::FgPrimary,
+                "fg-secondary" => ColorKey::FgSecondary,
+                "panel-focused-bg" => ColorKey::PanelFocusedBg,
+                "panel-focused-border" => ColorKey::PanelFocusedBorder,
+                "panel-unfocused-bg" => ColorKey::PanelUnfocusedBg,
+                "panel-unfocused-border" => ColorKey::PanelUnfocusedBorder,
+                "selection-bg" => ColorKey::SelectionBg,
+                "selection-fg" => ColorKey::SelectionFg,
                 _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
             };
 
@@ -152,7 +155,7 @@ impl TryFrom<RawColorMap> for ColorMap {
                 "date" => ColorKey::Date,
                 "key" => ColorKey::Key,
                 "number" => ColorKey::Number,
-                "object_id" => ColorKey::ObjectId,
+                "object-id" => ColorKey::ObjectId,
                 "string" => ColorKey::String,
                 "punctuation" => ColorKey::Punctuation,
                 "mongo-operator" => ColorKey::MongoOperator,

@@ -1,11 +1,14 @@
-use crate::system::{
-    command::{Command, CommandCategory, CommandGroup},
-    event::Event,
-    Signal,
+use crate::{
+    config::{color_map::ColorKey, Config},
+    system::{
+        command::{Command, CommandCategory, CommandGroup},
+        event::Event,
+        Signal,
+    },
 };
 use ratatui::{
     prelude::*,
-    style::{Color, Style},
+    style::Style,
     widgets::{Block, List, ListItem, ListState, StatefulWidget},
 };
 
@@ -16,13 +19,15 @@ pub mod databases;
 #[derive(Debug, Default, Clone)]
 pub struct InnerList {
     title: &'static str,
+    config: Config,
     pub state: ListState,
 }
 
 impl InnerList {
-    fn new(title: &'static str) -> Self {
+    fn new(title: &'static str, config: Config) -> Self {
         Self {
             title,
+            config,
             ..Default::default()
         }
     }
@@ -61,19 +66,33 @@ impl InnerList {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect, items: Vec<ListItem>, focused: bool) {
-        let (border_color, highlight_color) = if focused {
-            (Color::Green, Color::White)
+        let (border_color, bg_color, highlight_text, highlight_bg, unselected_fg) = if focused {
+            (
+                self.config.color_map.get(&ColorKey::PanelFocusedBorder),
+                self.config.color_map.get(&ColorKey::PanelFocusedBg),
+                self.config.color_map.get(&ColorKey::SelectionFg),
+                self.config.color_map.get(&ColorKey::SelectionBg),
+                self.config.color_map.get(&ColorKey::FgPrimary),
+            )
         } else {
-            (Color::White, Color::Gray)
+            (
+                self.config.color_map.get(&ColorKey::PanelUnfocusedBorder),
+                self.config.color_map.get(&ColorKey::PanelUnfocusedBg),
+                self.config.color_map.get(&ColorKey::FgPrimary),
+                self.config.color_map.get(&ColorKey::PanelUnfocusedBg),
+                self.config.color_map.get(&ColorKey::FgSecondary),
+            )
         };
 
         let list = List::new(items)
             .block(
                 Block::bordered()
+                    .bg(bg_color)
                     .title(format!(" {} ", self.title))
                     .border_style(Style::default().fg(border_color)),
             )
-            .highlight_style(Style::default().bold().black().bg(highlight_color));
+            .style(Style::default().fg(unselected_fg))
+            .highlight_style(Style::default().bold().fg(highlight_text).bg(highlight_bg));
 
         StatefulWidget::render(list, area, frame.buffer_mut(), &mut self.state);
     }

@@ -91,7 +91,8 @@ impl Tab<'_> {
         let primary_screen = PrimaryScreen::new(focus.clone(), cursor_pos.clone(), config.clone());
 
         let client = Client::default();
-        let mut connection_list = Connections::new(focus.clone(), connection_manager.clone());
+        let mut connection_list =
+            Connections::new(focus.clone(), config.clone(), connection_manager.clone());
 
         if let Some(conn) = selected_connection {
             client.connect(conn.connection_str.clone());

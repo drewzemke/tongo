@@ -85,16 +85,16 @@ where
             let border_color = if self.is_editing() {
                 self.config.color_map.get(&ColorKey::InputBorderActive)
             } else {
-                self.config.color_map.get(&ColorKey::FocusedPanelBorder)
+                self.config.color_map.get(&ColorKey::PanelFocusedBorder)
             };
             (
                 border_color,
-                self.config.color_map.get(&ColorKey::FocusedPanelBg),
+                self.config.color_map.get(&ColorKey::PanelFocusedBg),
             )
         } else {
             (
-                self.config.color_map.get(&ColorKey::UnfocusedPanelBorder),
-                self.config.color_map.get(&ColorKey::UnfocusedPanelBg),
+                self.config.color_map.get(&ColorKey::PanelUnfocusedBorder),
+                self.config.color_map.get(&ColorKey::PanelUnfocusedBg),
             )
         };
 

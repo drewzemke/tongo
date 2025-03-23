@@ -6,6 +6,7 @@ use crate::{
         confirm_modal::ConfirmKind, input::input_modal::InputKind, primary_screen::PrimScrFocus,
         tab::TabFocus, Component,
     },
+    config::Config,
     model::database::Database,
     persistence::PersistedComponent,
     system::{
@@ -29,10 +30,10 @@ pub struct Databases {
 }
 
 impl Databases {
-    pub fn new(focus: Rc<Cell<TabFocus>>) -> Self {
+    pub fn new(focus: Rc<Cell<TabFocus>>, config: Config) -> Self {
         Self {
             focus,
-            list: InnerList::new("Databases"),
+            list: InnerList::new("Databases", config),
             ..Default::default()
         }
     }
