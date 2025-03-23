@@ -1,7 +1,7 @@
 use super::{confirm_modal::ConfirmKind, primary_screen::PrimScrFocus, tab::TabFocus, Component};
 use crate::{
     client::PAGE_SIZE,
-    config::Config,
+    config::{color_map::ColorKey, Config},
     model::collection::Collection,
     persistence::PersistedComponent,
     system::{
@@ -510,10 +510,16 @@ impl Component for Documents<'_> {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        let (border_color, highlight_color) = if self.is_focused() {
-            (Color::Green, Color::White)
+        let (border_color, bg_color) = if self.is_focused() {
+            (
+                self.config.color_map.get(&ColorKey::FocusedPanelBorder),
+                self.config.color_map.get(&ColorKey::FocusedPanelBg),
+            )
         } else {
-            (Color::White, Color::Gray)
+            (
+                self.config.color_map.get(&ColorKey::UnfocusedPanelBorder),
+                self.config.color_map.get(&ColorKey::UnfocusedPanelBg),
+            )
         };
 
         // if no collection is selected, render a "no data" message
@@ -524,7 +530,10 @@ impl Component for Documents<'_> {
             frame.render_widget(block, area);
 
             let layout = Layout::vertical([1]).flex(Flex::Center).split(area);
-            let widget = Line::from("(no collection selected)".gray()).centered();
+            let widget = Line::from(
+                "(no collection selected)".fg(self.config.color_map.get(&ColorKey::DocumentsNote)),
+            )
+            .centered();
             frame.render_widget(widget, layout[0]);
 
             return;
@@ -538,6 +547,7 @@ impl Component for Documents<'_> {
         let title_right = format!("{start}-{end} of {}", self.count);
 
         let mut block = Block::bordered()
+            .bg(bg_color)
             .title(Line::from(format!(" {title_left} ")).left_aligned())
             .title(Line::from(format!(" {title_right} ")).right_aligned())
             .border_style(Style::default().fg(border_color));
@@ -551,23 +561,23 @@ impl Component for Documents<'_> {
                 .title_bottom(
                     Line::from(format!(" search: \"{}\" ", self.search_input.value()))
                         .left_aligned()
-                        .cyan(),
+                        .fg(self.config.color_map.get(&ColorKey::DocumentsSearch)),
                 )
                 .title_bottom(
                     Line::from(format!(" {num_matches} {match_word} "))
                         .right_aligned()
-                        .cyan(),
+                        .fg(self.config.color_map.get(&ColorKey::DocumentsSearch)),
                 ),
             Mode::SearchReview => block
                 .title_bottom(
                     Line::from(format!(" search: \"{}\" ", self.search_input.value()))
                         .left_aligned()
-                        .cyan(),
+                        .fg(self.config.color_map.get(&ColorKey::DocumentsSearch)),
                 )
                 .title_bottom(
                     Line::from(format!(" match {match_n} of {num_matches} "))
                         .right_aligned()
-                        .cyan(),
+                        .fg(self.config.color_map.get(&ColorKey::DocumentsSearch)),
                 ),
         };
 
@@ -580,7 +590,13 @@ impl Component for Documents<'_> {
                     .track_symbol(None)
                     .end_symbol(None),
             ))
-            .highlight_style(Style::default().bold().black().bg(highlight_color));
+            .style(Style::default().fg(self.config.color_map.get(&ColorKey::Fg)))
+            .highlight_style(
+                Style::default()
+                    .bold()
+                    .fg(self.config.color_map.get(&ColorKey::SelectionFg))
+                    .bg(self.config.color_map.get(&ColorKey::SelectionBg)),
+            );
 
         frame.render_stateful_widget(widget, area, &mut self.state);
     }

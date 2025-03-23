@@ -6,7 +6,11 @@ use strum::IntoEnumIterator;
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct RawColorMap {
+    #[serde(default)]
     documents: HashMap<String, String>,
+
+    #[serde(default)]
+    ui: HashMap<String, String>,
 
     #[serde(default)]
     palette: HashMap<String, String>,
@@ -14,13 +18,24 @@ pub struct RawColorMap {
 
 #[derive(Debug, Hash, PartialEq, Eq, strum_macros::EnumIter)]
 pub enum ColorKey {
-    DocumentsKey,
-    DocumentsObjectId,
-    DocumentsString,
+    // general ui
+    Fg,
+    FocusedPanelBg,
+    FocusedPanelBorder,
+    SelectionBg,
+    SelectionFg,
+    UnfocusedPanelBg,
+    UnfocusedPanelBorder,
+
+    // documents
     DocumentsBoolean,
-    DocumentsNumber,
     DocumentsDate,
+    DocumentsKey,
     DocumentsNote,
+    DocumentsNumber,
+    DocumentsObjectId,
+    DocumentsSearch,
+    DocumentsString,
 }
 
 #[derive(Debug)]
@@ -33,13 +48,26 @@ impl Default for ColorMap {
         let mut map = HashMap::default();
 
         for key in ColorKey::iter() {
+            #[expect(clippy::match_same_arms)]
             let color = match key {
-                ColorKey::DocumentsKey | ColorKey::DocumentsObjectId => Color::White,
-                ColorKey::DocumentsString => Color::Green,
-                ColorKey::DocumentsNote => Color::Gray,
+                // general ui
+                ColorKey::Fg => Color::White,
+                ColorKey::FocusedPanelBg => Color::Reset,
+                ColorKey::FocusedPanelBorder => Color::Green,
+                ColorKey::SelectionBg => Color::White,
+                ColorKey::SelectionFg => Color::Black,
+                ColorKey::UnfocusedPanelBg => Color::Reset,
+                ColorKey::UnfocusedPanelBorder => Color::White,
+
+                //documents
                 ColorKey::DocumentsBoolean => Color::Cyan,
-                ColorKey::DocumentsNumber => Color::Yellow,
                 ColorKey::DocumentsDate => Color::Magenta,
+                ColorKey::DocumentsKey => Color::White,
+                ColorKey::DocumentsNote => Color::Gray,
+                ColorKey::DocumentsNumber => Color::Yellow,
+                ColorKey::DocumentsObjectId => Color::White,
+                ColorKey::DocumentsSearch => Color::Cyan,
+                ColorKey::DocumentsString => Color::Green,
             };
 
             map.insert(key, color);
@@ -71,6 +99,29 @@ impl TryFrom<RawColorMap> for ColorMap {
 
         // create the actual color map
         let mut color_map = Self::default();
+        for (key_str, color_str) in &map.ui {
+            let key = match key_str as &str {
+                "fg" => ColorKey::Fg,
+                "focused_panel_bg" => ColorKey::FocusedPanelBg,
+                "focused_panel_border" => ColorKey::FocusedPanelBorder,
+                "selection_bg" => ColorKey::SelectionBg,
+                "selection_fg" => ColorKey::SelectionFg,
+                "unfocused_panel_bg" => ColorKey::UnfocusedPanelBg,
+                "unfocused_panel_border" => ColorKey::UnfocusedPanelBorder,
+                _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
+            };
+
+            // check if `color_str` refers to the palette
+            let color = if let Some(color) = palette.get(color_str) {
+                *color
+            } else {
+                Color::from_str(color_str)
+                    .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))?
+            };
+
+            color_map.map.insert(key, color);
+        }
+
         for (key_str, color_str) in &map.documents {
             let key = match key_str as &str {
                 "boolean" => ColorKey::DocumentsBoolean,
@@ -79,6 +130,7 @@ impl TryFrom<RawColorMap> for ColorMap {
                 "note" => ColorKey::DocumentsNote,
                 "number" => ColorKey::DocumentsNumber,
                 "object_id" => ColorKey::DocumentsObjectId,
+                "search" => ColorKey::DocumentsSearch,
                 "string" => ColorKey::DocumentsString,
                 _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
             };

@@ -100,7 +100,7 @@ impl<'a> MongoTreeBuilder<'a> {
 
         let text = Span::styled(
             format!("[{id}]"),
-            Style::default().fg(self.config.color_map.get(&ColorKey::DocumentsObjectId)),
+            Style::default().fg(self.config.color_map.get(&ColorKey::Fg)),
         );
         TreeItem::new(id, text, self.build_doc_children(doc)).expect("document keys are unique")
     }
