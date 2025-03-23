@@ -70,6 +70,7 @@ impl std::fmt::Display for Key {
     }
 }
 
+// TODO: replace with `FromStr`
 impl TryFrom<&str> for Key {
     type Error = anyhow::Error;
 
@@ -113,6 +114,7 @@ impl TryFrom<&str> for Key {
     }
 }
 
+// TODO: replace with `FromStr`, move to `command` module
 fn string_to_command(value: &str) -> Result<Command> {
     // TODO: better names?
     match value {

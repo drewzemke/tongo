@@ -54,7 +54,7 @@ impl TryFrom<RawConfig> for Config {
     fn try_from(config: RawConfig) -> Result<Self, Self::Error> {
         let key_map = Rc::new(config.keys.try_into()?);
         let color_map = if let Some(raw_color_map) = config.theme {
-            Rc::new(raw_color_map.try_into()?)
+            Rc::new(raw_color_map.try_into().context("Could not load theme")?)
         } else {
             Rc::new(ColorMap::default())
         };

@@ -1,7 +1,7 @@
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 use strum::IntoEnumIterator;
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
@@ -63,17 +63,8 @@ impl TryFrom<RawColorMap> for ColorMap {
                 "string" => ColorKey::DocumentsString,
                 _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
             };
-            let color = match color_str as &str {
-                // TODO: add more
-                "cyan" => Color::Cyan,
-                "blue" => Color::Blue,
-                "gray" => Color::Gray,
-                "green" => Color::Green,
-                "magenta" => Color::Magenta,
-                "white" => Color::White,
-                "yellow" => Color::Yellow,
-                _ => bail!(format!("Color value not recognized: \"{color_str}\"")),
-            };
+            let color = Color::from_str(color_str)
+                .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))?;
             color_map.map.insert(key, color);
         }
 
@@ -106,7 +97,7 @@ mod tests {
     }
 
     #[test]
-    fn test_raw_color_map_conversion() {
+    fn test_raw_color_map_ansi() {
         let mut raw_map = RawColorMap::default();
         raw_map
             .documents
@@ -120,6 +111,25 @@ mod tests {
         // check overridden values
         assert_eq!(color_map.get(&ColorKey::DocumentsBoolean), Color::Yellow);
         assert_eq!(color_map.get(&ColorKey::DocumentsString), Color::Cyan);
+
+        // check default values remain unchanged
+        assert_eq!(color_map.get(&ColorKey::DocumentsKey), Color::White);
+    }
+
+    #[test]
+    fn test_raw_color_map_rgb() {
+        let mut raw_map = RawColorMap::default();
+        raw_map
+            .documents
+            .insert("boolean".to_string(), "#FF0100".to_string());
+
+        let color_map = ColorMap::try_from(raw_map).expect("should be able to create color map");
+
+        // check overridden values
+        assert_eq!(
+            color_map.get(&ColorKey::DocumentsBoolean),
+            Color::Rgb(255, 1, 0)
+        );
 
         // check default values remain unchanged
         assert_eq!(color_map.get(&ColorKey::DocumentsKey), Color::White);
