@@ -17,6 +17,7 @@ pub enum ColorKey {
     DocumentsBoolean,
     DocumentsNumber,
     DocumentsDate,
+    DocumentsNote,
 }
 
 #[derive(Debug)]
@@ -32,6 +33,7 @@ impl Default for ColorMap {
             let color = match key {
                 ColorKey::DocumentsKey | ColorKey::DocumentsObjectId => Color::White,
                 ColorKey::DocumentsString => Color::Green,
+                ColorKey::DocumentsNote => Color::Gray,
                 ColorKey::DocumentsBoolean => Color::Cyan,
                 ColorKey::DocumentsNumber => Color::Yellow,
                 ColorKey::DocumentsDate => Color::Magenta,
@@ -55,13 +57,17 @@ impl TryFrom<RawColorMap> for ColorMap {
                 "boolean" => ColorKey::DocumentsBoolean,
                 "date" => ColorKey::DocumentsDate,
                 "key" => ColorKey::DocumentsKey,
+                "note" => ColorKey::DocumentsNote,
                 "number" => ColorKey::DocumentsNumber,
                 "object_id" => ColorKey::DocumentsObjectId,
                 "string" => ColorKey::DocumentsString,
                 _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
             };
             let color = match color_str as &str {
+                // TODO: add more
                 "cyan" => Color::Cyan,
+                "blue" => Color::Blue,
+                "gray" => Color::Gray,
                 "green" => Color::Green,
                 "magenta" => Color::Magenta,
                 "white" => Color::White,
@@ -76,9 +82,14 @@ impl TryFrom<RawColorMap> for ColorMap {
 }
 
 impl ColorMap {
+    /// # Panics
+    /// If asked to get the color for a color key that hasn't been set (which shouldn't happen)
     #[must_use]
-    pub fn get(&self, key: &ColorKey) -> Option<&Color> {
-        self.map.get(key)
+    pub fn get(&self, key: &ColorKey) -> Color {
+        *self
+            .map
+            .get(key)
+            .expect("Color map should have colors defined for all keys")
     }
 }
 
@@ -91,7 +102,7 @@ mod tests {
         let color_map =
             ColorMap::try_from(RawColorMap::default()).expect("should be able to create color map");
 
-        assert_eq!(color_map.get(&ColorKey::DocumentsKey), Some(&Color::White));
+        assert_eq!(color_map.get(&ColorKey::DocumentsKey), Color::White);
     }
 
     #[test]
@@ -107,17 +118,11 @@ mod tests {
         let color_map = ColorMap::try_from(raw_map).expect("should be able to create color map");
 
         // check overridden values
-        assert_eq!(
-            color_map.get(&ColorKey::DocumentsBoolean),
-            Some(&Color::Yellow)
-        );
-        assert_eq!(
-            color_map.get(&ColorKey::DocumentsString),
-            Some(&Color::Cyan)
-        );
+        assert_eq!(color_map.get(&ColorKey::DocumentsBoolean), Color::Yellow);
+        assert_eq!(color_map.get(&ColorKey::DocumentsString), Color::Cyan);
 
         // check default values remain unchanged
-        assert_eq!(color_map.get(&ColorKey::DocumentsKey), Some(&Color::White));
+        assert_eq!(color_map.get(&ColorKey::DocumentsKey), Color::White);
     }
 
     #[test]

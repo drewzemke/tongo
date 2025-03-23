@@ -100,6 +100,7 @@ impl App<'_> {
             selected_connection.clone(),
             connection_manager.clone(),
             cursor_pos.clone(),
+            config.clone(),
         );
         let tab_bar = TabBar::new(selected_connection);
         let status_bar = StatusBar::new(command_manager.clone(), config.clone());
@@ -128,6 +129,7 @@ impl App<'_> {
             None,
             self.connection_manager.clone(),
             self.cursor_pos.clone(),
+            self.config.clone(),
         )
     }
 

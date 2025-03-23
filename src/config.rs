@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use color_map::RawColorMap;
+use color_map::{ColorMap, RawColorMap};
 use key_map::KeyMap;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, rc::Rc};
@@ -45,6 +45,7 @@ impl TryFrom<(Option<String>, Option<String>)> for RawConfig {
 #[derive(Debug, Default, Clone)]
 pub struct Config {
     pub key_map: Rc<KeyMap>,
+    pub color_map: Rc<ColorMap>,
 }
 
 impl TryFrom<RawConfig> for Config {
@@ -52,7 +53,12 @@ impl TryFrom<RawConfig> for Config {
 
     fn try_from(config: RawConfig) -> Result<Self, Self::Error> {
         let key_map = Rc::new(config.keys.try_into()?);
+        let color_map = if let Some(raw_color_map) = config.theme {
+            Rc::new(raw_color_map.try_into()?)
+        } else {
+            Rc::new(ColorMap::default())
+        };
 
-        Ok(Self { key_map })
+        Ok(Self { key_map, color_map })
     }
 }

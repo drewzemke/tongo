@@ -1,6 +1,7 @@
 use super::{confirm_modal::ConfirmKind, primary_screen::PrimScrFocus, tab::TabFocus, Component};
 use crate::{
     client::PAGE_SIZE,
+    config::Config,
     model::collection::Collection,
     persistence::PersistedComponent,
     system::{
@@ -13,7 +14,7 @@ use crate::{
         clipboard::send_bson_to_clipboard,
         doc_searcher::DocSearcher,
         edit_doc::edit_doc,
-        mongo_tree::{top_level_document, MongoKey},
+        mongo_tree::{MongoKey, MongoTreeBuilder},
     },
 };
 use layout::Flex;
@@ -38,12 +39,14 @@ enum Mode {
 #[derive(Debug, Default)]
 pub struct Documents<'a> {
     focus: Rc<Cell<TabFocus>>,
+    config: Config,
+
     state: TreeState<MongoKey>,
     items: Vec<TreeItem<'a, MongoKey>>,
+    mongo_tree_builder: MongoTreeBuilder<'a>,
 
     #[expect(clippy::struct_field_names)]
     documents: Vec<Bson>,
-
     collection: Option<Collection>,
 
     page: usize,
@@ -63,8 +66,10 @@ impl Clone for Documents<'_> {
 
         let mut documents = Self {
             focus: self.focus.clone(),
+            config: self.config.clone(),
             state: TreeState::default(),
             items: self.items.clone(),
+            mongo_tree_builder: self.mongo_tree_builder.clone(),
             documents,
             collection: self.collection.clone(),
             mode: Mode::Normal,
@@ -79,9 +84,12 @@ impl Clone for Documents<'_> {
 }
 
 impl Documents<'_> {
-    pub fn new(focus: Rc<Cell<TabFocus>>) -> Self {
+    pub fn new(focus: Rc<Cell<TabFocus>>, config: Config) -> Self {
+        let mongo_tree_builder = MongoTreeBuilder::new(config.clone());
         Self {
             focus,
+            config,
+            mongo_tree_builder,
             ..Default::default()
         }
     }
@@ -106,7 +114,10 @@ impl Documents<'_> {
 
         let items: Vec<_> = docs
             .iter()
-            .filter_map(|bson| bson.as_document().map(top_level_document))
+            .filter_map(|bson| {
+                bson.as_document()
+                    .map(|doc| self.mongo_tree_builder.build_tree_item(doc))
+            })
             .collect();
 
         self.items = items;

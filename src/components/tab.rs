@@ -1,20 +1,16 @@
 use crate::{
-    client::{Client, PersistedClient},
-    components::{
+    client::{Client, PersistedClient}, components::{
         confirm_modal::ConfirmModal,
         connection_screen::{ConnScrFocus, ConnectionScreen, PersistedConnectionScreen},
         list::connections::Connections,
         primary_screen::{PersistedPrimaryScreen, PrimScrFocus, PrimaryScreen},
         Component,
-    },
-    model::connection::{Connection, ConnectionManager},
-    persistence::PersistedComponent,
-    system::{
+    }, config::Config, model::connection::{Connection, ConnectionManager}, persistence::PersistedComponent, system::{
         command::{Command, CommandGroup},
         event::Event,
         message::{AppAction, Message, TabAction},
         Signal,
-    },
+    }
 };
 use ratatui::{layout::Rect, Frame};
 use serde::{Deserialize, Serialize};
@@ -73,6 +69,7 @@ impl Tab<'_> {
         selected_connection: Option<Connection>,
         connection_manager: ConnectionManager,
         cursor_pos: Rc<Cell<(u16, u16)>>,
+        config: Config,
     ) -> Tab<'static> {
         let initial_focus = if selected_connection.is_some() {
             TabFocus::PrimScr(PrimScrFocus::DbList)
@@ -86,7 +83,7 @@ impl Tab<'_> {
         let confirm_modal = ConfirmModal::new(focus.clone());
         let input_modal = InputModal::new(focus.clone(), cursor_pos.clone());
 
-        let primary_screen = PrimaryScreen::new(focus.clone(), cursor_pos.clone());
+        let primary_screen = PrimaryScreen::new(focus.clone(), cursor_pos.clone(), config);
 
         let client = Client::default();
         let mut connection_list = Connections::new(focus.clone(), connection_manager.clone());
