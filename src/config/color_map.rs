@@ -7,6 +7,9 @@ use strum::IntoEnumIterator;
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct RawColorMap {
     documents: HashMap<String, String>,
+
+    #[serde(default)]
+    palette: HashMap<String, String>,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, strum_macros::EnumIter)]
@@ -50,8 +53,24 @@ impl TryFrom<RawColorMap> for ColorMap {
     type Error = anyhow::Error;
 
     fn try_from(map: RawColorMap) -> Result<Self, Self::Error> {
-        let mut color_map = Self::default();
+        // create the palette
+        let mut palette: HashMap<String, Color> = HashMap::default();
+        for (key_str, color_str) in &map.palette {
+            if key_str
+                .chars()
+                .any(|c| !c.is_ascii_alphanumeric() && c != '_' && c != '-')
+            {
+                bail!("Invalid palette key \"{key_str}\". (Keys may consist of alphanumeric characters or '_' or '-')")
+            }
 
+            let color = Color::from_str(color_str)
+                .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))?;
+
+            palette.insert(key_str.clone(), color);
+        }
+
+        // create the actual color map
+        let mut color_map = Self::default();
         for (key_str, color_str) in &map.documents {
             let key = match key_str as &str {
                 "boolean" => ColorKey::DocumentsBoolean,
@@ -63,8 +82,15 @@ impl TryFrom<RawColorMap> for ColorMap {
                 "string" => ColorKey::DocumentsString,
                 _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
             };
-            let color = Color::from_str(color_str)
-                .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))?;
+
+            // check if `color_str` refers to the palette
+            let color = if let Some(color) = palette.get(color_str) {
+                *color
+            } else {
+                Color::from_str(color_str)
+                    .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))?
+            };
+
             color_map.map.insert(key, color);
         }
 
@@ -89,7 +115,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_default_color_map() {
+    fn default_color_map() {
         let color_map =
             ColorMap::try_from(RawColorMap::default()).expect("should be able to create color map");
 
@@ -97,7 +123,7 @@ mod tests {
     }
 
     #[test]
-    fn test_raw_color_map_ansi() {
+    fn color_map_with_ansi() {
         let mut raw_map = RawColorMap::default();
         raw_map
             .documents
@@ -117,7 +143,7 @@ mod tests {
     }
 
     #[test]
-    fn test_raw_color_map_rgb() {
+    fn color_map_with_rgb() {
         let mut raw_map = RawColorMap::default();
         raw_map
             .documents
@@ -136,7 +162,7 @@ mod tests {
     }
 
     #[test]
-    fn test_invalid_raw_color_map() {
+    fn invalid_color_map() {
         let mut raw_map = RawColorMap::default();
         raw_map
             .documents
@@ -148,6 +174,42 @@ mod tests {
         raw_map
             .documents
             .insert("boolean".to_string(), "invalid_color".to_string());
+
+        assert!(ColorMap::try_from(raw_map).is_err());
+    }
+
+    #[test]
+    fn color_map_with_palette() {
+        let mut raw_map = RawColorMap::default();
+        raw_map
+            .palette
+            .insert("lavender".to_string(), "#eeccff".to_string());
+        raw_map
+            .documents
+            .insert("boolean".to_string(), "lavender".to_string());
+
+        let color_map = ColorMap::try_from(raw_map).expect("should be able to create color map");
+
+        // check overridden values
+        assert_eq!(
+            color_map.get(&ColorKey::DocumentsBoolean),
+            Color::Rgb(238, 204, 255)
+        );
+    }
+
+    #[test]
+    fn invalid_palette_keys() {
+        let mut raw_map = RawColorMap::default();
+        raw_map
+            .palette
+            .insert("#something".to_string(), "white".to_string());
+
+        assert!(ColorMap::try_from(raw_map).is_err());
+
+        let mut raw_map = RawColorMap::default();
+        raw_map
+            .palette
+            .insert("rgb( )".to_string(), "white".to_string());
 
         assert!(ColorMap::try_from(raw_map).is_err());
     }
