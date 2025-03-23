@@ -1,6 +1,7 @@
 use super::{InnerInput, InputFormatter};
 use crate::{
     components::{primary_screen::PrimScrFocus, tab::TabFocus, Component},
+    config::{color_map::ColorKey, Config},
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandCategory, CommandGroup},
@@ -13,7 +14,7 @@ use crate::{
 use mongodb::bson::Document;
 use ratatui::{
     prelude::{Frame, Rect},
-    style::{Color, Style, Stylize},
+    style::Style,
     text::{Line, Span, Text},
 };
 use std::{cell::Cell, rc::Rc};
@@ -21,16 +22,30 @@ use std::{cell::Cell, rc::Rc};
 #[derive(Debug, Default, Clone)]
 pub struct FilterInput {
     focus: Rc<Cell<TabFocus>>,
+    config: Config,
     input: InnerInput<FilterInputFormatter>,
 }
 
 const DEFAULT_FILTER: &str = "{}";
 
 impl FilterInput {
-    pub fn new(focus: Rc<Cell<TabFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
-        let mut input = InnerInput::new("Filter", cursor_pos, FilterInputFormatter::default());
+    pub fn new(
+        focus: Rc<Cell<TabFocus>>,
+        cursor_pos: Rc<Cell<(u16, u16)>>,
+        config: Config,
+    ) -> Self {
+        let mut input = InnerInput::new(
+            "Filter",
+            cursor_pos,
+            config.clone(),
+            FilterInputFormatter::new(config.clone()),
+        );
         input.set_value(DEFAULT_FILTER);
-        Self { focus, input }
+        Self {
+            focus,
+            config,
+            input,
+        }
     }
 
     pub const fn is_editing(&self) -> bool {
@@ -127,11 +142,11 @@ impl Component for FilterInput {
         // first determine what symbol and color we'll use for the indicator
         let valid_filter = self.get_filter_doc().is_some();
         let (symbol, color) = if valid_filter {
-            ("●", Color::Green)
+            ("●", self.config.color_map.get(&ColorKey::InputValid))
         } else if self.is_editing() {
-            ("◯", Color::Red)
+            ("◯", self.config.color_map.get(&ColorKey::InputInvalid))
         } else {
-            ("●", Color::Red)
+            ("●", self.config.color_map.get(&ColorKey::InputInvalid))
         };
 
         frame
@@ -156,7 +171,32 @@ impl PersistedComponent for FilterInput {
 #[derive(Debug, Default, Clone)]
 struct FilterInputFormatter {
     labeler: JsonLabeler,
+    config: Config,
     text: Text<'static>,
+}
+
+impl FilterInputFormatter {
+    pub fn new(config: Config) -> Self {
+        Self {
+            config,
+            ..Default::default()
+        }
+    }
+
+    fn style_for_label(&self, label: &JsonLabel) -> Style {
+        let color_key = match label {
+            JsonLabel::Punctuation => ColorKey::Punctuation,
+            JsonLabel::Number => ColorKey::Number,
+            JsonLabel::Key => ColorKey::Key,
+            JsonLabel::Value => ColorKey::String,
+            JsonLabel::Constant => ColorKey::Boolean,
+            JsonLabel::DollarSignKey => ColorKey::MongoOperator,
+            JsonLabel::Error => ColorKey::Fg,
+            JsonLabel::Whitespace => return Style::default(),
+        };
+
+        Style::default().fg(self.config.color_map.get(&color_key))
+    }
 }
 
 impl InputFormatter for FilterInputFormatter {
@@ -167,20 +207,7 @@ impl InputFormatter for FilterInputFormatter {
             |labels| {
                 let spans: Vec<_> = labels
                     .into_iter()
-                    .map(|(s, label)| {
-                        let style = match label {
-                            JsonLabel::Punctuation => Style::default().gray(),
-                            JsonLabel::Number => Style::default().yellow(),
-                            JsonLabel::Key => Style::default().white(),
-                            JsonLabel::Value => Style::default().green(),
-                            JsonLabel::Constant => Style::default().cyan(),
-                            JsonLabel::Whitespace => Style::default(),
-                            JsonLabel::Error => Style::default().on_red(),
-                            JsonLabel::DollarSignKey => Style::default().magenta(),
-                        };
-
-                        Span::styled(s, style)
-                    })
+                    .map(|(s, label)| Span::styled(s, self.style_for_label(&label)))
                     .collect();
                 let line = Line::from(spans);
                 Text::from(line)

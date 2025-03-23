@@ -5,6 +5,7 @@ use super::{
     Component,
 };
 use crate::{
+    config::Config,
     model::connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
     system::{
@@ -50,11 +51,12 @@ impl Default for ConnectionScreen {
         let cursor_pos = Rc::new(Cell::new((0, 0)));
 
         let storage = Rc::new(FileStorage::default());
+        let config = Config::default();
 
         let connection_manager = ConnectionManager::new(vec![], storage);
         let conn_list = Connections::new(focus.clone(), connection_manager.clone());
-        let conn_name_input = ConnNameInput::new(focus.clone(), cursor_pos.clone());
-        let conn_str_input = ConnStrInput::new(focus.clone(), cursor_pos);
+        let conn_name_input = ConnNameInput::new(focus.clone(), cursor_pos.clone(), config.clone());
+        let conn_str_input = ConnStrInput::new(focus.clone(), cursor_pos, config);
 
         Self {
             focus,
@@ -72,10 +74,12 @@ impl ConnectionScreen {
         connection_list: Connections,
         app_focus: Rc<Cell<TabFocus>>,
         cursor_pos: Rc<Cell<(u16, u16)>>,
+        config: Config,
         connection_manager: ConnectionManager,
     ) -> Self {
-        let conn_name_input = ConnNameInput::new(app_focus.clone(), cursor_pos.clone());
-        let conn_str_input = ConnStrInput::new(app_focus.clone(), cursor_pos);
+        let conn_name_input =
+            ConnNameInput::new(app_focus.clone(), cursor_pos.clone(), config.clone());
+        let conn_str_input = ConnStrInput::new(app_focus.clone(), cursor_pos, config);
 
         Self {
             focus: app_focus,

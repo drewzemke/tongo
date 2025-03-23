@@ -16,6 +16,9 @@ pub struct RawColorMap {
     ui: HashMap<String, String>,
 
     #[serde(default)]
+    input: HashMap<String, String>,
+
+    #[serde(default)]
     palette: HashMap<String, String>,
 }
 
@@ -38,10 +41,16 @@ pub enum ColorKey {
     ObjectId,
     String,
     Punctuation,
+    MongoOperator,
 
     // documents
     DocumentsNote,
     DocumentsSearch,
+
+    // input
+    InputValid,
+    InputInvalid,
+    InputBorderActive,
 }
 
 #[derive(Debug)]
@@ -73,10 +82,16 @@ impl Default for ColorMap {
                 ColorKey::ObjectId => Color::White,
                 ColorKey::String => Color::Green,
                 ColorKey::Punctuation => Color::Gray,
+                ColorKey::MongoOperator => Color::Magenta,
 
                 // documents
                 ColorKey::DocumentsNote => Color::Gray,
                 ColorKey::DocumentsSearch => Color::Cyan,
+
+                // input
+                ColorKey::InputValid => Color::Green,
+                ColorKey::InputInvalid => Color::Red,
+                ColorKey::InputBorderActive => Color::Yellow,
             };
 
             map.insert(key, color);
@@ -140,6 +155,7 @@ impl TryFrom<RawColorMap> for ColorMap {
                 "object_id" => ColorKey::ObjectId,
                 "string" => ColorKey::String,
                 "punctuation" => ColorKey::Punctuation,
+                "mongo-operator" => ColorKey::MongoOperator,
                 _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
             };
 
@@ -158,6 +174,25 @@ impl TryFrom<RawColorMap> for ColorMap {
             let key = match key_str as &str {
                 "note" => ColorKey::DocumentsNote,
                 "search" => ColorKey::DocumentsSearch,
+                _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
+            };
+
+            // check if `color_str` refers to the palette
+            let color = if let Some(color) = palette.get(color_str) {
+                *color
+            } else {
+                Color::from_str(color_str)
+                    .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))?
+            };
+
+            color_map.map.insert(key, color);
+        }
+
+        for (key_str, color_str) in &map.input {
+            let key = match key_str as &str {
+                "indicator-valid" => ColorKey::InputValid,
+                "indicator-invalid" => ColorKey::InputInvalid,
+                "border-active" => ColorKey::InputBorderActive,
                 _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
             };
 

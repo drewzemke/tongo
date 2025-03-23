@@ -50,8 +50,8 @@ impl PrimaryScreen<'_> {
     ) -> Self {
         let db_list = Databases::new(focus.clone());
         let coll_list = Collections::new(focus.clone());
-        let doc_tree = Documents::new(focus.clone(), config);
-        let filter_input = FilterInput::new(focus.clone(), cursor_pos);
+        let doc_tree = Documents::new(focus.clone(), config.clone());
+        let filter_input = FilterInput::new(focus.clone(), cursor_pos, config);
         Self {
             focus,
             db_list,

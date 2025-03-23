@@ -1,4 +1,7 @@
-use crate::system::{event::Event, Signal};
+use crate::{
+    config::{color_map::ColorKey, Config},
+    system::{event::Event, Signal},
+};
 use crossterm::event::Event as CrosstermEvent;
 use ratatui::{
     prelude::*,
@@ -18,6 +21,7 @@ pub struct InnerInput<T: Default + std::fmt::Debug> {
     formatter: T,
 
     title: &'static str,
+    config: Config,
     cursor_pos: Rc<Cell<(u16, u16)>>,
     editing: bool,
 }
@@ -26,10 +30,16 @@ impl<T> InnerInput<T>
 where
     T: Default + InputFormatter + std::fmt::Debug,
 {
-    pub fn new(title: &'static str, cursor_pos: Rc<Cell<(u16, u16)>>, formatter: T) -> Self {
+    pub fn new(
+        title: &'static str,
+        cursor_pos: Rc<Cell<(u16, u16)>>,
+        config: Config,
+        formatter: T,
+    ) -> Self {
         Self {
             formatter,
             title,
+            config,
             cursor_pos,
             ..Default::default()
         }
@@ -71,14 +81,21 @@ where
     }
 
     fn render(&self, frame: &mut Frame, area: Rect, focused: bool) {
-        let border_color = if focused {
-            if self.is_editing() {
-                Color::Yellow
+        let (border_color, bg_color) = if focused {
+            let border_color = if self.is_editing() {
+                self.config.color_map.get(&ColorKey::InputBorderActive)
             } else {
-                Color::Green
-            }
+                self.config.color_map.get(&ColorKey::FocusedPanelBorder)
+            };
+            (
+                border_color,
+                self.config.color_map.get(&ColorKey::FocusedPanelBg),
+            )
         } else {
-            Color::White
+            (
+                self.config.color_map.get(&ColorKey::UnfocusedPanelBorder),
+                self.config.color_map.get(&ColorKey::UnfocusedPanelBg),
+            )
         };
 
         // figure the right amount to scroll the input by
@@ -90,6 +107,7 @@ where
         #[expect(clippy::cast_possible_truncation)]
         let input_widget = Paragraph::new(text).scroll((0, input_scroll as u16)).block(
             Block::default()
+                .bg(bg_color)
                 .title(format!(" {} ", self.title))
                 .border_style(Style::default().fg(border_color))
                 .padding(Padding::horizontal(1))

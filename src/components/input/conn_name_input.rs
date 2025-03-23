@@ -1,6 +1,7 @@
 use super::{DefaultFormatter, InnerInput};
 use crate::{
     components::{connection_screen::ConnScrFocus, tab::TabFocus, Component},
+    config::Config,
     system::{
         command::{Command, CommandCategory, CommandGroup},
         event::Event,
@@ -18,8 +19,17 @@ pub struct ConnNameInput {
 }
 
 impl ConnNameInput {
-    pub fn new(focus: Rc<Cell<TabFocus>>, cursor_pos: Rc<Cell<(u16, u16)>>) -> Self {
-        let input = InnerInput::new("Connection Name", cursor_pos, DefaultFormatter::default());
+    pub fn new(
+        focus: Rc<Cell<TabFocus>>,
+        cursor_pos: Rc<Cell<(u16, u16)>>,
+        config: Config,
+    ) -> Self {
+        let input = InnerInput::new(
+            "Connection Name",
+            cursor_pos,
+            config,
+            DefaultFormatter::default(),
+        );
         Self { focus, input }
     }
 
