@@ -512,13 +512,13 @@ impl Component for Documents<'_> {
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         let (border_color, bg_color) = if self.is_focused() {
             (
-                self.config.color_map.get(&ColorKey::PanelFocusedBorder),
-                self.config.color_map.get(&ColorKey::PanelFocusedBg),
+                self.config.color_map.get(&ColorKey::PanelActiveBorder),
+                self.config.color_map.get(&ColorKey::PanelActiveBg),
             )
         } else {
             (
-                self.config.color_map.get(&ColorKey::PanelUnfocusedBorder),
-                self.config.color_map.get(&ColorKey::PanelUnfocusedBg),
+                self.config.color_map.get(&ColorKey::PanelInactiveBorder),
+                self.config.color_map.get(&ColorKey::PanelInactiveBg),
             )
         };
 

@@ -142,11 +142,11 @@ impl Component for FilterInput {
         // first determine what symbol and color we'll use for the indicator
         let valid_filter = self.get_filter_doc().is_some();
         let (symbol, color) = if valid_filter {
-            ("●", self.config.color_map.get(&ColorKey::InputValid))
+            ("●", self.config.color_map.get(&ColorKey::IndicatorSuccess))
         } else if self.is_editing() {
-            ("◯", self.config.color_map.get(&ColorKey::InputInvalid))
+            ("◯", self.config.color_map.get(&ColorKey::IndicatorError))
         } else {
-            ("●", self.config.color_map.get(&ColorKey::InputInvalid))
+            ("●", self.config.color_map.get(&ColorKey::IndicatorError))
         };
 
         frame

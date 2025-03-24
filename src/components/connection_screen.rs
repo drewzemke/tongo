@@ -5,7 +5,7 @@ use super::{
     Component,
 };
 use crate::{
-    config::Config,
+    config::{color_map::ColorKey, Config},
     model::connection::{Connection, ConnectionManager},
     persistence::PersistedComponent,
     system::{
@@ -43,6 +43,7 @@ pub struct ConnectionScreen {
     conn_name_input: ConnNameInput,
     conn_str_input: ConnStrInput,
     editing_conn: Option<Connection>,
+    config: Config,
 }
 
 impl Default for ConnectionScreen {
@@ -56,7 +57,7 @@ impl Default for ConnectionScreen {
         let connection_manager = ConnectionManager::new(vec![], storage);
         let conn_list = Connections::new(focus.clone(), config.clone(), connection_manager.clone());
         let conn_name_input = ConnNameInput::new(focus.clone(), cursor_pos.clone(), config.clone());
-        let conn_str_input = ConnStrInput::new(focus.clone(), cursor_pos, config);
+        let conn_str_input = ConnStrInput::new(focus.clone(), cursor_pos, config.clone());
 
         Self {
             focus,
@@ -65,6 +66,7 @@ impl Default for ConnectionScreen {
             conn_name_input,
             conn_str_input,
             editing_conn: None,
+            config,
         }
     }
 }
@@ -79,7 +81,7 @@ impl ConnectionScreen {
     ) -> Self {
         let conn_name_input =
             ConnNameInput::new(app_focus.clone(), cursor_pos.clone(), config.clone());
-        let conn_str_input = ConnStrInput::new(app_focus.clone(), cursor_pos, config);
+        let conn_str_input = ConnStrInput::new(app_focus.clone(), cursor_pos, config.clone());
 
         Self {
             focus: app_focus,
@@ -88,6 +90,7 @@ impl ConnectionScreen {
             conn_str_input,
             connection_manager,
             editing_conn: None,
+            config,
         }
     }
 
@@ -242,8 +245,9 @@ impl Component for ConnectionScreen {
             // render container for the inputs
             frame.render_widget(Clear, overlay);
             let block = Block::bordered()
+                .border_style(self.config.color_map.get(&ColorKey::PopupBorder))
                 .title(format!(" {title} "))
-                .style(Style::default().green());
+                .bg(self.config.color_map.get(&ColorKey::PopupBg));
             frame.render_widget(block, overlay);
 
             self.conn_name_input.render(frame, inputs_layout[0]);

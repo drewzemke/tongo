@@ -85,7 +85,7 @@ impl Tab<'_> {
         // initialize shared data
         let focus = Rc::new(Cell::new(initial_focus));
 
-        let confirm_modal = ConfirmModal::new(focus.clone());
+        let confirm_modal = ConfirmModal::new(focus.clone(), config.clone());
         let input_modal = InputModal::new(focus.clone(), cursor_pos.clone(), config.clone());
 
         let primary_screen = PrimaryScreen::new(focus.clone(), cursor_pos.clone(), config.clone());

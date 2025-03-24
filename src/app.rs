@@ -102,7 +102,7 @@ impl App<'_> {
             cursor_pos.clone(),
             config.clone(),
         );
-        let tab_bar = TabBar::new(selected_connection);
+        let tab_bar = TabBar::new(selected_connection, config.clone());
         let status_bar = StatusBar::new(command_manager.clone(), config.clone());
         let help_modal = HelpModal::new(command_manager.clone(), config.clone());
 
@@ -404,7 +404,7 @@ impl Component for App<'_> {
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Length(1), Constraint::Fill(1)])
                 .split(main_area);
-            let tab_area = layout[0].inner(Margin::new(1, 0));
+            let tab_area = layout[0];
             self.tab_bar.render(frame, tab_area);
             layout[1]
         } else {

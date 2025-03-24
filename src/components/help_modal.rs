@@ -1,6 +1,12 @@
+use ratatui::{
+    layout::Offset,
+    prelude::*,
+    widgets::{Block, Clear, Row, Table, TableState},
+};
+
 use crate::{
     components::Component,
-    config::Config,
+    config::{color_map::ColorKey, Config},
     system::{
         command::{Command, CommandCategory, CommandGroup, CommandManager},
         event::Event,
@@ -8,13 +14,9 @@ use crate::{
         Signal,
     },
 };
-use ratatui::{
-    layout::Offset,
-    prelude::*,
-    widgets::{Block, Clear, Row, Table, TableState},
-};
 
 const HELP_MODAL_WIDTH: u16 = 70;
+const HELP_MODAL_HEIGHT: u16 = 20;
 
 /// represents the location of the selected command. first usize is the category,
 /// second usize is the group
@@ -184,28 +186,27 @@ impl Component for HelpModal {
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         // overall popup layout -- we render `Clear` onto a larger area than the popup in order
         // create some visual separation between the popup and the rest of the app
-        let title = " Available Commands ";
         let block = Block::bordered()
-            .title(title)
-            .border_style(Style::default().fg(Color::Blue));
+            .border_style(self.config.color_map.get(&ColorKey::PopupBorder))
+            .title(" Available Commands ")
+            .bg(self.config.color_map.get(&ColorKey::PopupBg));
 
         let layout = Layout::vertical(vec![
             Constraint::Fill(1),
-            Constraint::Length(25),
+            Constraint::Length(HELP_MODAL_HEIGHT + 2),
             Constraint::Fill(1),
         ])
         .split(area);
         let layout = Layout::horizontal(vec![
             Constraint::Fill(1),
-            Constraint::Length(HELP_MODAL_WIDTH + 6),
+            Constraint::Length(HELP_MODAL_WIDTH + 2),
             Constraint::Fill(1),
         ])
         .split(layout[1]);
 
-        frame.render_widget(Clear, layout[1]);
-
-        let block_area = layout[1].inner(Margin::new(2, 1));
+        let block_area = layout[1];
         let content_area = block_area.inner(Margin::new(1, 2));
+        frame.render_widget(Clear, block_area);
         frame.render_widget(block, block_area);
 
         // for the commands, we'll draw each currently-relevant
@@ -247,12 +248,15 @@ impl Component for HelpModal {
             .horizontal_margin(2)
             .split(grid_cell_area);
 
+            let primary = self.config.color_map.get(&ColorKey::FgPrimary);
+            let secondary = self.config.color_map.get(&ColorKey::FgSecondary);
+
             // render the category name
-            let cat_name = Line::from(format!("{category}"));
+            let cat_name = Line::from(format!("{category}")).fg(primary);
             frame.render_widget(cat_name, grid_cell_layout[0]);
 
             // draw a horizontal line
-            let line = Line::from("─".repeat(grid_cell_layout[1].width as usize));
+            let line = Line::from("─".repeat(grid_cell_layout[1].width as usize)).fg(secondary);
             frame.render_widget(line, grid_cell_layout[1]);
 
             let rows = groups.iter().map(|group| {
@@ -264,12 +268,17 @@ impl Component for HelpModal {
                     .map(Option::unwrap_or_default)
                     .collect();
 
-                Row::new(vec![key_hint.bold(), group.name.gray()])
+                Row::new(vec![key_hint.bold().fg(primary), group.name.fg(primary)])
             });
 
             // render the table
             let table = Table::new(rows, vec![Constraint::Length(7), Constraint::Fill(1)])
-                .row_highlight_style(Style::default().bold().black().on_white());
+                .row_highlight_style(
+                    Style::default()
+                        .bold()
+                        .fg(self.config.color_map.get(&ColorKey::SelectionFg))
+                        .bg(self.config.color_map.get(&ColorKey::SelectionBg)),
+                );
 
             // figure out if/where we should show a selected row in this table
             let mut table_state =

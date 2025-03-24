@@ -1,5 +1,6 @@
 use super::Component;
 use crate::{
+    config::{color_map::ColorKey, Config},
     model::connection::Connection,
     persistence::PersistedComponent,
     system::{
@@ -8,7 +9,10 @@ use crate::{
         Signal,
     },
 };
-use ratatui::{prelude::*, widgets::Tabs};
+use ratatui::{
+    prelude::*,
+    widgets::{Block, Borders, Tabs},
+};
 use serde::{Deserialize, Serialize};
 use tui_scrollview::{ScrollView, ScrollViewState, ScrollbarVisibility};
 
@@ -45,6 +49,7 @@ impl TabSpec {
 pub struct TabBar {
     tabs: Vec<TabSpec>,
     current_tab_idx: usize,
+    config: Config,
 
     scroll_state: ScrollViewState,
     // set after the first render
@@ -56,6 +61,7 @@ impl Default for TabBar {
         Self {
             tabs: vec![TabSpec::default()],
             current_tab_idx: 0,
+            config: Config::default(),
             scroll_state: ScrollViewState::new(),
             visible_width: None,
         }
@@ -63,7 +69,7 @@ impl Default for TabBar {
 }
 
 impl TabBar {
-    pub fn new(selected_connection: Option<Connection>) -> Self {
+    pub fn new(selected_connection: Option<Connection>, config: Config) -> Self {
         let base_tab = TabSpec {
             connection: selected_connection.map(|c| c.name),
             ..Default::default()
@@ -72,6 +78,7 @@ impl TabBar {
         Self {
             tabs: vec![base_tab],
             current_tab_idx: 0,
+            config,
             scroll_state: ScrollViewState::new(),
             visible_width: None,
         }
@@ -250,6 +257,13 @@ impl Component for TabBar {
 
     #[expect(clippy::cast_possible_truncation)]
     fn render(&mut self, frame: &mut Frame, area: Rect) {
+        let bg = Block::default()
+            .borders(Borders::NONE)
+            .bg(self.config.color_map.get(&ColorKey::PanelInactiveBg));
+        frame.render_widget(bg, area);
+
+        let area = area.inner(Margin::new(1, 0));
+
         // update the width and scrolling if this is the first render,
         // or if the screen was resized
         if self.visible_width.is_none_or(|w| w != area.width) {
@@ -264,8 +278,9 @@ impl Component for TabBar {
             .scrollbars_visibility(ScrollbarVisibility::Never);
 
         let tabs = Tabs::new(tab_names)
-            .style(Style::default().gray())
-            .highlight_style(Style::default().green())
+            .bg(self.config.color_map.get(&ColorKey::PanelInactiveBg))
+            .fg(self.config.color_map.get(&ColorKey::TabInactive))
+            .highlight_style(self.config.color_map.get(&ColorKey::TabActive))
             // remove padding (but add spaces to divider) to get better control over margins and scrolling
             .padding("", "")
             .divider(format!(" {} ", symbols::border::PLAIN.vertical_left))

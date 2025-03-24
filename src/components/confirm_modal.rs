@@ -1,17 +1,18 @@
-use super::tab::TabFocus;
+use ratatui::{
+    prelude::*,
+    widgets::{Block, Clear, Paragraph, Wrap},
+};
+use std::{cell::Cell, rc::Rc};
+
 use crate::{
-    components::Component,
+    components::{tab::TabFocus, Component},
+    config::{color_map::ColorKey, Config},
     system::{
         command::{Command, CommandCategory, CommandGroup},
         event::Event,
         Signal,
     },
 };
-use ratatui::{
-    prelude::*,
-    widgets::{Block, Clear, Paragraph, Wrap},
-};
-use std::{cell::Cell, rc::Rc};
 
 const CONFIRM_MODAL_WIDTH: u16 = 40;
 const CONFIRM_MODAL_HEIGHT: u16 = 3;
@@ -39,11 +40,13 @@ impl ConfirmKind {
 pub struct ConfirmModal {
     focus: Rc<Cell<TabFocus>>,
     kind: Option<ConfirmKind>,
+    config: Config,
 }
 impl ConfirmModal {
-    pub fn new(focus: Rc<Cell<TabFocus>>) -> Self {
+    pub fn new(focus: Rc<Cell<TabFocus>>, config: Config) -> Self {
         Self {
             focus,
+            config,
             ..Default::default()
         }
     }
@@ -93,25 +96,27 @@ impl Component for ConfirmModal {
 
         let layout = Layout::vertical(vec![
             Constraint::Fill(1),
-            Constraint::Length(CONFIRM_MODAL_HEIGHT + 4),
+            Constraint::Length(CONFIRM_MODAL_HEIGHT + 2),
             Constraint::Fill(1),
         ])
         .split(area);
         let layout = Layout::horizontal(vec![
             Constraint::Fill(1),
-            Constraint::Length(CONFIRM_MODAL_WIDTH + 6),
+            Constraint::Length(CONFIRM_MODAL_WIDTH + 2),
             Constraint::Fill(1),
         ])
         .split(layout[1]);
 
         let content = Paragraph::new(message).wrap(Wrap { trim: true }).block(
             Block::bordered()
+                .border_style(self.config.color_map.get(&ColorKey::PopupBorder))
                 .title(format!(" {title} "))
-                .border_style(Style::default().fg(Color::Magenta)),
+                .fg(self.config.color_map.get(&ColorKey::FgPrimary))
+                .bg(self.config.color_map.get(&ColorKey::PopupBg)),
         );
 
         frame.render_widget(Clear, layout[1]);
-        frame.render_widget(content, layout[1].inner(Margin::new(2, 1)));
+        frame.render_widget(content, layout[1]);
     }
 
     fn commands(&self) -> Vec<CommandGroup> {

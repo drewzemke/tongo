@@ -1,9 +1,12 @@
-use ratatui::prelude::*;
+use ratatui::{
+    prelude::*,
+    widgets::{Block, Borders},
+};
 use std::time::{Duration, Instant};
 
 use crate::{
     components::Component,
-    config::Config,
+    config::{color_map::ColorKey, Config},
     system::{
         command::{CommandCategory, CommandManager},
         event::Event,
@@ -82,15 +85,27 @@ impl StatusBar {
 
 impl Component for StatusBar {
     fn render(&mut self, frame: &mut Frame, area: Rect) {
+        // render the bg color
+        let bg = Block::default()
+            .borders(Borders::NONE)
+            .bg(self.config.color_map.get(&ColorKey::PanelInactiveBg));
+        frame.render_widget(bg, area);
+
         // render the message if there is one, otherwise show commands and app name
         if let Some(message) = &self.message {
-            let (prefix, style) = match message.kind {
-                MessageKind::Error => ("● Error: ", Style::default().red()),
-                MessageKind::Info => ("● ", Style::default().blue()),
-                MessageKind::Success => ("● Success: ", Style::default().green()),
+            let (prefix, color) = match message.kind {
+                MessageKind::Error => (
+                    "● Error: ",
+                    self.config.color_map.get(&ColorKey::IndicatorError),
+                ),
+                MessageKind::Info => ("● ", self.config.color_map.get(&ColorKey::IndicatorInfo)),
+                MessageKind::Success => (
+                    "● Success: ",
+                    self.config.color_map.get(&ColorKey::IndicatorSuccess),
+                ),
             };
             let content = Line::from(vec![
-                Span::styled(prefix, style),
+                Span::styled(prefix, color),
                 Span::from(message.content.clone()),
             ]);
 
@@ -99,6 +114,9 @@ impl Component for StatusBar {
             let layout = Layout::horizontal([Constraint::Fill(1), Constraint::Length(16)])
                 .horizontal_margin(1)
                 .split(area);
+
+            let primary = self.config.color_map.get(&ColorKey::FgPrimary);
+            let secondary = self.config.color_map.get(&ColorKey::FgSecondary);
 
             let commands = Line::from(
                 self.command_manager
@@ -114,7 +132,12 @@ impl Component for StatusBar {
                             .map(Option::unwrap_or_default)
                             .collect();
 
-                        vec![key_hint.bold(), ": ".into(), group.name.gray(), "  ".into()]
+                        vec![
+                            key_hint.bold().fg(primary),
+                            ": ".fg(secondary),
+                            group.name.fg(secondary),
+                            "  ".into(),
+                        ]
                     })
                     .collect::<Vec<Span>>(),
             );
@@ -123,7 +146,8 @@ impl Component for StatusBar {
                 self.renders += 1;
                 Line::from(format!("{}", &self.renders)).right_aligned()
             } else {
-                Line::from(format!("tongo v{}", env!("CARGO_PKG_VERSION")).magenta())
+                Line::from(format!("tongo v{}", env!("CARGO_PKG_VERSION")))
+                    .fg(self.config.color_map.get(&ColorKey::AppName))
                     .right_aligned()
             };
 

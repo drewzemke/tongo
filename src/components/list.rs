@@ -68,18 +68,18 @@ impl InnerList {
     fn render(&mut self, frame: &mut Frame, area: Rect, items: Vec<ListItem>, focused: bool) {
         let (border_color, bg_color, highlight_text, highlight_bg, unselected_fg) = if focused {
             (
-                self.config.color_map.get(&ColorKey::PanelFocusedBorder),
-                self.config.color_map.get(&ColorKey::PanelFocusedBg),
+                self.config.color_map.get(&ColorKey::PanelActiveBorder),
+                self.config.color_map.get(&ColorKey::PanelActiveBg),
                 self.config.color_map.get(&ColorKey::SelectionFg),
                 self.config.color_map.get(&ColorKey::SelectionBg),
                 self.config.color_map.get(&ColorKey::FgPrimary),
             )
         } else {
             (
-                self.config.color_map.get(&ColorKey::PanelUnfocusedBorder),
-                self.config.color_map.get(&ColorKey::PanelUnfocusedBg),
+                self.config.color_map.get(&ColorKey::PanelInactiveBorder),
+                self.config.color_map.get(&ColorKey::PanelInactiveBg),
                 self.config.color_map.get(&ColorKey::FgPrimary),
-                self.config.color_map.get(&ColorKey::PanelUnfocusedBg),
+                self.config.color_map.get(&ColorKey::PanelInactiveBg),
                 self.config.color_map.get(&ColorKey::FgSecondary),
             )
         };

@@ -16,7 +16,13 @@ pub struct RawColorMap {
     ui: HashMap<String, String>,
 
     #[serde(default)]
-    input: HashMap<String, String>,
+    panel: HashMap<String, String>,
+
+    #[serde(default)]
+    tab: HashMap<String, String>,
+
+    #[serde(default)]
+    popup: HashMap<String, String>,
 
     #[serde(default)]
     palette: HashMap<String, String>,
@@ -27,12 +33,27 @@ pub enum ColorKey {
     // general ui
     FgPrimary,
     FgSecondary,
-    PanelFocusedBg,
-    PanelFocusedBorder,
-    PanelUnfocusedBg,
-    PanelUnfocusedBorder,
     SelectionBg,
     SelectionFg,
+    IndicatorSuccess,
+    IndicatorError,
+    IndicatorInfo,
+    AppName,
+
+    // panel
+    PanelActiveBg,
+    PanelActiveBorder,
+    PanelInactiveBg,
+    PanelInactiveBorder,
+    PanelActiveInputBorder,
+
+    // popup
+    PopupBg,
+    PopupBorder,
+
+    // tab
+    TabActive,
+    TabInactive,
 
     // data
     Boolean,
@@ -47,11 +68,6 @@ pub enum ColorKey {
     // documents
     DocumentsNote,
     DocumentsSearch,
-
-    // input
-    InputValid,
-    InputInvalid,
-    InputBorderActive,
 }
 
 #[derive(Debug)]
@@ -69,12 +85,27 @@ impl Default for ColorMap {
                 // general ui
                 ColorKey::FgPrimary => Color::White,
                 ColorKey::FgSecondary => Color::Gray,
-                ColorKey::PanelFocusedBg => Color::Reset,
-                ColorKey::PanelFocusedBorder => Color::Green,
                 ColorKey::SelectionBg => Color::White,
                 ColorKey::SelectionFg => Color::Black,
-                ColorKey::PanelUnfocusedBg => Color::Reset,
-                ColorKey::PanelUnfocusedBorder => Color::White,
+                ColorKey::IndicatorSuccess => Color::Green,
+                ColorKey::IndicatorError => Color::Red,
+                ColorKey::IndicatorInfo => Color::Blue,
+                ColorKey::AppName => Color::Magenta,
+
+                // panel
+                ColorKey::PanelActiveBg => Color::Reset,
+                ColorKey::PanelActiveBorder => Color::Green,
+                ColorKey::PanelInactiveBg => Color::Reset,
+                ColorKey::PanelInactiveBorder => Color::White,
+                ColorKey::PanelActiveInputBorder => Color::Yellow,
+
+                // popup
+                ColorKey::PopupBorder => Color::Blue,
+                ColorKey::PopupBg => Color::Reset,
+
+                // tab
+                ColorKey::TabActive => Color::Green,
+                ColorKey::TabInactive => Color::Gray,
 
                 //data
                 ColorKey::Boolean => Color::Cyan,
@@ -89,11 +120,6 @@ impl Default for ColorMap {
                 // documents
                 ColorKey::DocumentsNote => Color::Gray,
                 ColorKey::DocumentsSearch => Color::Cyan,
-
-                // input
-                ColorKey::InputValid => Color::Green,
-                ColorKey::InputInvalid => Color::Red,
-                ColorKey::InputBorderActive => Color::Yellow,
             };
 
             map.insert(key, color);
@@ -106,6 +132,8 @@ impl Default for ColorMap {
 impl TryFrom<RawColorMap> for ColorMap {
     type Error = anyhow::Error;
 
+    // FIXME:
+    #[expect(clippy::too_many_lines)]
     fn try_from(map: RawColorMap) -> Result<Self, Self::Error> {
         // create the palette
         let mut palette: HashMap<String, Color> = HashMap::default();
@@ -129,12 +157,69 @@ impl TryFrom<RawColorMap> for ColorMap {
             let key = match key_str as &str {
                 "fg-primary" => ColorKey::FgPrimary,
                 "fg-secondary" => ColorKey::FgSecondary,
-                "panel-focused-bg" => ColorKey::PanelFocusedBg,
-                "panel-focused-border" => ColorKey::PanelFocusedBorder,
-                "panel-unfocused-bg" => ColorKey::PanelUnfocusedBg,
-                "panel-unfocused-border" => ColorKey::PanelUnfocusedBorder,
                 "selection-bg" => ColorKey::SelectionBg,
                 "selection-fg" => ColorKey::SelectionFg,
+                "indicator-success" => ColorKey::IndicatorSuccess,
+                "indicator-error" => ColorKey::IndicatorError,
+                "indicator-info" => ColorKey::IndicatorInfo,
+                "app-name" => ColorKey::AppName,
+                _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
+            };
+
+            // check if `color_str` refers to the palette
+            let color = if let Some(color) = palette.get(color_str) {
+                *color
+            } else {
+                Color::from_str(color_str)
+                    .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))?
+            };
+
+            color_map.map.insert(key, color);
+        }
+
+        for (key_str, color_str) in &map.panel {
+            let key = match key_str as &str {
+                "active-bg" => ColorKey::PanelActiveBg,
+                "active-border" => ColorKey::PanelActiveBorder,
+                "inactive-bg" => ColorKey::PanelInactiveBg,
+                "inactive-border" => ColorKey::PanelInactiveBorder,
+                "active-input-border" => ColorKey::PanelActiveInputBorder,
+                _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
+            };
+
+            // check if `color_str` refers to the palette
+            let color = if let Some(color) = palette.get(color_str) {
+                *color
+            } else {
+                Color::from_str(color_str)
+                    .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))?
+            };
+
+            color_map.map.insert(key, color);
+        }
+
+        for (key_str, color_str) in &map.tab {
+            let key = match key_str as &str {
+                "active" => ColorKey::TabActive,
+                "inactive" => ColorKey::TabInactive,
+                _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
+            };
+
+            // check if `color_str` refers to the palette
+            let color = if let Some(color) = palette.get(color_str) {
+                *color
+            } else {
+                Color::from_str(color_str)
+                    .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))?
+            };
+
+            color_map.map.insert(key, color);
+        }
+
+        for (key_str, color_str) in &map.popup {
+            let key = match key_str as &str {
+                "border" => ColorKey::PopupBorder,
+                "bg" => ColorKey::PopupBg,
                 _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
             };
 
@@ -177,25 +262,6 @@ impl TryFrom<RawColorMap> for ColorMap {
             let key = match key_str as &str {
                 "note" => ColorKey::DocumentsNote,
                 "search" => ColorKey::DocumentsSearch,
-                _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
-            };
-
-            // check if `color_str` refers to the palette
-            let color = if let Some(color) = palette.get(color_str) {
-                *color
-            } else {
-                Color::from_str(color_str)
-                    .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))?
-            };
-
-            color_map.map.insert(key, color);
-        }
-
-        for (key_str, color_str) in &map.input {
-            let key = match key_str as &str {
-                "indicator-valid" => ColorKey::InputValid,
-                "indicator-invalid" => ColorKey::InputInvalid,
-                "border-active" => ColorKey::InputBorderActive,
                 _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
             };
 

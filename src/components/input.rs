@@ -83,18 +83,18 @@ where
     fn render(&self, frame: &mut Frame, area: Rect, focused: bool) {
         let (border_color, bg_color) = if focused {
             let border_color = if self.is_editing() {
-                self.config.color_map.get(&ColorKey::InputBorderActive)
+                self.config.color_map.get(&ColorKey::PanelActiveInputBorder)
             } else {
-                self.config.color_map.get(&ColorKey::PanelFocusedBorder)
+                self.config.color_map.get(&ColorKey::PanelActiveBorder)
             };
             (
                 border_color,
-                self.config.color_map.get(&ColorKey::PanelFocusedBg),
+                self.config.color_map.get(&ColorKey::PanelActiveBg),
             )
         } else {
             (
-                self.config.color_map.get(&ColorKey::PanelUnfocusedBorder),
-                self.config.color_map.get(&ColorKey::PanelUnfocusedBg),
+                self.config.color_map.get(&ColorKey::PanelInactiveBorder),
+                self.config.color_map.get(&ColorKey::PanelInactiveBg),
             )
         };
 

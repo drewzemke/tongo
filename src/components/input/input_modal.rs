@@ -8,7 +8,7 @@ use crate::{
         Signal,
     },
 };
-use ratatui::{prelude::*, widgets::Clear};
+use ratatui::prelude::*;
 use std::{cell::Cell, rc::Rc};
 
 use super::{DefaultFormatter, InnerInput};
@@ -75,20 +75,18 @@ impl Component for InputModal {
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         let layout = Layout::vertical(vec![
             Constraint::Fill(1),
-            Constraint::Length(INPUT_MODAL_HEIGHT + 4),
+            Constraint::Length(INPUT_MODAL_HEIGHT + 2),
             Constraint::Fill(1),
         ])
         .split(area);
         let layout = Layout::horizontal(vec![
             Constraint::Fill(1),
-            Constraint::Length(INPUT_MODAL_WIDTH + 6),
+            Constraint::Length(INPUT_MODAL_WIDTH + 2),
             Constraint::Fill(1),
         ])
         .split(layout[1]);
 
-        frame.render_widget(Clear, layout[1]);
-        self.input
-            .render(frame, layout[1].inner(Margin::new(2, 1)), true);
+        self.input.render(frame, layout[1], true);
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
