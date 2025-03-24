@@ -6,6 +6,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.14.1](https://github.com/drewzemke/tongo/compare/v0.14.0...v0.14.1) - 2025-03-24
+
+### Added
+
+- *(themes)* enable theming for pretty much the entire rest of the app
+- *(themes)* add all the color keys necessary to theme lists
+- *(themes)* add all the color keys necessary to stylize inputs
+- *(themes)* allow theme to include a "palette" section where color keys may be defined
+- *(themes)* expand valid color strings in theme (to anything that's recognized by `ratatui::style::Color`)
+- *(themes)* initial impl, using `theme.toml` to customize doc component colors
+- *(themes)* create basic `ColorMap` that gets parsed from the config
+- *(fuzzy-search)* allow doc navigation in search review mode
+
+### Fixed
+
+- *(deps)* pin version of `deranged` to 0.4.0
+- *(keys)* don't always quit on ctrl-c
+- *(cli)* restrict using `--last` in conjunction with `--connection` or `--url`
+- *(connection)* correctly set selected connection when loading with `-c`
+- *(navigation)* "back" command focuses coll list from documents component (when in normal mode)
+- *(app)* process commands on hydrate so they're available for the first draw
+- *(config)* allow empty config file
+- *(documents)* properly setup component when cloning
+- *(documents)* restore refresh command
+
+### Other
+
+- *(color-map)* clean things up, also resolve that giant function that parsed the theme configuration
+- *(themes)* separate `documents` section of theme into `data` and `theme`
+- *(themes)* add all of the color keys necessary for the documents component
+- *(key-map)* move to be submodule of `config`
+- *(key-map)* type safety for `KeyMap::default()`
+- *(config)* replace the shared `KeyMap` in components with `Config` that houses a `KeyMap`
+- *(config)* rename `Config` -> `RawConfig`, improve some error messaging
+- *(fuzzy-search)* reset search when done searching
+
 ## [0.14.0](https://github.com/drewzemke/tongo/compare/v0.13.0...v0.14.0) - 2025-03-19
 
 ### Added
