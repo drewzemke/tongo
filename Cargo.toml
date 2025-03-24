@@ -43,5 +43,8 @@ tui-scrollview = "0.5.1"
 tui-tree-widget = "0.23.0"
 uuid = { version = "1.14.0", features = ["v4"] }
 
+# FIXME: remove this at some point
+deranged = "=0.4.0"
+
 [features]
 default = []
