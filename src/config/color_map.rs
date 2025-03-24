@@ -1,4 +1,4 @@
-use anyhow::{anyhow, bail};
+use anyhow::{anyhow, bail, Result};
 use ratatui::style::Color;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::FromStr};
@@ -28,7 +28,7 @@ pub struct RawColorMap {
     palette: HashMap<String, String>,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, strum_macros::EnumIter)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, strum_macros::EnumIter)]
 pub enum ColorKey {
     // general ui
     FgPrimary,
@@ -68,6 +68,74 @@ pub enum ColorKey {
     // documents
     DocumentsNote,
     DocumentsSearch,
+}
+
+/// A helper struct for parsing the color map.
+struct ColorKeyMapping {
+    section: &'static str,
+    mappings: &'static [(&'static str, ColorKey)],
+}
+
+impl ColorKeyMapping {
+    const UI: Self = Self {
+        section: "ui",
+        mappings: &[
+            ("fg-primary", ColorKey::FgPrimary),
+            ("fg-secondary", ColorKey::FgSecondary),
+            ("selection-bg", ColorKey::SelectionBg),
+            ("selection-fg", ColorKey::SelectionFg),
+            ("indicator-success", ColorKey::IndicatorSuccess),
+            ("indicator-error", ColorKey::IndicatorError),
+            ("indicator-info", ColorKey::IndicatorInfo),
+            ("app-name", ColorKey::AppName),
+        ],
+    };
+
+    const PANEL: Self = Self {
+        section: "panel",
+        mappings: &[
+            ("active-bg", ColorKey::PanelActiveBg),
+            ("active-border", ColorKey::PanelActiveBorder),
+            ("inactive-bg", ColorKey::PanelInactiveBg),
+            ("inactive-border", ColorKey::PanelInactiveBorder),
+            ("active-input-border", ColorKey::PanelActiveInputBorder),
+        ],
+    };
+
+    const TAB: Self = Self {
+        section: "tab",
+        mappings: &[
+            ("active", ColorKey::TabActive),
+            ("inactive", ColorKey::TabInactive),
+        ],
+    };
+
+    const POPUP: Self = Self {
+        section: "popup",
+        mappings: &[("border", ColorKey::PopupBorder), ("bg", ColorKey::PopupBg)],
+    };
+
+    const DATA: Self = Self {
+        section: "data",
+        mappings: &[
+            ("boolean", ColorKey::Boolean),
+            ("date", ColorKey::Date),
+            ("key", ColorKey::Key),
+            ("number", ColorKey::Number),
+            ("object-id", ColorKey::ObjectId),
+            ("string", ColorKey::String),
+            ("punctuation", ColorKey::Punctuation),
+            ("mongo-operator", ColorKey::MongoOperator),
+        ],
+    };
+
+    const DOCUMENTS: Self = Self {
+        section: "documents",
+        mappings: &[
+            ("note", ColorKey::DocumentsNote),
+            ("search", ColorKey::DocumentsSearch),
+        ],
+    };
 }
 
 #[derive(Debug)]
@@ -132,155 +200,81 @@ impl Default for ColorMap {
 impl TryFrom<RawColorMap> for ColorMap {
     type Error = anyhow::Error;
 
-    // FIXME:
-    #[expect(clippy::too_many_lines)]
     fn try_from(map: RawColorMap) -> Result<Self, Self::Error> {
+        let mut color_map = Self::default();
+
         // create the palette
-        let mut palette: HashMap<String, Color> = HashMap::default();
+        let mut palette = HashMap::default();
         for (key_str, color_str) in &map.palette {
-            if key_str
+            if !key_str
                 .chars()
-                .any(|c| !c.is_ascii_alphanumeric() && c != '_' && c != '-')
+                .all(|c| c.is_ascii_alphanumeric() || c == '_' || c == '-')
             {
                 bail!("Invalid palette key \"{key_str}\". (Keys may consist of alphanumeric characters or '_' or '-')")
             }
-
             let color = Color::from_str(color_str)
                 .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))?;
-
             palette.insert(key_str.clone(), color);
         }
 
-        // create the actual color map
-        let mut color_map = Self::default();
-        for (key_str, color_str) in &map.ui {
-            let key = match key_str as &str {
-                "fg-primary" => ColorKey::FgPrimary,
-                "fg-secondary" => ColorKey::FgSecondary,
-                "selection-bg" => ColorKey::SelectionBg,
-                "selection-fg" => ColorKey::SelectionFg,
-                "indicator-success" => ColorKey::IndicatorSuccess,
-                "indicator-error" => ColorKey::IndicatorError,
-                "indicator-info" => ColorKey::IndicatorInfo,
-                "app-name" => ColorKey::AppName,
-                _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
-            };
-
-            // check if `color_str` refers to the palette
-            let color = if let Some(color) = palette.get(color_str) {
-                *color
-            } else {
-                Color::from_str(color_str)
-                    .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))?
-            };
-
-            color_map.map.insert(key, color);
-        }
-
-        for (key_str, color_str) in &map.panel {
-            let key = match key_str as &str {
-                "active-bg" => ColorKey::PanelActiveBg,
-                "active-border" => ColorKey::PanelActiveBorder,
-                "inactive-bg" => ColorKey::PanelInactiveBg,
-                "inactive-border" => ColorKey::PanelInactiveBorder,
-                "active-input-border" => ColorKey::PanelActiveInputBorder,
-                _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
-            };
-
-            // check if `color_str` refers to the palette
-            let color = if let Some(color) = palette.get(color_str) {
-                *color
-            } else {
-                Color::from_str(color_str)
-                    .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))?
-            };
-
-            color_map.map.insert(key, color);
-        }
-
-        for (key_str, color_str) in &map.tab {
-            let key = match key_str as &str {
-                "active" => ColorKey::TabActive,
-                "inactive" => ColorKey::TabInactive,
-                _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
-            };
-
-            // check if `color_str` refers to the palette
-            let color = if let Some(color) = palette.get(color_str) {
-                *color
-            } else {
-                Color::from_str(color_str)
-                    .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))?
-            };
-
-            color_map.map.insert(key, color);
-        }
-
-        for (key_str, color_str) in &map.popup {
-            let key = match key_str as &str {
-                "border" => ColorKey::PopupBorder,
-                "bg" => ColorKey::PopupBg,
-                _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
-            };
-
-            // check if `color_str` refers to the palette
-            let color = if let Some(color) = palette.get(color_str) {
-                *color
-            } else {
-                Color::from_str(color_str)
-                    .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))?
-            };
-
-            color_map.map.insert(key, color);
-        }
-
-        for (key_str, color_str) in &map.data {
-            let key = match key_str as &str {
-                "boolean" => ColorKey::Boolean,
-                "date" => ColorKey::Date,
-                "key" => ColorKey::Key,
-                "number" => ColorKey::Number,
-                "object-id" => ColorKey::ObjectId,
-                "string" => ColorKey::String,
-                "punctuation" => ColorKey::Punctuation,
-                "mongo-operator" => ColorKey::MongoOperator,
-                _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
-            };
-
-            // check if `color_str` refers to the palette
-            let color = if let Some(color) = palette.get(color_str) {
-                *color
-            } else {
-                Color::from_str(color_str)
-                    .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))?
-            };
-
-            color_map.map.insert(key, color);
-        }
-
-        for (key_str, color_str) in &map.documents {
-            let key = match key_str as &str {
-                "note" => ColorKey::DocumentsNote,
-                "search" => ColorKey::DocumentsSearch,
-                _ => bail!(format!("Theme key not recognized: \"{key_str}\"")),
-            };
-
-            // check if `color_str` refers to the palette
-            let color = if let Some(color) = palette.get(color_str) {
-                *color
-            } else {
-                Color::from_str(color_str)
-                    .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))?
-            };
-
-            color_map.map.insert(key, color);
-        }
+        // process each section
+        color_map.process_section(&ColorKeyMapping::UI, &map.ui, &palette)?;
+        color_map.process_section(&ColorKeyMapping::PANEL, &map.panel, &palette)?;
+        color_map.process_section(&ColorKeyMapping::TAB, &map.tab, &palette)?;
+        color_map.process_section(&ColorKeyMapping::POPUP, &map.popup, &palette)?;
+        color_map.process_section(&ColorKeyMapping::DATA, &map.data, &palette)?;
+        color_map.process_section(&ColorKeyMapping::DOCUMENTS, &map.documents, &palette)?;
 
         Ok(color_map)
     }
 }
 
 impl ColorMap {
+    /// Converts a color string to a `ratatui::style::Color`, first by checking
+    /// for a match in the palette and then using `Color::try_from`
+    fn resolve_color(
+        color_str: &str,
+        palette: &HashMap<String, Color>,
+    ) -> Result<Color, anyhow::Error> {
+        palette.get(color_str).map_or_else(
+            || {
+                Color::from_str(color_str)
+                    .map_err(|_| anyhow!("Color not recognized: \"{color_str}\""))
+            },
+            |color| Ok(*color),
+        )
+    }
+
+    /// Processes the configured colors in a section of the configuration,
+    /// updating the internal color map as necessary
+    fn process_section(
+        &mut self,
+        mapping: &ColorKeyMapping,
+        section_map: &HashMap<String, String>,
+        palette: &HashMap<String, Color>,
+    ) -> Result<()> {
+        for (key_str, color_str) in section_map {
+            let key = mapping
+                .mappings
+                .iter()
+                .find(|(k, _)| *k == key_str)
+                .map(|(_, color_key)| color_key)
+                .ok_or_else(|| {
+                    anyhow!(
+                        "Theme key in \"{}\" section not recognized: \"{}\"",
+                        mapping.section,
+                        key_str
+                    )
+                })?;
+
+            let color = Self::resolve_color(color_str, palette)?;
+            self.map.insert(*key, color);
+        }
+        Ok(())
+    }
+
+    /// Gets the `Color` associated with a `ColorKey`
+    ///
     /// # Panics
     /// If asked to get the color for a color key that hasn't been set (which shouldn't happen)
     #[must_use]
