@@ -237,10 +237,21 @@ impl Default for KeyMap {
                 Command::GotoTab(7) => KeyCode::Char('7'),
                 Command::GotoTab(8) => KeyCode::Char('8'),
                 Command::GotoTab(9) => KeyCode::Char('9'),
-                Command::GotoTab(_) => KeyCode::Null,
+                Command::GotoTab(_) => continue,
             };
 
             map.insert(command, key_code.into());
+        }
+        // need to manually set up the `GotoTab` commands
+        for num in 1..=9 {
+            map.insert(
+                Command::GotoTab(num as usize),
+                KeyCode::Char(
+                    char::from_digit(num, 10)
+                        .expect("should be able to parse char from digits 1..9"),
+                )
+                .into(),
+            );
         }
 
         Self { map }
