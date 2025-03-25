@@ -1,8 +1,11 @@
 use super::InnerList;
 use crate::{
     components::{
-        confirm_modal::ConfirmKind, input::input_modal::InputKind, primary_screen::PrimScrFocus,
-        tab::TabFocus, Component,
+        confirm_modal::ConfirmKind,
+        input::input_modal::InputKind,
+        primary_screen::PrimScrFocus,
+        tab::{CloneWithFocus, TabFocus},
+        Component,
     },
     config::Config,
     model::collection::Collection,
@@ -23,6 +26,15 @@ pub struct Collections {
     focus: Rc<Cell<TabFocus>>,
     pub items: Vec<Collection>,
     list: InnerList,
+}
+
+impl CloneWithFocus for Collections {
+    fn clone_with_focus(&self, focus: Rc<Cell<TabFocus>>) -> Self {
+        Self {
+            focus,
+            ..self.clone()
+        }
+    }
 }
 
 impl Collections {

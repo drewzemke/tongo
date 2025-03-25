@@ -3,8 +3,11 @@ use std::{cell::Cell, rc::Rc};
 use super::InnerList;
 use crate::{
     components::{
-        confirm_modal::ConfirmKind, input::input_modal::InputKind, primary_screen::PrimScrFocus,
-        tab::TabFocus, Component,
+        confirm_modal::ConfirmKind,
+        input::input_modal::InputKind,
+        primary_screen::PrimScrFocus,
+        tab::{CloneWithFocus, TabFocus},
+        Component,
     },
     config::Config,
     model::database::Database,
@@ -27,6 +30,15 @@ pub struct Databases {
     focus: Rc<Cell<TabFocus>>,
     items: Vec<Database>,
     list: InnerList,
+}
+
+impl CloneWithFocus for Databases {
+    fn clone_with_focus(&self, focus: Rc<Cell<TabFocus>>) -> Self {
+        Self {
+            focus,
+            ..self.clone()
+        }
+    }
 }
 
 impl Databases {

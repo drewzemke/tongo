@@ -1,7 +1,7 @@
 use super::{
     input::{conn_name_input::ConnNameInput, conn_str_input::ConnStrInput},
     list::connections::{Connections, PersistedConnections},
-    tab::TabFocus,
+    tab::{CloneWithFocus, TabFocus},
     Component,
 };
 use crate::{
@@ -67,6 +67,18 @@ impl Default for ConnectionScreen {
             conn_str_input,
             editing_conn: None,
             config,
+        }
+    }
+}
+
+impl CloneWithFocus for ConnectionScreen {
+    fn clone_with_focus(&self, focus: Rc<Cell<TabFocus>>) -> Self {
+        Self {
+            conn_name_input: self.conn_name_input.clone_with_focus(focus.clone()),
+            conn_str_input: self.conn_str_input.clone_with_focus(focus.clone()),
+            conn_list: self.conn_list.clone_with_focus(focus.clone()),
+            focus,
+            ..self.clone()
         }
     }
 }

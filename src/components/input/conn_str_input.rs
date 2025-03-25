@@ -1,6 +1,10 @@
 use super::{DefaultFormatter, InnerInput};
 use crate::{
-    components::{connection_screen::ConnScrFocus, tab::TabFocus, Component},
+    components::{
+        connection_screen::ConnScrFocus,
+        tab::{CloneWithFocus, TabFocus},
+        Component,
+    },
     config::Config,
     system::{
         command::{Command, CommandCategory, CommandGroup},
@@ -16,6 +20,15 @@ use std::{cell::Cell, rc::Rc};
 pub struct ConnStrInput {
     focus: Rc<Cell<TabFocus>>,
     input: InnerInput<DefaultFormatter>,
+}
+
+impl CloneWithFocus for ConnStrInput {
+    fn clone_with_focus(&self, focus: Rc<Cell<TabFocus>>) -> Self {
+        Self {
+            focus,
+            ..self.clone()
+        }
+    }
 }
 
 impl ConnStrInput {

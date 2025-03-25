@@ -38,7 +38,11 @@ impl Default for TabFocus {
     }
 }
 
-#[derive(Debug, Clone)]
+pub trait CloneWithFocus {
+    fn clone_with_focus(&self, focus: Rc<Cell<TabFocus>>) -> Self;
+}
+
+#[derive(Debug)]
 pub struct Tab<'a> {
     // components
     client: Client,
@@ -62,6 +66,22 @@ impl Default for Tab<'_> {
             input_modal: InputModal::default(),
             focus: Rc::new(Cell::new(TabFocus::default())),
             background_focus: None,
+        }
+    }
+}
+
+impl Clone for Tab<'_> {
+    fn clone(&self) -> Self {
+        // NOTE: calling `focus.clone()` clones the Rc, which is not what we want here
+        let focus = Rc::new((*self.focus).clone());
+        Self {
+            client: self.client.clone(),
+            conn_screen: self.conn_screen.clone_with_focus(focus.clone()),
+            primary_screen: self.primary_screen.clone_with_focus(focus.clone()),
+            confirm_modal: self.confirm_modal.clone_with_focus(focus.clone()),
+            input_modal: self.input_modal.clone_with_focus(focus.clone()),
+            focus,
+            background_focus: self.background_focus,
         }
     }
 }

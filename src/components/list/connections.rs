@@ -6,7 +6,10 @@ use std::{
 use super::InnerList;
 use crate::{
     components::{
-        confirm_modal::ConfirmKind, connection_screen::ConnScrFocus, tab::TabFocus, Component,
+        confirm_modal::ConfirmKind,
+        connection_screen::ConnScrFocus,
+        tab::{CloneWithFocus, TabFocus},
+        Component,
     },
     config::{color_map::ColorKey, Config},
     model::connection::{Connection, ConnectionManager},
@@ -36,6 +39,15 @@ impl Default for Connections {
             connection_manager: ConnectionManager::default(),
             list: InnerList::default(),
             config: Config::default(),
+        }
+    }
+}
+
+impl CloneWithFocus for Connections {
+    fn clone_with_focus(&self, focus: Rc<Cell<TabFocus>>) -> Self {
+        Self {
+            focus,
+            ..self.clone()
         }
     }
 }

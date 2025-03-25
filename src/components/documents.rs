@@ -1,4 +1,9 @@
-use super::{confirm_modal::ConfirmKind, primary_screen::PrimScrFocus, tab::TabFocus, Component};
+use super::{
+    confirm_modal::ConfirmKind,
+    primary_screen::PrimScrFocus,
+    tab::{CloneWithFocus, TabFocus},
+    Component,
+};
 use crate::{
     client::PAGE_SIZE,
     config::{color_map::ColorKey, Config},
@@ -80,6 +85,15 @@ impl Clone for Documents<'_> {
         };
         documents.reset_state();
         documents
+    }
+}
+
+impl CloneWithFocus for Documents<'_> {
+    fn clone_with_focus(&self, focus: Rc<Cell<TabFocus>>) -> Self {
+        Self {
+            focus,
+            ..self.clone()
+        }
     }
 }
 

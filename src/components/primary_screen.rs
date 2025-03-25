@@ -2,7 +2,7 @@ use super::{
     connection_screen::ConnScrFocus,
     documents::PersistedDocuments,
     list::{collections::PersistedCollections, databases::PersistedDatabases},
-    tab::TabFocus,
+    tab::{CloneWithFocus, TabFocus},
 };
 use crate::{
     components::{
@@ -40,6 +40,18 @@ pub struct PrimaryScreen<'a> {
     coll_list: Collections,
     doc_tree: Documents<'a>,
     filter_input: FilterInput,
+}
+
+impl CloneWithFocus for PrimaryScreen<'_> {
+    fn clone_with_focus(&self, focus: Rc<Cell<TabFocus>>) -> Self {
+        Self {
+            db_list: self.db_list.clone_with_focus(focus.clone()),
+            coll_list: self.coll_list.clone_with_focus(focus.clone()),
+            doc_tree: self.doc_tree.clone_with_focus(focus.clone()),
+            filter_input: self.filter_input.clone_with_focus(focus.clone()),
+            focus,
+        }
+    }
 }
 
 impl PrimaryScreen<'_> {

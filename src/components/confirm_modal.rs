@@ -14,6 +14,8 @@ use crate::{
     },
 };
 
+use super::tab::CloneWithFocus;
+
 const CONFIRM_MODAL_WIDTH: u16 = 40;
 const CONFIRM_MODAL_HEIGHT: u16 = 3;
 
@@ -42,6 +44,16 @@ pub struct ConfirmModal {
     kind: Option<ConfirmKind>,
     config: Config,
 }
+
+impl CloneWithFocus for ConfirmModal {
+    fn clone_with_focus(&self, focus: Rc<Cell<TabFocus>>) -> Self {
+        Self {
+            focus,
+            ..self.clone()
+        }
+    }
+}
+
 impl ConfirmModal {
     pub fn new(focus: Rc<Cell<TabFocus>>, config: Config) -> Self {
         Self {

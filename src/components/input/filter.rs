@@ -1,6 +1,10 @@
 use super::{InnerInput, InputFormatter};
 use crate::{
-    components::{primary_screen::PrimScrFocus, tab::TabFocus, Component},
+    components::{
+        primary_screen::PrimScrFocus,
+        tab::{CloneWithFocus, TabFocus},
+        Component,
+    },
     config::{color_map::ColorKey, Config},
     persistence::PersistedComponent,
     system::{
@@ -27,6 +31,15 @@ pub struct FilterInput {
 }
 
 const DEFAULT_FILTER: &str = "{}";
+
+impl CloneWithFocus for FilterInput {
+    fn clone_with_focus(&self, focus: Rc<Cell<TabFocus>>) -> Self {
+        Self {
+            focus,
+            ..self.clone()
+        }
+    }
+}
 
 impl FilterInput {
     pub fn new(

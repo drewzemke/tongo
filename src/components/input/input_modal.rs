@@ -1,5 +1,8 @@
 use crate::{
-    components::{tab::TabFocus, Component},
+    components::{
+        tab::{CloneWithFocus, TabFocus},
+        Component,
+    },
     config::Config,
     system::{
         command::{Command, CommandCategory, CommandGroup},
@@ -37,6 +40,16 @@ pub struct InputModal {
     kind: Option<InputKind>,
     input: InnerInput<DefaultFormatter>,
 }
+
+impl CloneWithFocus for InputModal {
+    fn clone_with_focus(&self, focus: Rc<Cell<TabFocus>>) -> Self {
+        Self {
+            focus,
+            ..self.clone()
+        }
+    }
+}
+
 impl InputModal {
     pub fn new(
         focus: Rc<Cell<TabFocus>>,
