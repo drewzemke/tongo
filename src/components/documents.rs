@@ -388,7 +388,7 @@ impl Component for Documents<'_> {
                     Ok(new_doc) => {
                         out.push(Message::to_client(ClientAction::UpdateDoc(new_doc)).into());
                     }
-                    Err(err) => out.push(Event::ErrorOccurred(err.to_string()).into()),
+                    Err(err) => out.push(Event::ErrorOccurred(err.into()).into()),
                 }
             }
             Command::CreateNew => {
@@ -400,7 +400,7 @@ impl Component for Documents<'_> {
                     Ok(new_doc) => {
                         out.push(Message::to_client(ClientAction::InsertDoc(new_doc)).into());
                     }
-                    Err(err) => out.push(Event::ErrorOccurred(err.to_string()).into()),
+                    Err(err) => out.push(Event::ErrorOccurred(err.into()).into()),
                 }
             }
             Command::DuplicateDoc => {
@@ -416,7 +416,7 @@ impl Component for Documents<'_> {
                     Ok(new_doc) => {
                         out.push(Message::to_client(ClientAction::InsertDoc(new_doc)).into());
                     }
-                    Err(err) => out.push(Event::ErrorOccurred(err.to_string()).into()),
+                    Err(err) => out.push(Event::ErrorOccurred(err.into()).into()),
                 }
             }
             Command::Delete => {

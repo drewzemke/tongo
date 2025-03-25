@@ -1,6 +1,7 @@
 use super::command::Command;
 use crate::{
     components::input::input_modal::InputKind,
+    error::Error,
     model::{collection::Collection, connection::Connection, database::Database},
 };
 use mongodb::{
@@ -117,7 +118,7 @@ pub enum Event {
 
     /// Emitted when an error occurs. The attached string should be a human-
     /// readable description of the error.
-    ErrorOccurred(String),
+    ErrorOccurred(Error),
 
     /// Emitted when the currently-focused panel has changed.
     FocusedChanged,

@@ -150,8 +150,7 @@ impl Component for ConnectionScreen {
                 .add_connection(conn.clone())
                 .unwrap_or_else(|_| {
                     out.push(
-                        Event::ErrorOccurred("Could not save updated connections.".to_string())
-                            .into(),
+                        Event::ErrorOccurred("Could not save updated connections.".into()).into(),
                     );
                 });
         }
@@ -199,10 +198,8 @@ impl Component for ConnectionScreen {
                         .update_connection(&editing_conn)
                         .unwrap_or_else(|_| {
                             out.push(
-                                Event::ErrorOccurred(
-                                    "Could not save updated connections.".to_string(),
-                                )
-                                .into(),
+                                Event::ErrorOccurred("Could not save updated connections.".into())
+                                    .into(),
                             );
                         });
 

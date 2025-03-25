@@ -8,10 +8,10 @@ use crate::{
         Signal,
     },
 };
-use anyhow::Result;
 use futures::{Future, TryStreamExt};
 use mongodb::{
     bson::{doc, Bson, Document},
+    error::Error as MongoError,
     options::{ClientOptions, FindOptions},
     Client as MongoClient, Collection as MongoCollection, Database as MongoDatabase,
 };
@@ -95,14 +95,14 @@ impl Client {
     /// * `op` - A Future that resolves to a `Result<Event>`. It represents the operation to be executed.
     fn exec<F>(&self, op: F)
     where
-        F: Future<Output = Result<Event>> + Send + 'static,
+        F: Future<Output = Result<Event, MongoError>> + Send + 'static,
     {
         let sender = self.response_send.clone();
 
         tokio::spawn(async move {
             let result = match op.await {
                 Ok(event) => event,
-                Err(err) => Event::ErrorOccurred(err.to_string()),
+                Err(err) => Event::ErrorOccurred(err.into()),
             };
 
             sender
@@ -400,7 +400,7 @@ impl Component for Client {
                     self.update_doc(doc! { "_id": id }, doc.clone());
                 } else {
                     out.push(Event::ErrorOccurred(
-                        "Document does not have an `_id` field.".to_string(),
+                        "Document does not have an `_id` field.".into(),
                     ));
                 }
             }
@@ -412,7 +412,7 @@ impl Component for Client {
                     self.delete_doc(doc! { "_id": id });
                 } else {
                     out.push(Event::ErrorOccurred(
-                        "Document does not have an `_id` field.".to_string(),
+                        "Document does not have an `_id` field.".into(),
                     ));
                 }
             }

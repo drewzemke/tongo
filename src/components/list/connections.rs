@@ -170,7 +170,7 @@ impl Component for Connections {
             } else {
                 out.push(
                     Event::ErrorOccurred(
-                        "An error occurred while saving connection preferences".to_string(),
+                        "An error occurred while saving connection preferences".into(),
                     )
                     .into(),
                 );

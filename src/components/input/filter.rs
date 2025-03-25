@@ -120,7 +120,7 @@ impl Component for FilterInput {
                             Message::to_app(AppAction::ExitRawMode).into(),
                         ]
                     } else {
-                        vec![Event::ErrorOccurred("Invalid filter.".to_string()).into()]
+                        vec![Event::ErrorOccurred("Invalid filter.".into()).into()]
                     }
                 }
                 Command::Back => {

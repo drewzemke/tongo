@@ -160,7 +160,7 @@ impl Component for StatusBar {
         // handle the event
         match event {
             Event::ErrorOccurred(error) => {
-                self.message = Some(Message::error(error));
+                self.message = Some(Message::error(&error.to_string()));
             }
             Event::DocUpdateComplete => {
                 self.message = Some(Message::success("Document updated."));
