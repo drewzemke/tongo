@@ -110,7 +110,7 @@ impl Tab<'_> {
 
         let primary_screen = PrimaryScreen::new(focus.clone(), cursor_pos.clone(), config.clone());
 
-        let client = Client::default();
+        let client = Client::new(config.clone());
         let mut connection_list =
             Connections::new(focus.clone(), config.clone(), connection_manager.clone());
 

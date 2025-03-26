@@ -13,11 +13,34 @@ type RawKeyMap = HashMap<String, String>;
 
 #[derive(Debug, Default, Serialize, Deserialize, Clone)]
 pub struct RawConfig {
+    #[serde(rename = "page-size")]
+    #[serde(default = "default_page_size")]
+    #[serde(deserialize_with = "validate_page_size")]
+    pub page_size: usize,
+
     #[serde(default)]
     pub keys: RawKeyMap,
 
     #[serde(default)]
     pub theme: Option<RawColorMap>,
+}
+
+const fn default_page_size() -> usize {
+    5
+}
+
+fn validate_page_size<'de, D>(deserializer: D) -> Result<usize, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let size = usize::deserialize(deserializer)?;
+    if size == 0 {
+        Err(serde::de::Error::custom(
+            "page-size must be greater than zero",
+        ))
+    } else {
+        Ok(size)
+    }
 }
 
 impl TryFrom<(Option<String>, Option<String>)> for RawConfig {
@@ -44,6 +67,7 @@ impl TryFrom<(Option<String>, Option<String>)> for RawConfig {
 
 #[derive(Debug, Default, Clone)]
 pub struct Config {
+    pub page_size: usize,
     pub key_map: Rc<KeyMap>,
     pub color_map: Rc<ColorMap>,
 }
@@ -52,6 +76,7 @@ impl TryFrom<RawConfig> for Config {
     type Error = anyhow::Error;
 
     fn try_from(config: RawConfig) -> Result<Self, Self::Error> {
+        let page_size = config.page_size;
         let key_map = Rc::new(config.keys.try_into()?);
         let color_map = if let Some(raw_color_map) = config.theme {
             Rc::new(raw_color_map.try_into().context("Could not load theme")?)
@@ -59,6 +84,10 @@ impl TryFrom<RawConfig> for Config {
             Rc::new(ColorMap::default())
         };
 
-        Ok(Self { key_map, color_map })
+        Ok(Self {
+            page_size,
+            key_map,
+            color_map,
+        })
     }
 }

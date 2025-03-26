@@ -5,7 +5,6 @@ use super::{
     Component,
 };
 use crate::{
-    client::PAGE_SIZE,
     config::{color_map::ColorKey, Config},
     model::collection::Collection,
     persistence::PersistedComponent,
@@ -336,7 +335,7 @@ impl Component for Documents<'_> {
             }
             Command::NextPage => match self.mode {
                 Mode::Normal => {
-                    let end = (self.page + 1) * PAGE_SIZE;
+                    let end = (self.page + 1) * self.config.page_size;
 
                     #[expect(clippy::cast_possible_truncation)]
                     if end < self.count as usize {
@@ -371,7 +370,7 @@ impl Component for Documents<'_> {
             }
             Command::LastPage => {
                 #[expect(clippy::cast_possible_truncation)]
-                let last_page = (self.count as usize).div_ceil(PAGE_SIZE) - 1;
+                let last_page = (self.count as usize).div_ceil(self.config.page_size) - 1;
                 self.page = last_page;
                 out.push(Event::DocumentPageChanged(self.page).into());
             }
@@ -554,9 +553,10 @@ impl Component for Documents<'_> {
             return;
         };
 
-        let start = self.page * PAGE_SIZE + 1;
+        let page_size = self.config.page_size;
+        let start = self.page * page_size + 1;
         #[expect(clippy::cast_possible_truncation)]
-        let end = (start + PAGE_SIZE - 1).min(self.count as usize);
+        let end = (start + page_size - 1).min(self.count as usize);
 
         let title_left = format!("Documents in '{}'", coll.name);
         let title_right = format!("{start}-{end} of {}", self.count);

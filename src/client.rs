@@ -1,5 +1,6 @@
 use crate::{
     components::{input::input_modal::InputKind, Component},
+    config::Config,
     model::{collection::Collection, database::Database},
     persistence::PersistedComponent,
     system::{
@@ -20,9 +21,6 @@ use std::{
     collections::HashSet,
     sync::mpsc::{self, Receiver, Sender},
 };
-
-// TODO: make configurable
-pub const PAGE_SIZE: usize = 5;
 
 /// The types of async queries that `Client` can do.
 #[derive(Debug, Hash, Eq, PartialEq)]
@@ -51,6 +49,8 @@ pub struct Client {
     response_send: Sender<Event>,
     response_recv: Receiver<Event>,
 
+    config: Config,
+
     /// Used to queue operations and avoid duplicate async calls.
     queued_ops: HashSet<Operation>,
 }
@@ -66,6 +66,7 @@ impl Default for Client {
             page: 0,
             response_send,
             response_recv,
+            config: Config::default(),
             queued_ops: HashSet::default(),
         }
     }
@@ -82,12 +83,20 @@ impl Clone for Client {
             page: self.page,
             response_send,
             response_recv,
+            config: self.config.clone(),
             queued_ops: HashSet::default(),
         }
     }
 }
 
 impl Client {
+    pub fn new(config: Config) -> Self {
+        Self {
+            config,
+            ..Default::default()
+        }
+    }
+
     /// Executes an asynchronous operation and sends the result through a channel.
     ///
     /// # Arguments
@@ -164,12 +173,13 @@ impl Client {
     fn query(&self, reset_state: bool) -> Option<()> {
         let coll = self.get_collection::<Bson>()?;
         let filter = self.filter.clone();
-        let skip = self.page * PAGE_SIZE;
+        let page_size = self.config.page_size;
+        let skip = self.page * page_size;
 
         #[expect(clippy::cast_possible_wrap)]
         let options = FindOptions::builder()
             .skip(skip as u64)
-            .limit(PAGE_SIZE as i64)
+            .limit(page_size as i64)
             .build();
 
         self.exec(async move {
