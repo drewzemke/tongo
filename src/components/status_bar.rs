@@ -1,6 +1,6 @@
 use ratatui::{
     prelude::*,
-    widgets::{Block, Borders},
+    widgets::{Block, Borders, Paragraph, Wrap},
 };
 use std::time::{Duration, Instant};
 
@@ -16,8 +16,7 @@ use crate::{
 
 const DEBUG_RENDER_COUNT: bool = false;
 
-// should this be configurable?
-const ERROR_MESSAGE_DURATION: Duration = Duration::from_secs(5);
+const ERROR_MESSAGE_DURATION: Duration = Duration::from_secs(7);
 const INFO_MESSAGE_DURATION: Duration = Duration::from_secs(4);
 const SUCCESS_MESSAGE_DURATION: Duration = Duration::from_secs(4);
 
@@ -81,6 +80,36 @@ impl StatusBar {
             ..Default::default()
         }
     }
+
+    fn message_widget(&self) -> Option<Paragraph<'_>> {
+        let message = self.message.as_ref()?;
+        let (prefix, color) = match message.kind {
+            MessageKind::Error => (
+                "● Error: ",
+                self.config.color_map.get(&ColorKey::IndicatorError),
+            ),
+            MessageKind::Info => ("● ", self.config.color_map.get(&ColorKey::IndicatorInfo)),
+            MessageKind::Success => (
+                "● Success: ",
+                self.config.color_map.get(&ColorKey::IndicatorSuccess),
+            ),
+        };
+
+        let content = Line::from(vec![
+            prefix.to_string().fg(color),
+            message.content.clone().into(),
+        ]);
+
+        let paragraph = Paragraph::new(content).wrap(Wrap { trim: true });
+        Some(paragraph)
+    }
+
+    #[expect(clippy::cast_possible_truncation)]
+    pub fn height(&self, width: u16) -> u16 {
+        self.message_widget()
+            .map_or(1, |p| p.line_count(width.saturating_sub(2)))
+            .min(5) as u16
+    }
 }
 
 impl Component for StatusBar {
@@ -92,24 +121,8 @@ impl Component for StatusBar {
         frame.render_widget(bg, area);
 
         // render the message if there is one, otherwise show commands and app name
-        if let Some(message) = &self.message {
-            let (prefix, color) = match message.kind {
-                MessageKind::Error => (
-                    "● Error: ",
-                    self.config.color_map.get(&ColorKey::IndicatorError),
-                ),
-                MessageKind::Info => ("● ", self.config.color_map.get(&ColorKey::IndicatorInfo)),
-                MessageKind::Success => (
-                    "● Success: ",
-                    self.config.color_map.get(&ColorKey::IndicatorSuccess),
-                ),
-            };
-            let content = Line::from(vec![
-                Span::styled(prefix, color),
-                Span::from(message.content.clone()),
-            ]);
-
-            frame.render_widget(content, area.inner(Margin::new(1, 0)));
+        if let Some(message_content) = self.message_widget() {
+            frame.render_widget(message_content, area.inner(Margin::new(1, 0)));
         } else {
             let layout = Layout::horizontal([Constraint::Fill(1), Constraint::Length(16)])
                 .horizontal_margin(1)

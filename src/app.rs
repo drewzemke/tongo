@@ -391,9 +391,10 @@ impl Component for App<'_> {
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         // split off bottom line(s) for the status bar
+        let status_bar_height = self.status_bar.height(area.width);
         let frame_layout = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Fill(1), Constraint::Length(1)])
+            .constraints([Constraint::Fill(1), Constraint::Length(status_bar_height)])
             .split(area);
         let main_area = frame_layout[0];
         let status_bar_area = frame_layout[1];
