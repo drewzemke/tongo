@@ -9,7 +9,11 @@ Navigate and manipulate your data without leaving your terminal.
 
 - 🔌 Connect & save MongoDB connections 
 - ⚡️ Quickly navigate your data with customizable keybindings
+- 🔍 Filter your data using Mongo queries
 - 📝 Create and edit documents using your terminal editor of choice
+- 🔎 Fuzzy search currently-visible data to quickly drill down to what you're looking for
+- 📑 Run multiple sessions in tabs for quick data comparisons between collections
+- 🎨 Browse your data in style with customizable color themes
 
 ## Installation
 
