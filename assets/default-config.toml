@@ -4,6 +4,8 @@
 
 # TODO: explainers for all of these :)
 
+# page-size = 5
+
 [keys]
 # nav-up = "up"
 # nav-down = "down"
