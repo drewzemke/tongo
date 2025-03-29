@@ -1,47 +1,79 @@
-# NOTE: the available commands are subject to change between major (meaning 0.x) releases.
-# If this config can't be loaded because of an incompatibility, move it to a backup location
-# and restart `tongo` to generate a new config
+# NOTE: the available commands are subject to change between major (meaning 0.x)
+# releases. If this config can't be loaded because of an incompatibility, move
+# it to a backup location and restart `tongo` to generate a new config.
 
-# TODO: explainers for all of these :)
+# NOTE: the values shown for each configuration are the defaults. Uncomment them
+# to customize to your liking. You can use "C-" and "A-" to create keybindings
+# that use the control and alt/option keys, eg. "C-w" or "A-enter".
 
+
+# How many documents are loaded in the documents view at a time
 # page-size = 5
 
 [keys]
+# Moves the selection cursor around lists and the documents view
 # nav-up = "up"
 # nav-down = "down"
 # nav-left = "left"
 # nav-right = "right"
 
+# Changes the currently focused panel
 # focus-up = "K"
 # focus-down = "J"
 # focus-left = "H"
 # focus-right = "L"
 
-# create-new = "A"
-# edit = "E"
+# Selects things in lists, says "yes" to confirmations, or navigates forward
 # confirm = "enter"
-# reset = "R"
-# refresh = "r"
-# expand-collapse = " "
 
+# Says "no" to confirmations or navigates backwards
+# back = "esc"
+
+# Starts creating a new connection, database, collection, or document
+# create-new = "A"
+
+# Starts editing the currently-selected connection or document
+# edit = "E"
+
+# Deletes (or drops) the currently-selected connection, database, collection, or document
+# delete = "D"
+
+# Resets the value of a search field
+# reset = "R"
+
+# Refreshes the documents view with updated data
+# refresh = "r"
+
+# Expands or collapses tree items in the documents view
+# expand-collapse = "space"
+
+# Navigates between pages of documents in the documents view
 # next-page = "n"
 # previous-page = "p"
 # first-page = "P"
 # last-page = "N"
 
-# delete = "D"
-# back = "esc"
-# quit = "q"
+# Starts a fuzzy search of the documents on the current page
+# search = "/"
 
+# Duplicates a document, opening an editor to make changes before saving
 # duplicate-doc = "C"
+
+# Copies the currently-selected document (or sub-document) to the system clipbard
 # yank = "y"
 
+# Creates a new blank tab
 # new-tab = "T"
-# next-tab = "]"
-# previous-tab = "["
-# close-tab = "X"
+
+# Creates a new tab that is identical to (but independent from) the current one
 # duplicate-tab = "S"
 
+# Closes the current tab. This can't be undone!
+# close-tab = "X"
+
+# Navigates between tabs
+# next-tab = "]"
+# previous-tab = "["
 # goto-tab-1 = "1"
 # goto-tab-2 = "2"
 # goto-tab-3 = "3"
@@ -51,3 +83,9 @@
 # goto-tab-7 = "7"
 # goto-tab-8 = "8"
 # goto-tab-9 = "9"
+
+# Opens an interactive view of all the currently-available commands
+# show-commands = "?"
+
+# Closes tongo. Come back soon!
+# quit = "q"

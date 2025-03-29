@@ -118,7 +118,7 @@ impl TryFrom<&str> for Key {
 fn string_to_command(value: &str) -> Result<Command> {
     // TODO: better names?
     match value {
-        "show-help-modal" => Ok(Command::ShowHelpModal),
+        "show-commands" => Ok(Command::ShowHelpModal),
 
         "nav-up" => Ok(Command::NavUp),
         "nav-down" => Ok(Command::NavDown),
