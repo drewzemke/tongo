@@ -118,53 +118,53 @@ impl TryFrom<&str> for Key {
 fn string_to_command(value: &str) -> Result<Command> {
     // TODO: better names?
     match value {
-        "show_help_modal" => Ok(Command::ShowHelpModal),
+        "show-help-modal" => Ok(Command::ShowHelpModal),
 
-        "nav_up" => Ok(Command::NavUp),
-        "nav_down" => Ok(Command::NavDown),
-        "nav_left" => Ok(Command::NavLeft),
-        "nav_right" => Ok(Command::NavRight),
+        "nav-up" => Ok(Command::NavUp),
+        "nav-down" => Ok(Command::NavDown),
+        "nav-left" => Ok(Command::NavLeft),
+        "nav-right" => Ok(Command::NavRight),
 
-        "focus_up" => Ok(Command::FocusUp),
-        "focus_down" => Ok(Command::FocusDown),
-        "focus_left" => Ok(Command::FocusLeft),
-        "focus_right" => Ok(Command::FocusRight),
+        "focus-up" => Ok(Command::FocusUp),
+        "focus-down" => Ok(Command::FocusDown),
+        "focus-left" => Ok(Command::FocusLeft),
+        "focus-right" => Ok(Command::FocusRight),
 
-        "create_new" => Ok(Command::CreateNew),
+        "create-new" => Ok(Command::CreateNew),
         "edit" => Ok(Command::Edit),
         "confirm" => Ok(Command::Confirm),
         "reset" => Ok(Command::Reset),
         "refresh" => Ok(Command::Refresh),
-        "expand_collapse" => Ok(Command::ExpandCollapse),
+        "expand-collapse" => Ok(Command::ExpandCollapse),
 
-        "next_page" => Ok(Command::NextPage),
-        "previous_page" => Ok(Command::PreviousPage),
-        "first_page" => Ok(Command::FirstPage),
-        "last_page" => Ok(Command::LastPage),
+        "next-page" => Ok(Command::NextPage),
+        "previous-page" => Ok(Command::PreviousPage),
+        "first-page" => Ok(Command::FirstPage),
+        "last-page" => Ok(Command::LastPage),
 
         "delete" => Ok(Command::Delete),
         "search" => Ok(Command::Search),
         "back" => Ok(Command::Back),
         "quit" => Ok(Command::Quit),
 
-        "duplicate_doc" => Ok(Command::DuplicateDoc),
+        "duplicate-doc" => Ok(Command::DuplicateDoc),
         "yank" => Ok(Command::Yank),
 
-        "new_tab" => Ok(Command::NewTab),
-        "next_tab" => Ok(Command::NextTab),
-        "previous_tab" => Ok(Command::PreviousTab),
-        "close_tab" => Ok(Command::CloseTab),
-        "duplicate_tab" => Ok(Command::DuplicateTab),
+        "new-tab" => Ok(Command::NewTab),
+        "next-tab" => Ok(Command::NextTab),
+        "previous-tab" => Ok(Command::PreviousTab),
+        "close-tab" => Ok(Command::CloseTab),
+        "duplicate-tab" => Ok(Command::DuplicateTab),
 
-        "goto_tab_1" => Ok(Command::GotoTab(1)),
-        "goto_tab_2" => Ok(Command::GotoTab(2)),
-        "goto_tab_3" => Ok(Command::GotoTab(3)),
-        "goto_tab_4" => Ok(Command::GotoTab(4)),
-        "goto_tab_5" => Ok(Command::GotoTab(5)),
-        "goto_tab_6" => Ok(Command::GotoTab(6)),
-        "goto_tab_7" => Ok(Command::GotoTab(7)),
-        "goto_tab_8" => Ok(Command::GotoTab(8)),
-        "goto_tab_9" => Ok(Command::GotoTab(9)),
+        "goto-tab-1" => Ok(Command::GotoTab(1)),
+        "goto-tab-2" => Ok(Command::GotoTab(2)),
+        "goto-tab-3" => Ok(Command::GotoTab(3)),
+        "goto-tab-4" => Ok(Command::GotoTab(4)),
+        "goto-tab-5" => Ok(Command::GotoTab(5)),
+        "goto-tab-6" => Ok(Command::GotoTab(6)),
+        "goto-tab-7" => Ok(Command::GotoTab(7)),
+        "goto-tab-8" => Ok(Command::GotoTab(8)),
+        "goto-tab-9" => Ok(Command::GotoTab(9)),
         _ => bail!(format!("Command not recognized: \"{value}\"")),
     }
 }
@@ -324,7 +324,7 @@ mod tests {
     #[test]
     fn create_overridden_key_map() {
         let config = RawConfig {
-            keys: HashMap::from([("nav_up".to_string(), "k".to_string())]),
+            keys: HashMap::from([("nav-up".to_string(), "k".to_string())]),
             ..Default::default()
         };
         let key_map = KeyMap::try_from(config.keys).unwrap();
