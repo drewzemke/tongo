@@ -17,3 +17,6 @@ start-mongo:
 
 logs:
     tail -f $HOME/.local/share/tongo/tongo.log
+
+record-demo:
+    vhs assets/demo.tape

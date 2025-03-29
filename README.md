@@ -3,6 +3,8 @@
 `tongo` is a fast and keyboard-driven TUI (Terminal User Interface) for MongoDB.
 Navigate and manipulate your data without leaving your terminal.
 
+![Demo](./assets/demo.gif)
+
 ## Major Features
 
 - 🔌 Connect & save MongoDB connections 
