@@ -545,7 +545,7 @@ impl Component for Documents<'_> {
 
             let layout = Layout::vertical([1]).flex(Flex::Center).split(area);
             let widget = Line::from(
-                "(no collection selected)".fg(self.config.color_map.get(&ColorKey::DocumentsNote)),
+                "(no collection selected)".fg(self.config.color_map.get(&ColorKey::FgSecondary)),
             )
             .centered();
             frame.render_widget(widget, layout[0]);

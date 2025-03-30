@@ -21,7 +21,12 @@ use crate::{
         Signal,
     },
 };
-use ratatui::{prelude::*, widgets::ListItem};
+use crossterm::event::KeyCode;
+use ratatui::{
+    layout::Flex,
+    prelude::*,
+    widgets::{Block, ListItem, Paragraph},
+};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone)]
@@ -180,24 +185,66 @@ impl Component for Connections {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        let items: Vec<ListItem> = self
-            .connection_manager
-            .connections()
-            .iter()
-            .map(|item| {
-                let masked_conn_str = Self::mask_password(&item.connection_str);
+        if self.connection_manager.connections().is_empty() {
+            let (border_color, bg_color) = if self.is_focused() {
+                (
+                    self.config.color_map.get(&ColorKey::PanelActiveBorder),
+                    self.config.color_map.get(&ColorKey::PanelActiveBg),
+                )
+            } else {
+                (
+                    self.config.color_map.get(&ColorKey::PanelInactiveBorder),
+                    self.config.color_map.get(&ColorKey::PanelInactiveBg),
+                )
+            };
+            let block = Block::bordered()
+                .title(" Connections ")
+                .bg(bg_color)
+                .border_style(Style::default().fg(border_color));
+            frame.render_widget(block, area);
 
-                let text = Text::from(vec![
-                    Line::from(item.name.clone())
-                        .fg(self.config.color_map.get(&ColorKey::FgPrimary)),
-                    Line::from(format!(" {masked_conn_str}"))
-                        .fg(self.config.color_map.get(&ColorKey::FgSecondary)),
-                ]);
-                ListItem::new(text)
-            })
-            .collect();
+            let layout = Layout::vertical([2]).flex(Flex::Center).split(area);
+            let create_new_key = self
+                .config
+                .key_map
+                .key_for_command(Command::CreateNew)
+                .unwrap_or_else(|| KeyCode::Char('?').into());
 
-        self.list.render(frame, area, items, self.is_focused());
+            let line1 = Line::from(
+                "You don't have any connections."
+                    .fg(self.config.color_map.get(&ColorKey::FgSecondary)),
+            )
+            .centered();
+            let line2 = Line::from(vec![
+                "Press ".fg(self.config.color_map.get(&ColorKey::FgSecondary)),
+                create_new_key
+                    .to_string()
+                    .fg(self.config.color_map.get(&ColorKey::FgPrimary)),
+                " to create one!".fg(self.config.color_map.get(&ColorKey::FgSecondary)),
+            ])
+            .centered();
+
+            frame.render_widget(Paragraph::new(vec![line1, line2]), layout[0]);
+        } else {
+            let items: Vec<ListItem> = self
+                .connection_manager
+                .connections()
+                .iter()
+                .map(|item| {
+                    let masked_conn_str = Self::mask_password(&item.connection_str);
+
+                    let text = Text::from(vec![
+                        Line::from(item.name.clone())
+                            .fg(self.config.color_map.get(&ColorKey::FgPrimary)),
+                        Line::from(format!(" {masked_conn_str}"))
+                            .fg(self.config.color_map.get(&ColorKey::FgSecondary)),
+                    ]);
+                    ListItem::new(text)
+                })
+                .collect();
+
+            self.list.render(frame, area, items, self.is_focused());
+        }
     }
 }
 
