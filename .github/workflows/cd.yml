@@ -5,6 +5,10 @@ on:
     tags:
       - "v*.*.*"
 
+    # TODO: remove
+    branches:
+      - debug-cd
+
 jobs:
   publish:
     name: Build for ${{ matrix.target }}
@@ -72,10 +76,10 @@ jobs:
             ;;
           esac;
 
-      - name: Upload Binaries
-        uses: svenstaro/upload-release-action@v2
+      - name: Release
+        uses: softprops/action-gh-release@v2
         with:
-          file: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
-          asset_name: tongo-${{ matrix.target }}
-          tag: ${{ github.ref }}
-          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: v0.15.1
+          files: target/${{ matrix.target }}/release/tongo-*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
