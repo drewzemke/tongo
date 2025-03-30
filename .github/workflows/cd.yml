@@ -75,7 +75,7 @@ jobs:
       - name: Upload Binaries
         uses: svenstaro/upload-release-action@v2
         with:
-          file: target/release/${{ matrix.artifact_name }}
+          file: target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
           asset_name: tongo-${{ matrix.target }}
           tag: ${{ github.ref }}
           repo_token: ${{ secrets.GITHUB_TOKEN }}
