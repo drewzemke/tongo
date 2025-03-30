@@ -3,7 +3,7 @@
 `tongo` is a fast and keyboard-driven TUI (Terminal User Interface) for MongoDB.
 Navigate and manipulate your data without leaving your terminal.
 
-![Demo](./assets/demo.gif)
+![Demo](./assets/recordings/demo.gif)
 
 ## Major Features
 
@@ -74,6 +74,10 @@ tongo --last
 ## Configuration
 
 The first time you run `tongo`, a `config.toml` will be created for you in `~/.config/tongo` on Mac and Linux and in `<your-user-folder>\AppData\Roaming\tongo` on Windows. (You can also see that file [here](./assets/default-config.toml).) It contains a full commented-out configuration together with descriptions of each configuration point. 
+
+### Color Themes
+
+You can fully customize the colors used in `tongo`'s UI to your liking by creating a `theme.toml` in the same directory as your configuration file. Check out [our small themes collection](./assets/themes) for some examples to get you started.
 
 
 ## Contributing

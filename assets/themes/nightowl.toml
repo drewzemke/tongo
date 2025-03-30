@@ -1,0 +1,61 @@
+# A color theme for `tongo` (https://github.com/drewzemke/tongo)
+# Inspired by the "Night Owl" VSCode theme by Sarah Drasner (https://github.com/sdras/night-owl-vscode-theme) 
+
+# To use this theme in `tongo`, move (or link) it to `~/.config/tongo/theme.toml` on Mac/Linux or `<your-user-folder>\AppData\Roaming\tongo\theme.toml` on Windows.
+
+[palette]
+base-background = "#011627"
+base-foreground = "#d6deeb"
+selection = "#1d3b53"
+accent-purple = "#c792ea"
+accent-green = "#c5e478"
+accent-blue = "#82AAFF"
+accent-orange = "#ffcb8b"
+accent-red = "#EF5350"
+accent-cyan = "#7fdbca"
+comment = "#637777"
+
+border = "#122d42"
+input-background = "#0b253a"
+badge-background = "#5f7e97"
+tab-active = "#0b2942"
+tab-inactive = "#01111d"
+
+[ui]
+fg-primary = "base-foreground"
+fg-secondary = "comment"
+selection-bg = "selection"
+selection-fg = "base-foreground"
+indicator-success = "accent-green"
+indicator-error = "accent-red"
+indicator-info = "accent-purple"
+app-name = "accent-purple"
+
+[panel]
+active-bg = "base-background"
+active-border = "accent-orange"
+inactive-bg = "tab-inactive"
+inactive-border = "badge-background"
+active-input-border = "accent-cyan"
+
+[popup]
+border = "accent-cyan"
+bg = "base-background"
+
+[tab]
+active = "accent-orange"
+inactive = "comment"
+
+[data]
+boolean = "accent-red"
+date = "accent-cyan"
+key = "base-foreground"
+number = "accent-orange"
+object-id = "accent-cyan"
+string = "accent-green"
+punctuation = "comment"
+mongo-operator = "accent-cyan"
+
+[documents]
+note = "comment"
+search = "accent-blue"

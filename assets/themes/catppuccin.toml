@@ -1,0 +1,71 @@
+# A color theme for `tongo` (https://github.com/drewzemke/tongo)
+# Inspired by the "Catppuccin Mocha" color theme (https://github.com/catppuccin/catppuccin) 
+
+# To use this theme in `tongo`, move (or link) it to `~/.config/tongo/theme.toml` on Mac/Linux and `<your-user-folder>\AppData\Roaming\tongo\theme.toml` on Windows.
+
+[palette]
+rosewater = "#f5e0dc"
+flamingo = "#f2cdcd"
+pink = "#f5c2e7"
+mauve = "#cba6f7"
+red = "#f38ba8"
+maroon = "#eba0ac"
+peach = "#fab387"
+yellow = "#f9e2af"
+green = "#a6e3a1"
+teal = "#94e2d5"
+sky = "#89dceb"
+sapphire = "#74c7ec"
+blue = "#89b4fa"
+lavender = "#b4befe"
+text = "#cdd6f4"
+subtext1 = "#bac2de"
+subtext0 = "#a6adc8"
+overlay2 = "#9399b2"
+overlay1 = "#7f849c"
+overlay0 = "#6c7086"
+surface2 = "#585b70"
+surface1 = "#45475a"
+surface0 = "#313244"
+base = "#1e1e2e"
+mantle = "#181825"
+crust = "#11111b"
+
+[ui]
+fg-primary = "text"
+fg-secondary = "lavender"
+selection-bg = "mauve"
+selection-fg = "base"
+indicator-success = "green"
+indicator-error = "red"
+indicator-info = "blue"
+app-name = "pink"
+
+[panel]
+active-bg = "base"
+active-border = "sapphire"
+inactive-bg = "crust"
+inactive-border = "surface1"
+active-input-border = "teal"
+
+[popup]
+border = "flamingo"
+bg = "base"
+
+[tab]
+active = "peach"
+inactive = "overlay1"
+
+[data]
+boolean = "yellow"
+date = "sky"
+key = "flamingo"
+number = "pink"
+object-id = "sapphire"
+string = "green"
+punctuation = "mauve"
+mongo-operator = "teal"
+
+[documents]
+note = "rosewater"
+search = "blue"
