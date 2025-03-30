@@ -6,6 +6,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.0](https://github.com/drewzemke/tongo/compare/v0.14.1...v0.15.0) - 2025-03-30
+
+### Added
+
+- *(connections)* add a message to connections screen when there aren't any connections
+- *(config)* allow configuring page size
+- *(error)* add crate error type, clean up error printing a bit
+
+### Fixed
+
+- *(demo)* rerun with fresh local db
+- *(status-bar)* automatically expand status bar to fit error content
+- *(tabs)* fix incorrect cloning of `focus` field when duplicating tabs
+- *(keys)* properly setup key map with default for "goto tab"
+- *(deps)* unpin `deranged` since the problematic version was yanked
+
+### Other
+
+- *(cd)* add workflow to build binaries for releases
+- *(themes)* add theme files to repo
+- *(readme)* add quick start and some notes on contributing
+- *(readme)* add a few extra "feature" entries
+- *(readme)* add demo clip
+- *(config)* add explanatory comments
+- *(config)* [**breaking**] change underscores to hyphens in the key map
+- *(key-map)* remove some
+
 ## [0.14.1](https://github.com/drewzemke/tongo/compare/v0.14.0...v0.14.1) - 2025-03-24
 
 ### Added
