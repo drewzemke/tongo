@@ -39,6 +39,13 @@ Then you can move the created binary somewhere on your path:
 cp ./result/bin/tongo /usr/local/bin/tongo
 ```
 
+### Using AUR
+
+If you're on Arch Linux, you can install `tongo` [from the AUR](https://aur.archlinux.org/packages/tongo):
+```shell
+paru -S tongo
+```
+
 ## Quick Start
 
 1. Launch `tongo` in your terminal of choice:
