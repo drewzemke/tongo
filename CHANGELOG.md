@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.2](https://github.com/drewzemke/tongo/compare/v0.15.1...v0.15.2) - 2025-04-23
+
+### Fixed
+
+- *(cd)* upload packaged binaries to release
+- *(cd)* add workflow write permissions
+
+### Other
+
+- *(readme)* add instructions for installing from the AUR
+
 ## [0.15.1](https://github.com/drewzemke/tongo/compare/v0.15.0...v0.15.1) - 2025-03-30
 
 ### Fixed
