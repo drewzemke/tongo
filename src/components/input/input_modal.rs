@@ -1,5 +1,6 @@
 use crate::{
     components::{
+        input::BorderConfig,
         tab::{CloneWithFocus, TabFocus},
         Component,
     },
@@ -99,7 +100,7 @@ impl Component for InputModal {
         ])
         .split(layout[1]);
 
-        self.input.render(frame, layout[1], true);
+        self.input.render(frame, layout[1], BorderConfig::Focused);
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
@@ -130,9 +131,9 @@ impl Component for InputModal {
                 let value = self.input.value().to_string();
                 self.input.set_value("");
                 queue.push(Event::InputConfirmed(
-                        self.kind.expect("input should not be shown without a kind"),
-                        value,
-                    ));
+                    self.kind.expect("input should not be shown without a kind"),
+                    value,
+                ));
                 queue.push(Message::to_app(AppAction::ExitRawMode));
             }
             Command::Back => {
@@ -140,7 +141,7 @@ impl Component for InputModal {
                 queue.push(Event::InputCanceled);
                 queue.push(Message::to_app(AppAction::ExitRawMode));
             }
-            _ => {},
+            _ => {}
         }
     }
 }

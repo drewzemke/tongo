@@ -2,6 +2,7 @@ use super::{DefaultFormatter, InnerInput};
 use crate::{
     components::{
         connection_screen::ConnScrFocus,
+        input::BorderConfig,
         tab::{CloneWithFocus, TabFocus},
         Component,
     },
@@ -93,7 +94,7 @@ impl Component for ConnStrInput {
             Command::Back => {
                 queue.push(Message::to_conn_scr(ConnScreenAction::FocusConnNameInput));
             }
-            _ => {},
+            _ => {}
         }
     }
 
@@ -106,7 +107,12 @@ impl Component for ConnStrInput {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        self.input.render(frame, area, self.is_focused());
+        let border = if self.is_focused() {
+            BorderConfig::Focused
+        } else {
+            BorderConfig::Unfocused
+        };
+        self.input.render(frame, area, border);
     }
 }
 

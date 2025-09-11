@@ -1,6 +1,9 @@
 use std::{cell::Cell, rc::Rc};
 
-use ratatui::{layout::Rect, Frame};
+use ratatui::{
+    prelude::*,
+    widgets::{Block, Borders},
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -9,7 +12,7 @@ use crate::{
         tab::{CloneWithFocus, TabFocus},
         Component,
     },
-    config::Config,
+    config::{color_map::ColorKey, Config},
     persistence::PersistedComponent,
     system::{
         command::{Command, CommandGroup},
@@ -21,6 +24,7 @@ use crate::{
 pub struct QueryInput {
     #[expect(dead_code)]
     focus: Rc<Cell<TabFocus>>,
+    config: Config,
     filter_input: FilterInput,
 }
 
@@ -28,6 +32,7 @@ impl CloneWithFocus for QueryInput {
     fn clone_with_focus(&self, focus: Rc<Cell<TabFocus>>) -> Self {
         Self {
             filter_input: self.filter_input.clone_with_focus(focus.clone()),
+            config: self.config.clone(),
             focus,
         }
     }
@@ -39,9 +44,10 @@ impl QueryInput {
         cursor_pos: Rc<Cell<(u16, u16)>>,
         config: Config,
     ) -> Self {
-        let filter_input = FilterInput::new(focus.clone(), cursor_pos, config);
+        let filter_input = FilterInput::new(focus.clone(), cursor_pos, config.clone());
         Self {
             focus,
+            config,
             filter_input,
         }
     }
@@ -69,7 +75,33 @@ impl Component for QueryInput {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
+        let (border_color, bg_color) = if self.filter_input.is_focused() {
+            let border_color = if self.is_editing() {
+                self.config.color_map.get(&ColorKey::PanelActiveInputBorder)
+            } else {
+                self.config.color_map.get(&ColorKey::PanelActiveBorder)
+            };
+            (
+                border_color,
+                self.config.color_map.get(&ColorKey::PanelActiveBg),
+            )
+        } else {
+            (
+                self.config.color_map.get(&ColorKey::PanelInactiveBorder),
+                self.config.color_map.get(&ColorKey::PanelInactiveBg),
+            )
+        };
+
+        // render the filter in a colored border
+        // TODO: we'll expand this when we add the other fields
         self.filter_input.render(frame, area);
+
+        let block = Block::default()
+            .bg(bg_color)
+            .title(" Query ")
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(border_color));
+        block.render(area, frame.buffer_mut());
     }
 }
 

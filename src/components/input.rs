@@ -15,6 +15,13 @@ pub mod conn_str_input;
 pub mod filter;
 pub mod input_modal;
 
+#[derive(Debug, Copy, Clone)]
+pub enum BorderConfig {
+    Focused,
+    Unfocused,
+    None,
+}
+
 #[derive(Debug, Default, Clone)]
 pub struct InnerInput<T: Default + std::fmt::Debug> {
     state: TuiInput,
@@ -78,8 +85,8 @@ where
         }
     }
 
-    fn render(&self, frame: &mut Frame, area: Rect, focused: bool) {
-        let (border_color, bg_color) = if focused {
+    fn render(&self, frame: &mut Frame, area: Rect, border: BorderConfig) {
+        let (border_color, bg_color) = if matches!(border, BorderConfig::Focused) {
             let border_color = if self.is_editing() {
                 self.config.color_map.get(&ColorKey::PanelActiveInputBorder)
             } else {
@@ -96,20 +103,25 @@ where
             )
         };
 
-        // figure the right amount to scroll the input by
+        // figure out the right amount to scroll the input by
         let input_scroll = self.state.visual_scroll(area.width as usize - 5);
 
-        // create the text
         let text = self.formatter.get_formatted();
+
+        let (padding, borders) = if matches!(border, BorderConfig::None) {
+            (Padding::horizontal(2), Borders::NONE)
+        } else {
+            (Padding::horizontal(1), Borders::ALL)
+        };
 
         #[expect(clippy::cast_possible_truncation)]
         let input_widget = Paragraph::new(text).scroll((0, input_scroll as u16)).block(
             Block::default()
                 .bg(bg_color)
                 .title(format!(" {} ", self.title))
-                .border_style(Style::default().fg(border_color))
-                .padding(Padding::horizontal(1))
-                .borders(Borders::ALL),
+                .padding(padding)
+                .borders(borders)
+                .border_style(Style::default().fg(border_color)),
         );
         frame.render_widget(Clear, area);
         frame.render_widget(input_widget, area);

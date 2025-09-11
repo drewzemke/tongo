@@ -1,6 +1,7 @@
 use super::{InnerInput, InputFormatter};
 use crate::{
     components::{
+        input::BorderConfig,
         primary_screen::PrimScrFocus,
         tab::{CloneWithFocus, TabFocus},
         Component,
@@ -147,7 +148,7 @@ impl Component for FilterInput {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        self.input.render(frame, area, self.is_focused());
+        self.input.render(frame, area, BorderConfig::None);
 
         // render an indicator symbol to show if the filter is valid.
         // first determine what symbol and color we'll use for the indicator
