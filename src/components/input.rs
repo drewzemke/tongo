@@ -1,6 +1,6 @@
 use crate::{
     config::{color_map::ColorKey, Config},
-    system::{event::Event, Signal},
+    system::{event::Event, signal::SignalQueue},
 };
 use crossterm::event::Event as CrosstermEvent;
 use ratatui::{
@@ -70,13 +70,11 @@ where
         self.formatter.on_change(value);
     }
 
-    fn handle_raw_event(&mut self, event: &CrosstermEvent) -> Vec<Signal> {
+    fn handle_raw_event(&mut self, event: &CrosstermEvent, queue: &mut SignalQueue) {
         if self.is_editing() {
             self.state.handle_event(event);
             self.formatter.on_change(self.state.value());
-            vec![Event::InputKeyPressed.into()]
-        } else {
-            vec![]
+            queue.push(Event::InputKeyPressed);
         }
     }
 

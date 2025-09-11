@@ -13,7 +13,7 @@ use crate::{
         command::{Command, CommandCategory, CommandGroup, CommandManager},
         event::Event,
         message::{AppAction, Message},
-        Signal,
+        signal::{Signal, SignalQueue},
     },
     utils::storage::{FileStorage, Storage},
 };
@@ -23,7 +23,6 @@ use ratatui::{backend::Backend, prelude::*};
 use serde::{Deserialize, Serialize};
 use std::{
     cell::Cell,
-    collections::VecDeque,
     rc::Rc,
     time::{Duration, Instant},
 };
@@ -157,15 +156,17 @@ impl App<'_> {
 
             // if a key is presssed, process it and send it through the system.
             // if no key is pressed, process a `tick` event and send it
-            let signals = if crossterm::event::poll(timeout)? {
+            let mut queue = SignalQueue::default();
+
+            if crossterm::event::poll(timeout)? {
                 let event = crossterm::event::read()?;
-                self.handle_raw_event(&event)
+                self.handle_raw_event(&event, &mut queue);
             } else {
-                vec![Event::Tick.into()]
-            };
+                queue.push(Event::Tick);
+            }
 
             // process events and messages
-            let should_render = self.process_signals(signals);
+            let should_render = self.process_signals(&mut queue);
 
             // once all the signals are processed for this loop, tell the client to execute
             // any operations it decided to do during event processing loop
@@ -194,11 +195,10 @@ impl App<'_> {
     }
 
     #[tracing::instrument(skip(self))]
-    fn process_signals(&mut self, signals: Vec<Signal>) -> bool {
+    fn process_signals(&mut self, queue: &mut SignalQueue) -> bool {
         let mut should_render = false;
-        let mut signals_deque = VecDeque::from(signals);
 
-        while let Some(signal) = signals_deque.pop_front() {
+        while let Some(signal) = queue.pop() {
             let is_nontrivial_event = !matches!(signal, Signal::Event(Event::Tick));
 
             // set the render flag to true if we get an event that isn't `Event::Tick`
@@ -208,13 +208,9 @@ impl App<'_> {
                 tracing::debug!("Processing signal {signal}");
             }
 
-            let new_signals = match signal {
-                Signal::Event(event) => self.handle_event(&event),
-                Signal::Message(message) => self.handle_message(&message),
-            };
-
-            for new_signal in new_signals {
-                signals_deque.push_back(new_signal);
+            match signal {
+                Signal::Event(event) => self.handle_event(&event, queue),
+                Signal::Message(message) => self.handle_message(&message, queue),
             }
         }
 
@@ -260,18 +256,17 @@ impl Component for App<'_> {
         out
     }
 
-    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
-        let mut out = vec![];
-
+    fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
         if matches!(self.mode, Mode::HelpModal) {
-            return self.help_modal.handle_command(command);
+            self.help_modal.handle_command(command, queue);
+            return;
         }
 
         match command {
             Command::Quit => {
                 tracing::info!("Quit command received. Exiting...");
                 self.exiting = true;
-                return vec![];
+                return;
             }
             Command::NewTab => {
                 let tab = self.create_tab();
@@ -290,36 +285,38 @@ impl Component for App<'_> {
             }
             Command::ShowHelpModal => {
                 self.mode = Mode::HelpModal;
-                out.push(Event::HelpModalToggled.into());
+                queue.push(Event::HelpModalToggled);
             }
             _ => {}
         }
 
         // the tab bar sees every command (although it only handles a few of them)
-        out.append(&mut self.tab_bar.handle_command(command));
+        self.tab_bar.handle_command(command, queue);
 
         let index = self.current_tab_idx();
         if let Some(tab) = &mut self.tabs.get_mut(index) {
-            out.append(&mut tab.handle_command(command));
+            tab.handle_command(command, queue);
         }
-        out
     }
 
-    fn handle_raw_event(&mut self, event: &CrosstermEvent) -> Vec<Signal> {
+    fn handle_raw_event(&mut self, event: &CrosstermEvent, queue: &mut SignalQueue) {
         // NOTE: for now we only deal with key events
         if let CrosstermEvent::Key(key) = event {
             // if in raw mode, check for enter or escape
             // otherwise just pass the whole event
             if matches!(self.mode, Mode::Raw) {
                 if key.code == KeyCode::Enter {
-                    return self.handle_command(&Command::Confirm);
+                    self.handle_command(&Command::Confirm, queue);
+                    return;
                 }
                 if key.code == KeyCode::Esc {
-                    return self.handle_command(&Command::Back);
+                    self.handle_command(&Command::Back, queue);
+                    return;
                 }
                 let index = self.current_tab_idx();
                 if let Some(tab) = &mut self.tabs.get_mut(index) {
-                    return tab.handle_raw_event(event);
+                    tab.handle_raw_event(event, queue);
+                    return;
                 }
             }
 
@@ -332,60 +329,56 @@ impl Component for App<'_> {
 
             // pass the command through the component system
             if let Some(command) = command {
-                return self.handle_command(&command);
+                self.handle_command(&command, queue);
+                return;
             }
         }
 
         match event {
             CrosstermEvent::Resize(..) => {
                 // returning a nontrivial event triggers a redraw
-                vec![Event::ScreenResized.into()]
+                queue.push(Event::ScreenResized);
             }
-            CrosstermEvent::FocusGained => vec![Event::AppFocusGained.into()],
-            CrosstermEvent::FocusLost => vec![Event::AppFocusLost.into()],
-            _ => vec![],
+            CrosstermEvent::FocusGained => queue.push(Event::AppFocusGained),
+            CrosstermEvent::FocusLost => queue.push(Event::AppFocusLost),
+            _ => {}
         }
     }
 
-    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
-        let mut out = vec![];
+    fn handle_event(&mut self, event: &Event, queue: &mut SignalQueue) {
         if matches!(event, Event::ReturnedFromAltScreen) {
             self.force_clear = true;
         }
 
-        out.append(&mut self.tab_bar.handle_event(event));
+        self.tab_bar.handle_event(event, queue);
 
         let index = self.current_tab_idx();
         if let Some(tab) = self.tabs.get_mut(index) {
-            out.append(&mut tab.handle_event(event));
+            tab.handle_event(event, queue);
         }
 
-        out.append(&mut self.help_modal.handle_event(event));
-        out.append(&mut self.status_bar.handle_event(event));
-
-        out
+        self.help_modal.handle_event(event, queue);
+        self.status_bar.handle_event(event, queue);
     }
 
-    fn handle_message(&mut self, message: &Message) -> Vec<Signal> {
+    fn handle_message(&mut self, message: &Message, queue: &mut SignalQueue) {
         match message.read_as_app() {
             Some(AppAction::EnterRawMode) => self.mode = Mode::Raw,
             Some(AppAction::ExitRawMode) => self.mode = Mode::Normal,
             Some(AppAction::CloseHelpModal) => {
                 self.mode = Mode::Normal;
-                return vec![Event::HelpModalToggled.into()];
+                queue.push(Event::HelpModalToggled);
             }
             Some(AppAction::DoCommand(command)) => {
-                return self.handle_command(command);
+                self.handle_command(command, queue);
             }
             _ => {
                 let index = self.current_tab_idx();
                 if let Some(tab) = self.tabs.get_mut(index) {
-                    return tab.handle_message(message);
+                    tab.handle_message(message, queue);
                 }
             }
         }
-
-        vec![]
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {

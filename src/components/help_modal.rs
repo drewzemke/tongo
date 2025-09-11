@@ -11,7 +11,7 @@ use crate::{
         command::{Command, CommandCategory, CommandGroup, CommandManager},
         event::Event,
         message::{AppAction, Message},
-        Signal,
+        signal::SignalQueue,
     },
 };
 
@@ -341,42 +341,40 @@ impl Component for HelpModal {
         out
     }
 
-    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
+    fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
         match command {
-            Command::Back => vec![Message::to_app(AppAction::CloseHelpModal).into()],
+            Command::Back => queue.push(Message::to_app(AppAction::CloseHelpModal)),
             Command::NavLeft => {
                 self.select_left();
-                vec![Event::ListSelectionChanged.into()]
+                queue.push(Event::ListSelectionChanged);
             }
             Command::NavDown => {
                 self.select_down();
-                vec![Event::ListSelectionChanged.into()]
+                queue.push(Event::ListSelectionChanged);
             }
             Command::NavUp => {
                 self.select_up();
-                vec![Event::ListSelectionChanged.into()]
+                queue.push(Event::ListSelectionChanged);
             }
             Command::NavRight => {
                 self.select_right();
-                vec![Event::ListSelectionChanged.into()]
+                queue.push(Event::ListSelectionChanged);
             }
-            Command::Confirm => self.selected_cmd().map_or_else(Vec::new, |cmd| {
-                vec![
-                    Message::to_app(AppAction::CloseHelpModal).into(),
-                    Message::to_app(AppAction::DoCommand(cmd)).into(),
-                ]
-            }),
-            _ => vec![],
+            Command::Confirm => {
+                if let Some(cmd) = self.selected_cmd() {
+                    queue.push(Message::to_app(AppAction::CloseHelpModal));
+                    queue.push(Message::to_app(AppAction::DoCommand(cmd)));
+                }
+            }
+            _ => {}
         }
     }
 
-    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
+    fn handle_event(&mut self, event: &Event, _queue: &mut SignalQueue) {
         if matches!(event, Event::HelpModalToggled) {
             self.compute_cats();
             self.state = State::default();
         }
-
-        vec![]
     }
 }
 

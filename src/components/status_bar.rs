@@ -10,7 +10,7 @@ use crate::{
     system::{
         command::{CommandCategory, CommandManager},
         event::Event,
-        Signal,
+        signal::SignalQueue,
     },
 };
 
@@ -169,7 +169,7 @@ impl Component for StatusBar {
         }
     }
 
-    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
+    fn handle_event(&mut self, event: &Event, queue: &mut SignalQueue) {
         // handle the event
         match event {
             Event::ErrorOccurred(error) => {
@@ -203,9 +203,7 @@ impl Component for StatusBar {
              }| start.elapsed() >= *duration,
         ) {
             self.message = None;
-            return vec![Event::StatusMessageCleared.into()];
+            queue.push(Event::StatusMessageCleared);
         }
-
-        vec![]
     }
 }

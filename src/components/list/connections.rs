@@ -18,7 +18,7 @@ use crate::{
         command::{Command, CommandCategory, CommandGroup},
         event::Event,
         message::{ClientAction, ConnScreenAction, Message, TabAction},
-        Signal,
+        signal::SignalQueue,
     },
 };
 use crossterm::event::KeyCode;
@@ -123,65 +123,51 @@ impl Component for Connections {
         out
     }
 
-    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
-        let mut out = self
-            .list
-            .handle_base_command(command, self.connection_manager.connections().len());
+    fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
+        self.list
+            .handle_base_command(command, self.connection_manager.connections().len(), queue);
         match command {
             Command::Confirm => {
                 if let Some(conn) = self.get_selected_conn() {
-                    out.push(Event::ConnectionSelected(conn.clone()).into());
-                    out.push(Message::to_client(ClientAction::Connect(conn.clone())).into());
+                    queue.push(Event::ConnectionSelected(conn.clone()));
+                    queue.push(Message::to_client(ClientAction::Connect(conn.clone())));
                 }
             }
             Command::CreateNew => {
-                out.push(Message::to_conn_scr(ConnScreenAction::StartNewConn).into());
+                queue.push(Message::to_conn_scr(ConnScreenAction::StartNewConn));
             }
             Command::Edit => {
                 if let Some(conn) = self.get_selected_conn() {
-                    out.push(
-                        Message::to_conn_scr(ConnScreenAction::StartEditingConn(conn.clone()))
-                            .into(),
-                    );
+                    queue.push(Message::to_conn_scr(ConnScreenAction::StartEditingConn(conn.clone())));
                 }
             }
             Command::Delete => {
-                out.push(
-                    Message::to_tab(TabAction::RequestConfirmation(
+                queue.push(Message::to_tab(TabAction::RequestConfirmation(
                         ConfirmKind::DeleteConnection,
-                    ))
-                    .into(),
-                );
+                    )));
             }
             _ => {}
         }
-        out
     }
 
-    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
-        let mut out = vec![];
-
+    fn handle_event(&mut self, event: &Event, queue: &mut SignalQueue) {
         // only process the confirmation if this component is focused
         if self.is_focused() && matches!(event, Event::ConfirmYes(Command::Delete)) {
             let Some(index_to_delete) = self.list.state.selected() else {
-                return out;
+                return;
             };
 
             if matches!(
                 self.connection_manager.delete_connection(index_to_delete),
                 Ok(())
             ) {
-                out.push(Event::ConnectionDeleted.into());
+                queue.push(Event::ConnectionDeleted);
             } else {
-                out.push(
-                    Event::ErrorOccurred(
+                queue.push(Event::ErrorOccurred(
                         "An error occurred while saving connection preferences".into(),
-                    )
-                    .into(),
-                );
+                    ));
             }
         }
-        out
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {

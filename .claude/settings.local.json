@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/drew/Programming/projects/todoist/tui/**)",
+      "Bash(cargo check:*)",
+      "Bash(cargo fix:*)",
+      "Bash(cargo test)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

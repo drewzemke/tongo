@@ -10,7 +10,7 @@ use crate::{
     system::{
         command::{Command, CommandCategory, CommandGroup},
         event::Event,
-        Signal,
+        signal::SignalQueue,
     },
 };
 
@@ -139,17 +139,15 @@ impl Component for ConfirmModal {
         ]
     }
 
-    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
+    fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
         let Some(confirm_kind) = &self.kind else {
-            return vec![];
+            return;
         };
 
-        let mut out = vec![];
         match command {
-            Command::Confirm => out.push(Event::ConfirmYes(confirm_kind.command()).into()),
-            Command::Back => out.push(Event::ConfirmNo.into()),
+            Command::Confirm => queue.push(Event::ConfirmYes(confirm_kind.command())),
+            Command::Back => queue.push(Event::ConfirmNo),
             _ => {}
         }
-        out
     }
 }

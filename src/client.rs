@@ -6,7 +6,7 @@ use crate::{
     system::{
         event::Event,
         message::{ClientAction, Message},
-        Signal,
+        signal::SignalQueue,
     },
 };
 use futures::{Future, TryStreamExt};
@@ -314,11 +314,10 @@ impl Client {
 }
 
 impl Component for Client {
-    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
+    fn handle_event(&mut self, event: &Event, queue: &mut SignalQueue) {
         // check for completed async operations
-        let mut out = vec![];
         while let Ok(content) = self.response_recv.try_recv() {
-            out.push(content);
+            queue.push(content);
         }
 
         // handle the event as normal
@@ -390,13 +389,9 @@ impl Component for Client {
             }
             _ => (),
         }
-
-        out.into_iter().map(Signal::from).collect()
     }
 
-    fn handle_message(&mut self, message: &Message) -> Vec<Signal> {
-        let mut out = vec![];
-
+    fn handle_message(&mut self, message: &Message, queue: &mut SignalQueue) {
         match message.read_as_client() {
             Some(ClientAction::Connect(conn)) => self.connect(conn.connection_str.clone()),
             Some(ClientAction::DropDatabase(db)) => {
@@ -409,7 +404,7 @@ impl Component for Client {
                 if let Some(id) = doc.get("_id") {
                     self.update_doc(doc! { "_id": id }, doc.clone());
                 } else {
-                    out.push(Event::ErrorOccurred(
+                    queue.push(Event::ErrorOccurred(
                         "Document does not have an `_id` field.".into(),
                     ));
                 }
@@ -421,7 +416,7 @@ impl Component for Client {
                 if let Some(id) = doc.get("_id") {
                     self.delete_doc(doc! { "_id": id });
                 } else {
-                    out.push(Event::ErrorOccurred(
+                    queue.push(Event::ErrorOccurred(
                         "Document does not have an `_id` field.".into(),
                     ));
                 }
@@ -432,8 +427,6 @@ impl Component for Client {
             }
             None => {}
         }
-
-        out.into_iter().map(Signal::from).collect()
     }
 }
 

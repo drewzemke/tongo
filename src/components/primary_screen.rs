@@ -17,7 +17,7 @@ use crate::{
         command::{Command, CommandCategory, CommandGroup},
         event::Event,
         message::{Message, PrimScreenAction},
-        Signal,
+        signal::SignalQueue,
     },
 };
 use ratatui::prelude::*;
@@ -114,117 +114,110 @@ impl Component for PrimaryScreen<'_> {
         out
     }
 
-    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
+    fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
         // we need to pass the command to the currently-focused component first,
         // the way this component handles the command might change the focus
-        let mut out = match self.internal_focus() {
-            Some(PrimScrFocus::DbList) => self.db_list.handle_command(command),
-            Some(PrimScrFocus::CollList) => self.coll_list.handle_command(command),
-            Some(PrimScrFocus::DocTree) => self.doc_tree.handle_command(command),
-            Some(PrimScrFocus::FilterIn) => self.filter_input.handle_command(command),
-            None => vec![],
-        };
+        match self.internal_focus() {
+            Some(PrimScrFocus::DbList) => self.db_list.handle_command(command, queue),
+            Some(PrimScrFocus::CollList) => self.coll_list.handle_command(command, queue),
+            Some(PrimScrFocus::DocTree) => self.doc_tree.handle_command(command, queue),
+            Some(PrimScrFocus::FilterIn) => self.filter_input.handle_command(command, queue),
+            None => {}
+        }
 
         match command {
             Command::FocusLeft => match self.internal_focus() {
                 Some(PrimScrFocus::DocTree) => {
                     self.coll_list.focus();
-                    out.push(Event::FocusedChanged.into());
+                    queue.push(Event::FocusedChanged);
                 }
                 Some(PrimScrFocus::FilterIn) => {
                     self.db_list.focus();
-                    out.push(Event::FocusedChanged.into());
+                    queue.push(Event::FocusedChanged);
                 }
                 _ => {}
             },
             Command::FocusUp => match self.internal_focus() {
                 Some(PrimScrFocus::CollList) => {
                     self.db_list.focus();
-                    out.push(Event::FocusedChanged.into());
+                    queue.push(Event::FocusedChanged);
                 }
                 Some(PrimScrFocus::DocTree) => {
                     self.filter_input.focus();
-                    out.push(Event::FocusedChanged.into());
+                    queue.push(Event::FocusedChanged);
                 }
                 _ => {}
             },
             Command::FocusDown => match self.internal_focus() {
                 Some(PrimScrFocus::DbList) => {
                     self.coll_list.focus();
-                    out.push(Event::FocusedChanged.into());
+                    queue.push(Event::FocusedChanged);
                 }
                 Some(PrimScrFocus::FilterIn) => {
                     self.doc_tree.focus();
-                    out.push(Event::FocusedChanged.into());
+                    queue.push(Event::FocusedChanged);
                 }
                 _ => {}
             },
             Command::FocusRight => match self.internal_focus() {
                 Some(PrimScrFocus::DbList) => {
                     self.filter_input.focus();
-                    out.push(Event::FocusedChanged.into());
+                    queue.push(Event::FocusedChanged);
                 }
                 Some(PrimScrFocus::CollList) => {
                     self.doc_tree.focus();
-                    out.push(Event::FocusedChanged.into());
+                    queue.push(Event::FocusedChanged);
                 }
                 _ => {}
             },
             Command::Back => match self.internal_focus() {
                 Some(PrimScrFocus::DbList) => {
                     self.focus.set(TabFocus::ConnScr(ConnScrFocus::ConnList));
-                    out.push(Event::FocusedChanged.into());
+                    queue.push(Event::FocusedChanged);
                 }
                 Some(PrimScrFocus::CollList) => {
                     self.db_list.focus();
-                    out.push(Event::FocusedChanged.into());
+                    queue.push(Event::FocusedChanged);
                 }
                 Some(PrimScrFocus::FilterIn) => {
                     self.doc_tree.focus();
-                    out.push(Event::FocusedChanged.into());
+                    queue.push(Event::FocusedChanged);
                 }
                 _ => {}
             },
             _ => {}
         }
-        out
     }
 
-    fn handle_raw_event(&mut self, event: &crossterm::event::Event) -> Vec<Signal> {
+    fn handle_raw_event(&mut self, event: &crossterm::event::Event, queue: &mut SignalQueue) {
         match self.internal_focus() {
-            Some(PrimScrFocus::DbList) => self.db_list.handle_raw_event(event),
-            Some(PrimScrFocus::CollList) => self.coll_list.handle_raw_event(event),
-            Some(PrimScrFocus::DocTree) => self.doc_tree.handle_raw_event(event),
-            Some(PrimScrFocus::FilterIn) => self.filter_input.handle_raw_event(event),
-            None => vec![],
+            Some(PrimScrFocus::DbList) => self.db_list.handle_raw_event(event, queue),
+            Some(PrimScrFocus::CollList) => self.coll_list.handle_raw_event(event, queue),
+            Some(PrimScrFocus::DocTree) => self.doc_tree.handle_raw_event(event, queue),
+            Some(PrimScrFocus::FilterIn) => self.filter_input.handle_raw_event(event, queue),
+            None => {}
         }
     }
 
-    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
-        let mut out = vec![];
+    fn handle_event(&mut self, event: &Event, queue: &mut SignalQueue) {
         match event {
             Event::DatabaseSelected(_) => self.coll_list.focus(),
             Event::CollectionSelected(_) | Event::DocFilterUpdated(_) => self.doc_tree.focus(),
             _ => {}
         }
-        out.append(&mut self.db_list.handle_event(event));
-        out.append(&mut self.coll_list.handle_event(event));
-        out.append(&mut self.doc_tree.handle_event(event));
-        out
+        self.db_list.handle_event(event, queue);
+        self.coll_list.handle_event(event, queue);
+        self.doc_tree.handle_event(event, queue);
     }
 
-    fn handle_message(&mut self, message: &Message) -> Vec<Signal> {
-        let mut out = vec![];
-
+    fn handle_message(&mut self, message: &Message, queue: &mut SignalQueue) {
         match message.read_as_prim_scr() {
             Some(PrimScreenAction::SetFocus(focus)) => {
                 self.focus.set(TabFocus::PrimScr(*focus));
-                out.push(Event::FocusedChanged.into());
+                queue.push(Event::FocusedChanged);
             }
             None => {}
         }
-
-        out
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {

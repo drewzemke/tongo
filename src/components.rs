@@ -2,7 +2,7 @@ use crate::system::{
     command::{Command, CommandGroup},
     event::Event,
     message::Message,
-    Signal,
+    signal::SignalQueue,
 };
 use crossterm::event::Event as CrosstermEvent;
 use ratatui::{layout::Rect, Frame};
@@ -23,21 +23,13 @@ pub trait Component {
         vec![]
     }
 
-    fn handle_command(&mut self, _command: &Command) -> Vec<Signal> {
-        vec![]
-    }
+    fn handle_command(&mut self, _command: &Command, _queue: &mut SignalQueue) {}
 
-    fn handle_raw_event(&mut self, _event: &CrosstermEvent) -> Vec<Signal> {
-        vec![]
-    }
+    fn handle_raw_event(&mut self, _event: &CrosstermEvent, _queue: &mut SignalQueue) {}
 
-    fn handle_event(&mut self, _event: &Event) -> Vec<Signal> {
-        vec![]
-    }
+    fn handle_event(&mut self, _event: &Event, _queue: &mut SignalQueue) {}
 
-    fn handle_message(&mut self, _message: &Message) -> Vec<Signal> {
-        vec![]
-    }
+    fn handle_message(&mut self, _message: &Message, _queue: &mut SignalQueue) {}
 
     fn render(&mut self, _frame: &mut Frame, _area: Rect) {}
 

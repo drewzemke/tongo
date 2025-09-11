@@ -14,7 +14,7 @@ use crate::{
         command::{Command, CommandGroup},
         event::Event,
         message::{AppAction, Message, TabAction},
-        Signal,
+        signal::SignalQueue,
     },
 };
 use ratatui::{layout::Rect, Frame};
@@ -162,28 +162,27 @@ impl Component for Tab<'_> {
         out
     }
 
-    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
+    fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
         match self.focus.get() {
-            TabFocus::ConnScr(_) => self.conn_screen.handle_command(command),
-            TabFocus::PrimScr(_) => self.primary_screen.handle_command(command),
-            TabFocus::ConfModal => self.confirm_modal.handle_command(command),
-            TabFocus::InputModal => self.input_modal.handle_command(command),
-            TabFocus::NotFocused => vec![],
+            TabFocus::ConnScr(_) => self.conn_screen.handle_command(command, queue),
+            TabFocus::PrimScr(_) => self.primary_screen.handle_command(command, queue),
+            TabFocus::ConfModal => self.confirm_modal.handle_command(command, queue),
+            TabFocus::InputModal => self.input_modal.handle_command(command, queue),
+            TabFocus::NotFocused => {}
         }
     }
 
-    fn handle_raw_event(&mut self, event: &crossterm::event::Event) -> Vec<Signal> {
+    fn handle_raw_event(&mut self, event: &crossterm::event::Event, queue: &mut SignalQueue) {
         match self.focus.get() {
-            TabFocus::ConnScr(_) => self.conn_screen.handle_raw_event(event),
-            TabFocus::PrimScr(_) => self.primary_screen.handle_raw_event(event),
-            TabFocus::ConfModal => self.confirm_modal.handle_raw_event(event),
-            TabFocus::InputModal => self.input_modal.handle_raw_event(event),
-            TabFocus::NotFocused => vec![],
+            TabFocus::ConnScr(_) => self.conn_screen.handle_raw_event(event, queue),
+            TabFocus::PrimScr(_) => self.primary_screen.handle_raw_event(event, queue),
+            TabFocus::ConfModal => self.confirm_modal.handle_raw_event(event, queue),
+            TabFocus::InputModal => self.input_modal.handle_raw_event(event, queue),
+            TabFocus::NotFocused => {}
         }
     }
 
-    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
-        let mut out = vec![];
+    fn handle_event(&mut self, event: &Event, queue: &mut SignalQueue) {
         match event {
             Event::ConnectionCreated(..) | Event::ConnectionSelected(..) => {
                 self.primary_screen.focus();
@@ -197,19 +196,18 @@ impl Component for Tab<'_> {
             }
             _ => {}
         }
-        out.append(&mut self.client.handle_event(event));
-        out.append(&mut self.conn_screen.handle_event(event));
-        out.append(&mut self.primary_screen.handle_event(event));
-        out
+        self.client.handle_event(event, queue);
+        self.conn_screen.handle_event(event, queue);
+        self.primary_screen.handle_event(event, queue);
     }
 
-    fn handle_message(&mut self, message: &Message) -> Vec<Signal> {
+    fn handle_message(&mut self, message: &Message, queue: &mut SignalQueue) {
         if message.read_as_client().is_some() {
-            self.client.handle_message(message)
+            self.client.handle_message(message, queue);
         } else if message.read_as_conn_scr().is_some() {
-            self.conn_screen.handle_message(message)
+            self.conn_screen.handle_message(message, queue);
         } else if message.read_as_prim_scr().is_some() {
-            self.primary_screen.handle_message(message)
+            self.primary_screen.handle_message(message, queue);
         } else {
             match message.read_as_tab() {
                 Some(TabAction::RequestConfirmation(kind)) => {
@@ -219,11 +217,10 @@ impl Component for Tab<'_> {
                 Some(TabAction::RequestInput(kind)) => {
                     self.background_focus = Some(self.focus.get());
                     self.input_modal.show_with(*kind);
-                    return vec![Message::to_app(AppAction::EnterRawMode).into()];
+                    queue.push(Message::to_app(AppAction::EnterRawMode));
                 }
                 _ => {}
             }
-            vec![]
         }
     }
 

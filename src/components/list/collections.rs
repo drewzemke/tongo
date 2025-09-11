@@ -14,7 +14,7 @@ use crate::{
         command::{Command, CommandCategory, CommandGroup},
         event::Event,
         message::{ClientAction, Message, TabAction},
-        Signal,
+        signal::SignalQueue,
     },
 };
 use ratatui::{prelude::*, widgets::ListItem};
@@ -86,40 +86,33 @@ impl Component for Collections {
         out
     }
 
-    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
-        let mut out = self.list.handle_base_command(command, self.items.len());
+    fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
+        self.list.handle_base_command(command, self.items.len(), queue);
         match command {
             Command::Confirm => {
                 if let Some(coll) = self.get_selected() {
-                    out.push(Event::DocumentPageChanged(0).into());
-                    out.push(Event::CollectionSelected(coll.clone()).into());
+                    queue.push(Event::DocumentPageChanged(0));
+                    queue.push(Event::CollectionSelected(coll.clone()));
                 }
             }
-            Command::CreateNew => out.push(
-                Message::to_tab(TabAction::RequestInput(InputKind::NewCollectionName)).into(),
-            ),
+            Command::CreateNew => queue.push(Message::to_tab(TabAction::RequestInput(InputKind::NewCollectionName))),
             Command::Delete => {
                 if self.get_selected().is_some() {
-                    out.push(
-                        Message::to_tab(TabAction::RequestConfirmation(
+                    queue.push(Message::to_tab(TabAction::RequestConfirmation(
                             ConfirmKind::DropCollection,
-                        ))
-                        .into(),
-                    );
+                        )));
                 }
             }
             _ => {}
         }
-        out
     }
 
-    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
-        let mut out = vec![];
+    fn handle_event(&mut self, event: &Event, queue: &mut SignalQueue) {
         match event {
             Event::ListSelectionChanged => {
                 if self.is_focused() {
                     if let Some(coll) = self.get_selected() {
-                        out.push(Event::CollectionHighlighted(coll.clone()).into());
+                        queue.push(Event::CollectionHighlighted(coll.clone()));
                     }
                 }
             }
@@ -130,23 +123,21 @@ impl Component for Collections {
                     if let Some(first_coll) = colls.first() {
                         // try to select the first thing
                         self.list.state.select(Some(0));
-                        out.push(Event::CollectionHighlighted(first_coll.clone()).into());
+                        queue.push(Event::CollectionHighlighted(first_coll.clone()));
                     }
                 }
             }
             Event::ConfirmYes(Command::Delete) => {
                 if self.is_focused() {
                     if let Some(coll) = self.get_selected() {
-                        return vec![Message::to_client(ClientAction::DropCollection(
+                        queue.push(Message::to_client(ClientAction::DropCollection(
                             coll.clone(),
-                        ))
-                        .into()];
+                        )));
                     }
                 }
             }
             _ => (),
         }
-        out
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {

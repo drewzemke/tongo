@@ -1,11 +1,15 @@
 use crate::{
     components::Component,
     config::key_map::Key,
-    system::{command::Command, event::Event, message::Message, Signal},
+    system::{
+        command::Command,
+        event::Event,
+        message::Message,
+        signal::{Signal, SignalQueue},
+    },
 };
 use crossterm::event::KeyCode;
 use crossterm::event::{Event as CrosstermEvent, KeyEvent, KeyModifiers};
-use std::collections::VecDeque;
 
 pub mod mock_storage;
 
@@ -33,41 +37,50 @@ impl<C: Component> ComponentTestHarness<C> {
     }
 
     pub fn given_command(&mut self, command: Command) {
-        let signals = self.component.handle_command(&command);
-        self.process_signals(signals);
+        let mut queue = SignalQueue::default();
+        self.component.handle_command(&command, &mut queue);
+        self.process_signals(queue);
     }
 
     pub fn given_key(&mut self, string: &str) {
         let key = Key::try_from(string).expect("key codes in tests should be correct");
         let raw_event = CrosstermEvent::Key(KeyEvent::new(key.code, KeyModifiers::empty()));
-        let signals = self.component.handle_raw_event(&raw_event);
-        self.process_signals(signals);
+        let mut queue = SignalQueue::default();
+        self.component.handle_raw_event(&raw_event, &mut queue);
+        self.process_signals(queue);
     }
 
     pub fn given_string(&mut self, string: &str) {
         for c in string.chars() {
             let raw_event =
                 CrosstermEvent::Key(KeyEvent::new(KeyCode::Char(c), KeyModifiers::empty()));
-            let signals = self.component.handle_raw_event(&raw_event);
-            self.process_signals(signals);
+            let mut queue = SignalQueue::default();
+            self.component.handle_raw_event(&raw_event, &mut queue);
+            self.process_signals(queue);
         }
     }
 
     pub fn given_event(&mut self, event: Event) {
-        self.process_signals(vec![event.into()]);
+        let mut queue = SignalQueue::default();
+        queue.push(event);
+        self.process_signals(queue);
     }
 
-    fn process_signals(&mut self, signals: Vec<Signal>) {
-        let mut signals_deque = VecDeque::from(signals);
+    fn process_signals(&mut self, mut queue: SignalQueue) {
+        while let Some(signal) = queue.pop() {
+            let mut new_queue = SignalQueue::default();
 
-        while let Some(signal) = signals_deque.pop_front() {
-            let new_signals = match &signal {
-                Signal::Event(event) => self.component.handle_event(event),
-                Signal::Message(message) => self.component.handle_message(message),
-            };
+            match &signal {
+                Signal::Event(event) => self.component.handle_event(event, &mut new_queue),
+                Signal::Message(message) => self.component.handle_message(message, &mut new_queue),
+            }
 
-            signals_deque.append(&mut new_signals.into());
+            // Add any new signals back to the main queue for processing
+            while let Some(new_signal) = new_queue.pop() {
+                queue.push(new_signal);
+            }
 
+            // Store the processed signal for test assertions
             match signal {
                 Signal::Event(event) => self.events.push(event),
                 Signal::Message(message) => self.messages.push(message),

@@ -6,7 +6,7 @@ use crate::{
     system::{
         command::{Command, CommandCategory, CommandGroup},
         event::Event,
-        Signal,
+        signal::SignalQueue,
     },
 };
 use ratatui::{
@@ -172,28 +172,29 @@ impl Component for TabBar {
         out
     }
 
-    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
+    fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
         match command {
             Command::NewTab => {
                 self.tabs.push(TabSpec::default());
                 self.current_tab_idx = self.tabs.len() - 1;
                 self.scroll_to_current_tab();
-                vec![Event::TabCreated.into(), Event::TabChanged.into()]
+                queue.push(Event::TabCreated);
+                queue.push(Event::TabChanged);
             }
             Command::NextTab => {
                 self.next_tab();
                 self.scroll_to_current_tab();
-                vec![Event::TabChanged.into()]
+                queue.push(Event::TabChanged);
             }
             Command::PreviousTab => {
                 self.prev_tab();
                 self.scroll_to_current_tab();
-                vec![Event::TabChanged.into()]
+                queue.push(Event::TabChanged);
             }
             Command::CloseTab => {
                 // do nothing if this is the last tab
                 if self.tabs.len() == 1 {
-                    return vec![];
+                    return;
                 }
 
                 let next_tab_idx = self.current_tab_idx.saturating_sub(1);
@@ -201,36 +202,38 @@ impl Component for TabBar {
                 self.current_tab_idx = next_tab_idx;
                 self.scroll_to_current_tab();
 
-                vec![Event::TabClosed.into(), Event::TabChanged.into()]
+                queue.push(Event::TabClosed);
+                queue.push(Event::TabChanged);
             }
             Command::DuplicateTab => {
                 let Some(current_tab) = self.tabs.get_mut(self.current_tab_idx) else {
-                    return vec![];
+                    return;
                 };
 
                 let new_tab = current_tab.clone();
                 self.tabs.push(new_tab);
                 self.current_tab_idx = self.tabs.len() - 1;
                 self.scroll_to_current_tab();
-                vec![Event::TabCreated.into(), Event::TabChanged.into()]
+                queue.push(Event::TabCreated);
+                queue.push(Event::TabChanged);
             }
             Command::GotoTab(num) => {
                 let new_idx = num - 1;
                 if new_idx >= self.tabs.len() {
-                    return vec![];
+                    return;
                 }
 
                 self.current_tab_idx = new_idx;
                 self.scroll_to_current_tab();
-                vec![Event::TabChanged.into()]
+                queue.push(Event::TabChanged);
             }
-            _ => vec![],
+            _ => {},
         }
     }
 
-    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
+    fn handle_event(&mut self, event: &Event, _queue: &mut SignalQueue) {
         let Some(current_tab) = self.tabs.get_mut(self.current_tab_idx) else {
-            return vec![];
+            return;
         };
 
         match event {
@@ -251,8 +254,6 @@ impl Component for TabBar {
             }
             _ => {}
         }
-
-        vec![]
     }
 
     #[expect(clippy::cast_possible_truncation)]

@@ -10,7 +10,7 @@ use crate::{
         command::{Command, CommandCategory, CommandGroup},
         event::Event,
         message::{AppAction, ConnScreenAction, Message},
-        Signal,
+        signal::SignalQueue,
     },
 };
 use ratatui::prelude::{Frame, Rect};
@@ -76,36 +76,33 @@ impl Component for ConnNameInput {
         ]
     }
 
-    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
+    fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
         if !self.input.is_editing() {
-            return vec![];
+            return;
         }
 
         match command {
             Command::Confirm => {
-                vec![Message::to_conn_scr(ConnScreenAction::FocusConnStrInput).into()]
+                queue.push(Message::to_conn_scr(ConnScreenAction::FocusConnStrInput));
             }
             Command::Back => {
-                vec![
-                    Message::to_conn_scr(ConnScreenAction::CancelEditingConn).into(),
-                    Message::to_app(AppAction::ExitRawMode).into(),
-                ]
+                queue.push(Message::to_conn_scr(ConnScreenAction::CancelEditingConn));
+                queue.push(Message::to_app(AppAction::ExitRawMode));
             }
-            _ => vec![],
+            _ => {}
         }
     }
 
-    fn handle_raw_event(&mut self, event: &crossterm::event::Event) -> Vec<Signal> {
-        self.input.handle_raw_event(event)
+    fn handle_raw_event(&mut self, event: &crossterm::event::Event, queue: &mut SignalQueue) {
+        self.input.handle_raw_event(event, queue);
     }
 
-    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
+    fn handle_event(&mut self, event: &Event, _queue: &mut SignalQueue) {
         match event {
             Event::ConnectionCreated(..) => self.input.set_value(""),
             Event::EditConnectionStarted(conn) => self.input.set_value(&conn.name),
             _ => {}
         }
-        vec![]
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {

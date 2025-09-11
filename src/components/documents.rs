@@ -12,7 +12,7 @@ use crate::{
         command::{Command, CommandCategory, CommandGroup},
         event::Event,
         message::{AppAction, ClientAction, Message, PrimScreenAction, TabAction},
-        Signal,
+        signal::SignalQueue,
     },
     utils::{
         clipboard::send_bson_to_clipboard,
@@ -305,32 +305,31 @@ impl Component for Documents<'_> {
     }
 
     #[expect(clippy::too_many_lines)]
-    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
-        let mut out = vec![];
+    fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
         match command {
             Command::NavLeft => {
                 if self.state.key_left() {
-                    out.push(Event::ListSelectionChanged.into());
+                    queue.push(Event::ListSelectionChanged);
                 }
             }
             Command::NavUp => {
                 if self.state.key_up() {
-                    out.push(Event::ListSelectionChanged.into());
+                    queue.push(Event::ListSelectionChanged);
                 }
             }
             Command::NavDown => {
                 if self.state.key_down() {
-                    out.push(Event::ListSelectionChanged.into());
+                    queue.push(Event::ListSelectionChanged);
                 }
             }
             Command::NavRight => {
                 if self.state.key_right() {
-                    out.push(Event::ListSelectionChanged.into());
+                    queue.push(Event::ListSelectionChanged);
                 }
             }
             Command::ExpandCollapse => {
                 if self.state.toggle_selected() {
-                    out.push(Event::ListSelectionChanged.into());
+                    queue.push(Event::ListSelectionChanged);
                 }
             }
             Command::NextPage => match self.mode {
@@ -340,13 +339,13 @@ impl Component for Documents<'_> {
                     #[expect(clippy::cast_possible_truncation)]
                     if end < self.count as usize {
                         self.page += 1;
-                        out.push(Event::DocumentPageChanged(self.page).into());
+                        queue.push(Event::DocumentPageChanged(self.page));
                     }
                 }
                 Mode::SearchReview => {
                     self.searcher.next_match();
                     self.set_selection_to_search_match();
-                    out.push(Event::ListSelectionChanged.into());
+                    queue.push(Event::ListSelectionChanged);
                 }
                 Mode::SearchInput => {}
             },
@@ -354,92 +353,90 @@ impl Component for Documents<'_> {
                 Mode::Normal => {
                     if self.page > 0 {
                         self.page -= 1;
-                        out.push(Event::DocumentPageChanged(self.page).into());
+                        queue.push(Event::DocumentPageChanged(self.page));
                     }
                 }
                 Mode::SearchReview => {
                     self.searcher.prev_match();
                     self.set_selection_to_search_match();
-                    out.push(Event::ListSelectionChanged.into());
+                    queue.push(Event::ListSelectionChanged);
                 }
                 Mode::SearchInput => {}
             },
             Command::FirstPage => {
                 self.page = 0;
-                out.push(Event::DocumentPageChanged(self.page).into());
+                queue.push(Event::DocumentPageChanged(self.page));
             }
             Command::LastPage => {
                 #[expect(clippy::cast_possible_truncation)]
                 let last_page = (self.count as usize).div_ceil(self.config.page_size) - 1;
                 self.page = last_page;
-                out.push(Event::DocumentPageChanged(self.page).into());
+                queue.push(Event::DocumentPageChanged(self.page));
             }
             Command::Refresh => {
-                out.push(Message::to_client(ClientAction::RefreshQueries).into());
+                queue.push(Message::to_client(ClientAction::RefreshQueries));
             }
             Command::Edit => {
                 let Some(doc) = self.selected_doc() else {
-                    return out;
+                    return;
                 };
 
-                out.push(Event::ReturnedFromAltScreen.into());
+                queue.push(Event::ReturnedFromAltScreen);
                 match edit_doc(doc.clone()) {
                     Ok(new_doc) => {
-                        out.push(Message::to_client(ClientAction::UpdateDoc(new_doc)).into());
+                        queue.push(Message::to_client(ClientAction::UpdateDoc(new_doc)));
                     }
-                    Err(err) => out.push(Event::ErrorOccurred(err.into()).into()),
+                    Err(err) => queue.push(Event::ErrorOccurred(err.into())),
                 }
             }
             Command::CreateNew => {
                 let doc = doc! { "_id" : ObjectId::new() };
 
-                out.push(Event::ReturnedFromAltScreen.into());
+                queue.push(Event::ReturnedFromAltScreen);
 
                 match edit_doc(doc) {
                     Ok(new_doc) => {
-                        out.push(Message::to_client(ClientAction::InsertDoc(new_doc)).into());
+                        queue.push(Message::to_client(ClientAction::InsertDoc(new_doc)));
                     }
-                    Err(err) => out.push(Event::ErrorOccurred(err.into()).into()),
+                    Err(err) => queue.push(Event::ErrorOccurred(err.into())),
                 }
             }
             Command::DuplicateDoc => {
                 let Some(doc) = self.selected_doc() else {
-                    return out;
+                    return;
                 };
 
                 let mut duplicated_doc = doc.clone();
                 let _ = duplicated_doc.insert("_id", ObjectId::new());
 
-                out.push(Event::ReturnedFromAltScreen.into());
+                queue.push(Event::ReturnedFromAltScreen);
                 match edit_doc(duplicated_doc) {
                     Ok(new_doc) => {
-                        out.push(Message::to_client(ClientAction::InsertDoc(new_doc)).into());
+                        queue.push(Message::to_client(ClientAction::InsertDoc(new_doc)));
                     }
-                    Err(err) => out.push(Event::ErrorOccurred(err.into()).into()),
+                    Err(err) => queue.push(Event::ErrorOccurred(err.into())),
                 }
             }
             Command::Delete => {
-                out.push(
-                    Message::to_tab(TabAction::RequestConfirmation(ConfirmKind::DeleteDoc)).into(),
-                );
+                queue.push(Message::to_tab(TabAction::RequestConfirmation(ConfirmKind::DeleteDoc)));
             }
             Command::Yank => {
                 if let Some(bson) = self.selected_bson() {
                     if send_bson_to_clipboard(bson).is_ok() {
-                        out.push(Event::DataSentToClipboard.into());
+                        queue.push(Event::DataSentToClipboard);
                     }
                 }
             }
             Command::Search => {
                 self.mode = Mode::SearchInput;
-                out.push(Message::to_app(AppAction::EnterRawMode).into());
+                queue.push(Message::to_app(AppAction::EnterRawMode));
             }
 
             // only in search input mode
             Command::Confirm => {
                 if matches!(self.mode, Mode::SearchInput) {
                     self.mode = Mode::SearchReview;
-                    out.push(Message::to_app(AppAction::ExitRawMode).into());
+                    queue.push(Message::to_app(AppAction::ExitRawMode));
                 }
             }
 
@@ -448,43 +445,36 @@ impl Component for Documents<'_> {
                 Mode::SearchInput => {
                     self.mode = Mode::Normal;
                     self.reset_search();
-                    out.push(Message::to_app(AppAction::ExitRawMode).into());
-                    out.push(Event::DocSearchUpdated.into());
+                    queue.push(Message::to_app(AppAction::ExitRawMode));
+                    queue.push(Event::DocSearchUpdated);
                 }
                 Mode::SearchReview => {
                     self.mode = Mode::Normal;
                     self.reset_search();
-                    out.push(Event::DocSearchUpdated.into());
+                    queue.push(Event::DocSearchUpdated);
                 }
                 Mode::Normal => {
-                    out.push(
-                        Message::to_prim_scr(PrimScreenAction::SetFocus(PrimScrFocus::CollList))
-                            .into(),
-                    );
+                    queue.push(Message::to_prim_scr(PrimScreenAction::SetFocus(PrimScrFocus::CollList)));
                 }
             },
             _ => {}
         }
-        out
     }
 
-    fn handle_raw_event(&mut self, event: &crossterm::event::Event) -> Vec<Signal> {
+    fn handle_raw_event(&mut self, event: &crossterm::event::Event, queue: &mut SignalQueue) {
         if matches!(self.mode, Mode::SearchInput) {
             self.search_input.handle_event(event);
             self.searcher.update_pattern(self.search_input.value());
             self.set_selection_to_search_match();
-            vec![Event::DocSearchUpdated.into()]
-        } else {
-            vec![]
+            queue.push(Event::DocSearchUpdated);
         }
     }
 
-    fn handle_event(&mut self, event: &Event) -> Vec<Signal> {
-        let mut out = vec![];
+    fn handle_event(&mut self, event: &Event, queue: &mut SignalQueue) {
         match event {
             Event::DocumentsUpdated { docs, reset_state } => {
                 self.set_docs(docs, *reset_state);
-                out.push(Event::ListSelectionChanged.into());
+                queue.push(Event::ListSelectionChanged);
             }
             Event::CountUpdated(count) => {
                 self.count = *count;
@@ -492,9 +482,7 @@ impl Component for Documents<'_> {
             Event::ConfirmYes(Command::Delete) => {
                 if self.is_focused() {
                     if let Some(doc) = self.selected_doc() {
-                        return vec![
-                            Message::to_client(ClientAction::DeleteDoc(doc.clone())).into()
-                        ];
+                        queue.push(Message::to_client(ClientAction::DeleteDoc(doc.clone())));
                     }
                 }
             }
@@ -519,7 +507,6 @@ impl Component for Documents<'_> {
 
             _ => (),
         }
-        out
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {

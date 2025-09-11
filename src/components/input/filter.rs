@@ -11,7 +11,7 @@ use crate::{
         command::{Command, CommandCategory, CommandGroup},
         event::Event,
         message::{AppAction, Message},
-        Signal,
+        signal::SignalQueue,
     },
     utils::json_labeler::{JsonLabel, JsonLabeler},
 };
@@ -108,44 +108,42 @@ impl Component for FilterInput {
         }
     }
 
-    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
+    fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
         if self.input.is_editing() {
             match command {
                 Command::Confirm => {
                     if let Some(doc) = self.get_filter_doc() {
                         self.input.stop_editing();
-                        vec![
-                            Event::DocumentPageChanged(0).into(),
-                            Event::DocFilterUpdated(doc).into(),
-                            Message::to_app(AppAction::ExitRawMode).into(),
-                        ]
+                        queue.push(Event::DocumentPageChanged(0));
+                        queue.push(Event::DocFilterUpdated(doc));
+                        queue.push(Message::to_app(AppAction::ExitRawMode));
                     } else {
-                        vec![Event::ErrorOccurred("Invalid filter.".into()).into()]
+                        queue.push(Event::ErrorOccurred("Invalid filter.".into()));
                     }
                 }
                 Command::Back => {
                     self.stop_editing();
-                    vec![Message::to_app(AppAction::ExitRawMode).into()]
+                    queue.push(Message::to_app(AppAction::ExitRawMode));
                 }
-                _ => vec![],
+                _ => {},
             }
         } else {
             match command {
                 Command::Confirm => {
                     self.start_editing();
-                    vec![Message::to_app(AppAction::EnterRawMode).into()]
+                    queue.push(Message::to_app(AppAction::EnterRawMode));
                 }
                 Command::Reset => {
                     self.input.set_value(DEFAULT_FILTER);
-                    vec![Event::DocFilterUpdated(Document::default()).into()]
+                    queue.push(Event::DocFilterUpdated(Document::default()));
                 }
-                _ => vec![],
+                _ => {},
             }
         }
     }
 
-    fn handle_raw_event(&mut self, event: &crossterm::event::Event) -> Vec<Signal> {
-        self.input.handle_raw_event(event)
+    fn handle_raw_event(&mut self, event: &crossterm::event::Event, queue: &mut SignalQueue) {
+        self.input.handle_raw_event(event, queue);
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {

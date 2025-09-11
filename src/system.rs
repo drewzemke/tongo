@@ -21,32 +21,8 @@ pub mod event;
 /// bar, or any other component within the currently-visible tab.
 pub mod message;
 
-/// A utility enum that is the union of the event and message type, since a
-/// component may return either when handling a command, event, or message,
-/// and both are used for communication between components.
-#[derive(Debug, Clone)]
-pub enum Signal {
-    Event(event::Event),
-    Message(message::Message),
-}
+/// Signal utilities including the Signal enum and `SignalQueue` for managing
+/// the communication between components in the event-driven system.
+pub mod signal;
 
-impl std::fmt::Display for Signal {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Event(event) => write!(f, "{event}"),
-            Self::Message(message) => write!(f, "{message}"),
-        }
-    }
-}
-
-impl From<event::Event> for Signal {
-    fn from(e: event::Event) -> Self {
-        Self::Event(e)
-    }
-}
-
-impl From<message::Message> for Signal {
-    fn from(m: message::Message) -> Self {
-        Self::Message(m)
-    }
-}
+// Re-export Signal for backward compatibility

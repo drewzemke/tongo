@@ -8,7 +8,7 @@ use crate::{
         command::{Command, CommandCategory, CommandGroup},
         event::Event,
         message::{AppAction, Message},
-        Signal,
+        signal::SignalQueue,
     },
 };
 use ratatui::prelude::*;
@@ -120,32 +120,27 @@ impl Component for InputModal {
         }
     }
 
-    fn handle_raw_event(&mut self, event: &crossterm::event::Event) -> Vec<Signal> {
-        self.input.handle_raw_event(event)
+    fn handle_raw_event(&mut self, event: &crossterm::event::Event, queue: &mut SignalQueue) {
+        self.input.handle_raw_event(event, queue);
     }
 
-    fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
+    fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
         match command {
             Command::Confirm => {
                 let value = self.input.value().to_string();
                 self.input.set_value("");
-                vec![
-                    Event::InputConfirmed(
+                queue.push(Event::InputConfirmed(
                         self.kind.expect("input should not be shown without a kind"),
                         value,
-                    )
-                    .into(),
-                    Message::to_app(AppAction::ExitRawMode).into(),
-                ]
+                    ));
+                queue.push(Message::to_app(AppAction::ExitRawMode));
             }
             Command::Back => {
                 self.input.set_value("");
-                vec![
-                    Event::InputCanceled.into(),
-                    Message::to_app(AppAction::ExitRawMode).into(),
-                ]
+                queue.push(Event::InputCanceled);
+                queue.push(Message::to_app(AppAction::ExitRawMode));
             }
-            _ => vec![],
+            _ => {},
         }
     }
 }
