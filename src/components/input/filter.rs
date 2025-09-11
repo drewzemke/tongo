@@ -83,11 +83,11 @@ impl FilterInput {
 
 impl Component for FilterInput {
     fn is_focused(&self) -> bool {
-        self.focus.get() == TabFocus::PrimScr(PrimScrFocus::FilterIn)
+        self.focus.get() == TabFocus::PrimScr(PrimScrFocus::QueryIn)
     }
 
     fn focus(&self) {
-        self.focus.set(TabFocus::PrimScr(PrimScrFocus::FilterIn));
+        self.focus.set(TabFocus::PrimScr(PrimScrFocus::QueryIn));
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
@@ -125,7 +125,7 @@ impl Component for FilterInput {
                     self.stop_editing();
                     queue.push(Message::to_app(AppAction::ExitRawMode));
                 }
-                _ => {},
+                _ => {}
             }
         } else {
             match command {
@@ -137,7 +137,7 @@ impl Component for FilterInput {
                     self.input.set_value(DEFAULT_FILTER);
                     queue.push(Event::DocFilterUpdated(Document::default()));
                 }
-                _ => {},
+                _ => {}
             }
         }
     }

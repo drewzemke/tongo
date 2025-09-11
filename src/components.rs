@@ -14,6 +14,7 @@ pub mod help_modal;
 pub mod input;
 pub mod list;
 pub mod primary_screen;
+pub mod query_input;
 pub mod status_bar;
 pub mod tab;
 pub mod tab_bar;

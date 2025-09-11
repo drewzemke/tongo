@@ -7,8 +7,8 @@ use super::{
 use crate::{
     components::{
         documents::Documents,
-        input::filter::FilterInput,
         list::{collections::Collections, databases::Databases},
+        query_input::{PersistedQueryInput, QueryInput},
         Component,
     },
     config::Config,
@@ -30,7 +30,7 @@ pub enum PrimScrFocus {
     DbList,
     CollList,
     DocTree,
-    FilterIn,
+    QueryIn,
 }
 
 #[derive(Debug, Default, Clone)]
@@ -39,7 +39,7 @@ pub struct PrimaryScreen<'a> {
     db_list: Databases,
     coll_list: Collections,
     doc_tree: Documents<'a>,
-    filter_input: FilterInput,
+    query_input: QueryInput,
 }
 
 impl CloneWithFocus for PrimaryScreen<'_> {
@@ -48,7 +48,7 @@ impl CloneWithFocus for PrimaryScreen<'_> {
             db_list: self.db_list.clone_with_focus(focus.clone()),
             coll_list: self.coll_list.clone_with_focus(focus.clone()),
             doc_tree: self.doc_tree.clone_with_focus(focus.clone()),
-            filter_input: self.filter_input.clone_with_focus(focus.clone()),
+            query_input: self.query_input.clone_with_focus(focus.clone()),
             focus,
         }
     }
@@ -63,13 +63,13 @@ impl PrimaryScreen<'_> {
         let db_list = Databases::new(focus.clone(), config.clone());
         let coll_list = Collections::new(focus.clone(), config.clone());
         let doc_tree = Documents::new(focus.clone(), config.clone());
-        let filter_input = FilterInput::new(focus.clone(), cursor_pos, config);
+        let query_input = QueryInput::new(focus.clone(), cursor_pos, config);
         Self {
             focus,
             db_list,
             coll_list,
             doc_tree,
-            filter_input,
+            query_input,
         }
     }
 
@@ -86,7 +86,7 @@ impl Component for PrimaryScreen<'_> {
     fn commands(&self) -> Vec<CommandGroup> {
         let mut out = vec![];
 
-        if !self.filter_input.is_editing() {
+        if !self.query_input.is_editing() {
             out.push(
                 CommandGroup::new(
                     vec![
@@ -108,7 +108,7 @@ impl Component for PrimaryScreen<'_> {
             Some(PrimScrFocus::DbList) => out.append(&mut self.db_list.commands()),
             Some(PrimScrFocus::CollList) => out.append(&mut self.coll_list.commands()),
             Some(PrimScrFocus::DocTree) => out.append(&mut self.doc_tree.commands()),
-            Some(PrimScrFocus::FilterIn) => out.append(&mut self.filter_input.commands()),
+            Some(PrimScrFocus::QueryIn) => out.append(&mut self.query_input.commands()),
             None => {}
         }
         out
@@ -121,7 +121,7 @@ impl Component for PrimaryScreen<'_> {
             Some(PrimScrFocus::DbList) => self.db_list.handle_command(command, queue),
             Some(PrimScrFocus::CollList) => self.coll_list.handle_command(command, queue),
             Some(PrimScrFocus::DocTree) => self.doc_tree.handle_command(command, queue),
-            Some(PrimScrFocus::FilterIn) => self.filter_input.handle_command(command, queue),
+            Some(PrimScrFocus::QueryIn) => self.query_input.handle_command(command, queue),
             None => {}
         }
 
@@ -131,7 +131,7 @@ impl Component for PrimaryScreen<'_> {
                     self.coll_list.focus();
                     queue.push(Event::FocusedChanged);
                 }
-                Some(PrimScrFocus::FilterIn) => {
+                Some(PrimScrFocus::QueryIn) => {
                     self.db_list.focus();
                     queue.push(Event::FocusedChanged);
                 }
@@ -143,7 +143,7 @@ impl Component for PrimaryScreen<'_> {
                     queue.push(Event::FocusedChanged);
                 }
                 Some(PrimScrFocus::DocTree) => {
-                    self.filter_input.focus();
+                    self.query_input.focus();
                     queue.push(Event::FocusedChanged);
                 }
                 _ => {}
@@ -153,7 +153,7 @@ impl Component for PrimaryScreen<'_> {
                     self.coll_list.focus();
                     queue.push(Event::FocusedChanged);
                 }
-                Some(PrimScrFocus::FilterIn) => {
+                Some(PrimScrFocus::QueryIn) => {
                     self.doc_tree.focus();
                     queue.push(Event::FocusedChanged);
                 }
@@ -161,7 +161,7 @@ impl Component for PrimaryScreen<'_> {
             },
             Command::FocusRight => match self.internal_focus() {
                 Some(PrimScrFocus::DbList) => {
-                    self.filter_input.focus();
+                    self.query_input.focus();
                     queue.push(Event::FocusedChanged);
                 }
                 Some(PrimScrFocus::CollList) => {
@@ -179,7 +179,7 @@ impl Component for PrimaryScreen<'_> {
                     self.db_list.focus();
                     queue.push(Event::FocusedChanged);
                 }
-                Some(PrimScrFocus::FilterIn) => {
+                Some(PrimScrFocus::QueryIn) => {
                     self.doc_tree.focus();
                     queue.push(Event::FocusedChanged);
                 }
@@ -194,7 +194,7 @@ impl Component for PrimaryScreen<'_> {
             Some(PrimScrFocus::DbList) => self.db_list.handle_raw_event(event, queue),
             Some(PrimScrFocus::CollList) => self.coll_list.handle_raw_event(event, queue),
             Some(PrimScrFocus::DocTree) => self.doc_tree.handle_raw_event(event, queue),
-            Some(PrimScrFocus::FilterIn) => self.filter_input.handle_raw_event(event, queue),
+            Some(PrimScrFocus::QueryIn) => self.query_input.handle_raw_event(event, queue),
             None => {}
         }
     }
@@ -245,7 +245,7 @@ impl Component for PrimaryScreen<'_> {
         self.db_list.render(frame, sidebar_top);
         self.coll_list.render(frame, sidebar_btm);
         self.doc_tree.render(frame, main_view_btm);
-        self.filter_input.render(frame, main_view_top);
+        self.query_input.render(frame, main_view_top);
     }
 
     fn focus(&self) {
@@ -262,7 +262,7 @@ pub struct PersistedPrimaryScreen {
     db_list: PersistedDatabases,
     coll_list: PersistedCollections,
     doc_tree: PersistedDocuments,
-    filter_input: String,
+    query_input: PersistedQueryInput,
 }
 
 impl PersistedComponent for PrimaryScreen<'_> {
@@ -273,7 +273,7 @@ impl PersistedComponent for PrimaryScreen<'_> {
             db_list: self.db_list.persist(),
             coll_list: self.coll_list.persist(),
             doc_tree: self.doc_tree.persist(),
-            filter_input: self.filter_input.persist(),
+            query_input: self.query_input.persist(),
         }
     }
 
@@ -281,6 +281,6 @@ impl PersistedComponent for PrimaryScreen<'_> {
         self.db_list.hydrate(storage.db_list);
         self.coll_list.hydrate(storage.coll_list);
         self.doc_tree.hydrate(storage.doc_tree);
-        self.filter_input.hydrate(storage.filter_input);
+        self.query_input.hydrate(storage.query_input);
     }
 }
