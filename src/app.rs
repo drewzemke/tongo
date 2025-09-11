@@ -260,7 +260,6 @@ impl Component for App<'_> {
         out
     }
 
-    #[must_use]
     fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
         let mut out = vec![];
 

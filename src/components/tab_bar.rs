@@ -88,7 +88,7 @@ impl TabBar {
         self.current_tab_idx
     }
 
-    pub fn num_tabs(&self) -> usize {
+    pub const fn num_tabs(&self) -> usize {
         self.tabs.len()
     }
 
@@ -99,11 +99,11 @@ impl TabBar {
             .map(|(idx, tab_spec)| format!("[{}] {}", idx + 1, tab_spec.name()))
     }
 
-    fn next_tab(&mut self) {
+    const fn next_tab(&mut self) {
         self.current_tab_idx = (self.current_tab_idx + 1) % self.tabs.len();
     }
 
-    fn prev_tab(&mut self) {
+    const fn prev_tab(&mut self) {
         self.current_tab_idx = (self.current_tab_idx + self.tabs.len() - 1) % self.tabs.len();
     }
 

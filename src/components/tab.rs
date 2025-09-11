@@ -162,7 +162,6 @@ impl Component for Tab<'_> {
         out
     }
 
-    #[must_use]
     fn handle_command(&mut self, command: &Command) -> Vec<Signal> {
         match self.focus.get() {
             TabFocus::ConnScr(_) => self.conn_screen.handle_command(command),

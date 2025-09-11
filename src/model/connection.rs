@@ -56,7 +56,7 @@ impl ConnectionManager {
     }
 
     #[must_use]
-    pub fn connections(&self) -> Ref<Vec<Connection>> {
+    pub fn connections(&self) -> Ref<'_, Vec<Connection>> {
         self.connections.borrow()
     }
 

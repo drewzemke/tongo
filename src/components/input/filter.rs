@@ -230,7 +230,7 @@ impl InputFormatter for FilterInputFormatter {
         self.text = text;
     }
 
-    fn get_formatted(&self) -> Text {
+    fn get_formatted(&self) -> Text<'_> {
         self.text.clone()
     }
 }

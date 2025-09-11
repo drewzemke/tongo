@@ -131,7 +131,7 @@ where
 pub trait InputFormatter {
     fn on_change(&mut self, _text: &str) {}
 
-    fn get_formatted(&self) -> Text;
+    fn get_formatted(&self) -> Text<'_>;
 }
 
 #[derive(Default, Debug, Clone)]
@@ -140,7 +140,7 @@ pub struct DefaultFormatter {
 }
 
 impl InputFormatter for DefaultFormatter {
-    fn get_formatted(&self) -> Text {
+    fn get_formatted(&self) -> Text<'_> {
         self.text.clone()
     }
 

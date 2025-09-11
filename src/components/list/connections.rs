@@ -71,7 +71,7 @@ impl Connections {
         }
     }
 
-    fn get_selected_conn(&self) -> Option<Ref<Connection>> {
+    fn get_selected_conn(&self) -> Option<Ref<'_, Connection>> {
         let index = self.list.state.selected()?;
         Ref::filter_map(self.connection_manager.connections(), |v| v.get(index)).ok()
     }
