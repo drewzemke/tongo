@@ -8,7 +8,7 @@ use crate::{
     components::{
         documents::Documents,
         list::{collections::Collections, databases::Databases},
-        query_input::{PersistedQueryInput, QueryInput},
+        query_input::{PersistedQueryInput, QueryInFocus, QueryInput},
         Component,
     },
     config::Config,
@@ -30,7 +30,7 @@ pub enum PrimScrFocus {
     DbList,
     CollList,
     DocTree,
-    QueryIn,
+    QueryIn(QueryInFocus),
 }
 
 #[derive(Debug, Default, Clone)]
@@ -108,7 +108,7 @@ impl Component for PrimaryScreen<'_> {
             Some(PrimScrFocus::DbList) => out.append(&mut self.db_list.commands()),
             Some(PrimScrFocus::CollList) => out.append(&mut self.coll_list.commands()),
             Some(PrimScrFocus::DocTree) => out.append(&mut self.doc_tree.commands()),
-            Some(PrimScrFocus::QueryIn) => out.append(&mut self.query_input.commands()),
+            Some(PrimScrFocus::QueryIn(..)) => out.append(&mut self.query_input.commands()),
             None => {}
         }
         out
@@ -121,7 +121,7 @@ impl Component for PrimaryScreen<'_> {
             Some(PrimScrFocus::DbList) => self.db_list.handle_command(command, queue),
             Some(PrimScrFocus::CollList) => self.coll_list.handle_command(command, queue),
             Some(PrimScrFocus::DocTree) => self.doc_tree.handle_command(command, queue),
-            Some(PrimScrFocus::QueryIn) => self.query_input.handle_command(command, queue),
+            Some(PrimScrFocus::QueryIn(..)) => self.query_input.handle_command(command, queue),
             None => {}
         }
 
@@ -131,7 +131,7 @@ impl Component for PrimaryScreen<'_> {
                     self.coll_list.focus();
                     queue.push(Event::FocusedChanged);
                 }
-                Some(PrimScrFocus::QueryIn) => {
+                Some(PrimScrFocus::QueryIn(..)) => {
                     self.db_list.focus();
                     queue.push(Event::FocusedChanged);
                 }
@@ -143,8 +143,13 @@ impl Component for PrimaryScreen<'_> {
                     queue.push(Event::FocusedChanged);
                 }
                 Some(PrimScrFocus::DocTree) => {
-                    self.query_input.focus();
+                    self.query_input.focus_last();
                     queue.push(Event::FocusedChanged);
+                }
+                Some(PrimScrFocus::QueryIn(..)) => {
+                    if self.query_input.focus_up() {
+                        queue.push(Event::FocusedChanged);
+                    }
                 }
                 _ => {}
             },
@@ -153,8 +158,11 @@ impl Component for PrimaryScreen<'_> {
                     self.coll_list.focus();
                     queue.push(Event::FocusedChanged);
                 }
-                Some(PrimScrFocus::QueryIn) => {
-                    self.doc_tree.focus();
+                Some(PrimScrFocus::QueryIn(..)) => {
+                    if self.query_input.focus_down() {
+                    } else {
+                        self.doc_tree.focus();
+                    }
                     queue.push(Event::FocusedChanged);
                 }
                 _ => {}
@@ -179,7 +187,7 @@ impl Component for PrimaryScreen<'_> {
                     self.db_list.focus();
                     queue.push(Event::FocusedChanged);
                 }
-                Some(PrimScrFocus::QueryIn) => {
+                Some(PrimScrFocus::QueryIn(..)) => {
                     self.doc_tree.focus();
                     queue.push(Event::FocusedChanged);
                 }
@@ -194,7 +202,7 @@ impl Component for PrimaryScreen<'_> {
             Some(PrimScrFocus::DbList) => self.db_list.handle_raw_event(event, queue),
             Some(PrimScrFocus::CollList) => self.coll_list.handle_raw_event(event, queue),
             Some(PrimScrFocus::DocTree) => self.doc_tree.handle_raw_event(event, queue),
-            Some(PrimScrFocus::QueryIn) => self.query_input.handle_raw_event(event, queue),
+            Some(PrimScrFocus::QueryIn(..)) => self.query_input.handle_raw_event(event, queue),
             None => {}
         }
     }

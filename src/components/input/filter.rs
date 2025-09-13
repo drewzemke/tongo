@@ -1,8 +1,8 @@
 use super::{InnerInput, InputFormatter};
 use crate::{
     components::{
-        input::BorderConfig,
         primary_screen::PrimScrFocus,
+        query_input::QueryInFocus,
         tab::{CloneWithFocus, TabFocus},
         Component,
     },
@@ -84,11 +84,13 @@ impl FilterInput {
 
 impl Component for FilterInput {
     fn is_focused(&self) -> bool {
-        self.focus.get() == TabFocus::PrimScr(PrimScrFocus::QueryIn)
+        self.focus.get() == TabFocus::PrimScr(PrimScrFocus::QueryIn(QueryInFocus::Filter))
     }
 
     fn focus(&self) {
-        self.focus.set(TabFocus::PrimScr(PrimScrFocus::QueryIn));
+        self.focus.set(TabFocus::PrimScr(PrimScrFocus::QueryIn(
+            QueryInFocus::Filter,
+        )));
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
@@ -148,7 +150,7 @@ impl Component for FilterInput {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        self.input.render(frame, area, BorderConfig::None);
+        self.input.render_without_block(frame, area);
 
         // render an indicator symbol to show if the filter is valid.
         // first determine what symbol and color we'll use for the indicator
@@ -163,7 +165,7 @@ impl Component for FilterInput {
 
         frame
             .buffer_mut()
-            .cell_mut((area.right() - 2, area.y + 1))
+            .cell_mut((area.right() - 1, area.y))
             .map(|cell| cell.set_symbol(symbol).set_fg(color));
     }
 }

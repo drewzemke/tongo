@@ -267,7 +267,7 @@ impl PersistedComponent for Tab<'_> {
             TabFocus::ConnScr(..) => TabFocus::ConnScr(ConnScrFocus::ConnList),
             TabFocus::PrimScr(ref focus) => {
                 let ps_focus = match focus {
-                    PrimScrFocus::QueryIn => PrimScrFocus::DocTree,
+                    PrimScrFocus::QueryIn(..) => PrimScrFocus::DocTree,
                     f => *f,
                 };
                 TabFocus::PrimScr(ps_focus)

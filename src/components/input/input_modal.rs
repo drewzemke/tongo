@@ -1,6 +1,5 @@
 use crate::{
     components::{
-        input::BorderConfig,
         tab::{CloneWithFocus, TabFocus},
         Component,
     },
@@ -100,7 +99,7 @@ impl Component for InputModal {
         ])
         .split(layout[1]);
 
-        self.input.render(frame, layout[1], BorderConfig::Focused);
+        self.input.render(frame, layout[1], true);
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
