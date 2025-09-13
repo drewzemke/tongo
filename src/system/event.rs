@@ -138,6 +138,9 @@ pub enum Event {
     /// Emitted when the selection of a list has changed.
     ListSelectionChanged,
 
+    /// Emitted when the query input is expanded or collapsed
+    QueryInputExpanded,
+
     /// Emitted when the app has gone to and returned from an "alternate
     /// screen", such as opening the user's editor to edit a document.
     ReturnedFromAltScreen,

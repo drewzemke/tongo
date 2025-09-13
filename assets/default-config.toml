@@ -44,7 +44,7 @@
 # Refreshes the documents view with updated data
 # refresh = "r"
 
-# Expands or collapses tree items in the documents view
+# Expands or collapses tree items in the documents view, or show/hide the advanced query input fields
 # expand-collapse = "space"
 
 # Navigates between pages of documents in the documents view

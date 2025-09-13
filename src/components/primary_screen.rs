@@ -235,9 +235,14 @@ impl Component for PrimaryScreen<'_> {
         let sidebar_top = sidebar_layout[0];
         let sidebar_btm = sidebar_layout[1];
 
+        let query_input_size = if self.query_input.is_expanded() { 7 } else { 3 };
+
         let main_view_layout = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Min(3), Constraint::Percentage(100)])
+            .constraints([
+                Constraint::Length(query_input_size),
+                Constraint::Percentage(100),
+            ])
             .split(main_view);
         let main_view_top = main_view_layout[0];
         let main_view_btm = main_view_layout[1];

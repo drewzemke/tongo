@@ -63,7 +63,7 @@ impl std::fmt::Display for CommandCategory {
             Self::DocActions => write!(f, "Document Actions"),
             Self::CollActions => write!(f, "Collections List"),
             Self::DbActions => write!(f, "Databases List"),
-            Self::FilterInputActions => write!(f, "Filter Input"),
+            Self::FilterInputActions => write!(f, "Query Input"),
             Self::ConnActions => write!(f, "Connections List"),
             Self::TabActions => write!(f, "Tabs"),
             Self::AppNav => write!(f, "Navigation"),
