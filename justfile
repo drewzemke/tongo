@@ -7,6 +7,9 @@ build:
 test:
     cargo test
 
+watch:
+    watchexec --wrap-process=session -r just run 
+
 install:
     cargo install --path .
 
