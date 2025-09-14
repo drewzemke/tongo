@@ -98,6 +98,14 @@ impl DocumentInput {
             .ok()
             .and_then(|value| mongodb::bson::to_document(&value).ok())
     }
+
+    const fn doc_updated_event(&self, doc: Document) -> Event {
+        match self.kind {
+            DocInputKind::Filter => Event::DocFilterUpdated(doc),
+            DocInputKind::Projection => Event::DocProjectionUpdated(doc),
+            DocInputKind::Sort => Event::DocSortUpdated(doc),
+        }
+    }
 }
 
 impl Component for DocumentInput {
@@ -135,7 +143,7 @@ impl Component for DocumentInput {
                     if let Some(doc) = self.get_doc() {
                         self.input.stop_editing();
                         queue.push(Event::DocumentPageChanged(0));
-                        queue.push(Event::DocFilterUpdated(doc));
+                        queue.push(self.doc_updated_event(doc));
                         queue.push(Message::to_app(AppAction::ExitRawMode));
                     } else {
                         queue.push(Event::ErrorOccurred("Invalid filter.".into()));
@@ -155,7 +163,7 @@ impl Component for DocumentInput {
                 }
                 Command::Reset => {
                     self.input.set_value(DEFAULT_DOC);
-                    queue.push(Event::DocFilterUpdated(Document::default()));
+                    queue.push(self.doc_updated_event(Document::default()));
                 }
                 _ => {}
             }

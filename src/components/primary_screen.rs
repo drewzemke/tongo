@@ -188,8 +188,10 @@ impl Component for PrimaryScreen<'_> {
                     queue.push(Event::FocusedChanged);
                 }
                 Some(PrimScrFocus::QueryIn(..)) => {
-                    self.doc_tree.focus();
-                    queue.push(Event::FocusedChanged);
+                    if !self.query_input.is_expanded() {
+                        self.doc_tree.focus();
+                        queue.push(Event::FocusedChanged);
+                    }
                 }
                 _ => {}
             },
@@ -210,7 +212,7 @@ impl Component for PrimaryScreen<'_> {
     fn handle_event(&mut self, event: &Event, queue: &mut SignalQueue) {
         match event {
             Event::DatabaseSelected(_) => self.coll_list.focus(),
-            Event::CollectionSelected(_) | Event::DocFilterUpdated(_) => self.doc_tree.focus(),
+            Event::CollectionSelected(_) => self.doc_tree.focus(),
             _ => {}
         }
         self.db_list.handle_event(event, queue);

@@ -44,6 +44,8 @@ pub struct Client {
     coll: Option<Collection>,
 
     filter: Document,
+    projection: Document,
+    sort: Document,
     page: usize,
 
     response_send: Sender<Event>,
@@ -63,6 +65,8 @@ impl Default for Client {
             db: None,
             coll: None,
             filter: Document::default(),
+            projection: Document::default(),
+            sort: Document::default(),
             page: 0,
             response_send,
             response_recv,
@@ -80,6 +84,8 @@ impl Clone for Client {
             db: self.db.clone(),
             coll: self.coll.clone(),
             filter: self.filter.clone(),
+            projection: self.projection.clone(),
+            sort: self.sort.clone(),
             page: self.page,
             response_send,
             response_recv,
@@ -173,12 +179,16 @@ impl Client {
     fn query(&self, reset_state: bool) -> Option<()> {
         let coll = self.get_collection::<Bson>()?;
         let filter = self.filter.clone();
+        let projection = self.projection.clone();
+        let sort = self.sort.clone();
         let page_size = self.config.page_size;
         let skip = self.page * page_size;
 
         #[expect(clippy::cast_possible_wrap)]
         let options = FindOptions::builder()
             .skip(skip as u64)
+            .projection(projection)
+            .sort(sort)
             .limit(page_size as i64)
             .build();
 
@@ -357,6 +367,16 @@ impl Component for Client {
                 self.queue(Operation::Query(true));
                 self.queue(Operation::Count);
             }
+            Event::DocProjectionUpdated(doc) => {
+                self.projection.clone_from(doc);
+                self.queue(Operation::Query(true));
+                self.queue(Operation::Count);
+            }
+            Event::DocSortUpdated(doc) => {
+                self.sort.clone_from(doc);
+                self.queue(Operation::Query(true));
+                self.queue(Operation::Count);
+            }
             Event::DocUpdateComplete => self.queue(Operation::Query(false)),
             Event::DocInsertComplete | Event::DocDeleteComplete => {
                 self.queue(Operation::Count);
@@ -435,6 +455,8 @@ pub struct PersistedClient {
     db: Option<Database>,
     coll: Option<Collection>,
     filter: Document,
+    projection: Document,
+    sort: Document,
     page: usize,
 }
 
@@ -446,6 +468,8 @@ impl PersistedComponent for Client {
             db: self.db.clone(),
             coll: self.coll.clone(),
             filter: self.filter.clone(),
+            projection: self.projection.clone(),
+            sort: self.sort.clone(),
             page: self.page,
         }
     }
@@ -454,6 +478,8 @@ impl PersistedComponent for Client {
         self.db = storage.db;
         self.coll = storage.coll;
         self.filter = storage.filter;
+        self.projection = storage.projection;
+        self.sort = storage.sort;
         self.page = storage.page;
     }
 }

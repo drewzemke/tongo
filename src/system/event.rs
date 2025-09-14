@@ -94,6 +94,12 @@ pub enum Event {
     /// Emitted when the user has changed the document search filter.
     DocFilterUpdated(Document),
 
+    /// Emitted when the user has changed the document search projection.
+    DocProjectionUpdated(Document),
+
+    /// Emitted when the user has changed the document search sorting.
+    DocSortUpdated(Document),
+
     /// Emitted when a document has been successfully inserted into a collection
     /// in the Mongo server.
     DocInsertComplete,
