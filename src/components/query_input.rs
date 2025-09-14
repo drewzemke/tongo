@@ -1,11 +1,16 @@
 use std::{cell::Cell, rc::Rc};
 
-use ratatui::{layout::Offset, prelude::*, symbols, widgets::Block};
+use ratatui::{
+    layout::Offset,
+    prelude::*,
+    symbols,
+    widgets::{Block, Borders},
+};
 use serde::{Deserialize, Serialize};
 
 use crate::{
     components::{
-        input::filter::FilterInput,
+        input::doc_input::DocumentInput,
         primary_screen::PrimScrFocus,
         tab::{CloneWithFocus, TabFocus},
         Component,
@@ -19,12 +24,41 @@ use crate::{
     },
 };
 
+use super::input::doc_input::DocInputKind;
+
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum QueryInFocus {
     #[default]
     Filter,
-    Project,
+    Projection,
     Sort,
+}
+
+impl PartialEq<DocInputKind> for QueryInFocus {
+    fn eq(&self, other: &DocInputKind) -> bool {
+        matches!(
+            (self, other),
+            (Self::Filter, DocInputKind::Filter)
+                | (Self::Projection, DocInputKind::Projection)
+                | (Self::Sort, DocInputKind::Sort)
+        )
+    }
+}
+
+impl PartialEq<QueryInFocus> for DocInputKind {
+    fn eq(&self, other: &QueryInFocus) -> bool {
+        other.eq(self)
+    }
+}
+
+impl From<DocInputKind> for QueryInFocus {
+    fn from(kind: DocInputKind) -> Self {
+        match kind {
+            DocInputKind::Filter => Self::Filter,
+            DocInputKind::Projection => Self::Projection,
+            DocInputKind::Sort => Self::Sort,
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone)]
@@ -32,9 +66,9 @@ pub struct QueryInput {
     focus: Rc<Cell<TabFocus>>,
     config: Config,
 
-    filter_input: FilterInput,
-    projection_input: FilterInput,
-    sort_input: FilterInput,
+    filter_input: DocumentInput,
+    projection_input: DocumentInput,
+    sort_input: DocumentInput,
 
     expanded: bool,
 }
@@ -58,9 +92,24 @@ impl QueryInput {
         cursor_pos: Rc<Cell<(u16, u16)>>,
         config: Config,
     ) -> Self {
-        let filter_input = FilterInput::new(focus.clone(), cursor_pos.clone(), config.clone());
-        let projection_input = FilterInput::new(focus.clone(), cursor_pos.clone(), config.clone());
-        let sort_input = FilterInput::new(focus.clone(), cursor_pos, config.clone());
+        let filter_input = DocumentInput::new(
+            DocInputKind::Filter,
+            focus.clone(),
+            cursor_pos.clone(),
+            config.clone(),
+        );
+        let projection_input = DocumentInput::new(
+            DocInputKind::Projection,
+            focus.clone(),
+            cursor_pos.clone(),
+            config.clone(),
+        );
+        let sort_input = DocumentInput::new(
+            DocInputKind::Sort,
+            focus.clone(),
+            cursor_pos,
+            config.clone(),
+        );
         Self {
             focus,
             config,
@@ -73,6 +122,8 @@ impl QueryInput {
 
     pub const fn is_editing(&self) -> bool {
         self.filter_input.is_editing()
+            || self.projection_input.is_editing()
+            || self.sort_input.is_editing()
     }
 
     pub const fn is_expanded(&self) -> bool {
@@ -94,7 +145,7 @@ impl QueryInput {
             return false;
         }
         match self.internal_focus() {
-            Some(QueryInFocus::Project) => {
+            Some(QueryInFocus::Projection) => {
                 self.filter_input.focus();
                 true
             }
@@ -117,7 +168,7 @@ impl QueryInput {
                 self.projection_input.focus();
                 true
             }
-            Some(QueryInFocus::Project) => {
+            Some(QueryInFocus::Projection) => {
                 self.sort_input.focus();
                 true
             }
@@ -197,16 +248,17 @@ impl QueryInput {
 
     /// renders the component in a given rect (that is assumed to be of height 3),
     /// along with the side borders
-    fn render_subcomponent(&mut self, subcomponent: QueryInFocus, frame: &mut Frame, area: Rect) {
-        let focused = matches!(self.internal_focus(), Some(f) if f == subcomponent);
+    fn render_subcomponent(&mut self, input_kind: DocInputKind, frame: &mut Frame, area: Rect) {
+        let focused = matches!(self.internal_focus(), Some(f) if f == input_kind);
         let (border_color, bg_color) = self.get_colors(focused);
         let border_style = Style::default().fg(border_color).bg(bg_color);
 
-        let label = match subcomponent {
-            QueryInFocus::Filter => "filt",
-            QueryInFocus::Project => "proj",
-            QueryInFocus::Sort => "sort",
+        let input = match input_kind {
+            DocInputKind::Filter => &mut self.filter_input,
+            DocInputKind::Projection => &mut self.projection_input,
+            DocInputKind::Sort => &mut self.sort_input,
         };
+        let label = &input.name()[0..4];
         let label_and_border = format!("{}{label}:", symbols::line::NORMAL.vertical);
 
         #[expect(clippy::cast_possible_truncation)]
@@ -221,14 +273,7 @@ impl QueryInput {
         let right_border_area = layout[2];
 
         frame.render_widget(Line::from(label_and_border).style(border_style), label_area);
-
-        let input = match subcomponent {
-            QueryInFocus::Filter => &mut self.filter_input,
-            QueryInFocus::Project => &mut self.projection_input,
-            QueryInFocus::Sort => &mut self.sort_input,
-        };
         input.render(frame, input_area);
-
         frame.render_widget(
             Line::from(symbols::line::NORMAL.vertical).style(border_style),
             right_border_area,
@@ -243,7 +288,7 @@ impl QueryInput {
 
         let title = " Query ";
         let title_text_color = if self.internal_focus().is_some() {
-            self.config.color_map.get(&ColorKey::FgPrimary)
+            self.config.color_map.get(&ColorKey::PanelActiveBorder)
         } else {
             self.config.color_map.get(&ColorKey::PanelInactiveBorder)
         };
@@ -293,7 +338,7 @@ impl QueryInput {
     fn render_horizontal_divider1(&self, frame: &mut Frame, area: Rect) {
         let focused = matches!(
             self.internal_focus(),
-            Some(QueryInFocus::Filter | QueryInFocus::Project)
+            Some(QueryInFocus::Filter | QueryInFocus::Projection)
         );
         let (border_color, bg_color) = self.get_colors(focused);
         let style = Style::default().fg(border_color).bg(bg_color);
@@ -314,7 +359,7 @@ impl QueryInput {
     fn render_horizontal_divider2(&self, frame: &mut Frame, area: Rect) {
         let focused = matches!(
             self.internal_focus(),
-            Some(QueryInFocus::Project | QueryInFocus::Sort)
+            Some(QueryInFocus::Projection | QueryInFocus::Sort)
         );
         let (border_color, bg_color) = self.get_colors(focused);
         let style = Style::default().fg(border_color).bg(bg_color);
@@ -337,19 +382,19 @@ impl Component for QueryInput {
         let mut out = if self.expanded {
             vec![
                 CommandGroup::new(vec![Command::ExpandCollapse], "hide adv. query")
-                    .in_cat(CommandCategory::FilterInputActions),
+                    .in_cat(CommandCategory::DocInputActions),
             ]
         } else {
             vec![
                 CommandGroup::new(vec![Command::ExpandCollapse], "show adv. query")
-                    .in_cat(CommandCategory::FilterInputActions),
+                    .in_cat(CommandCategory::DocInputActions),
             ]
         };
         match self.internal_focus() {
             Some(QueryInFocus::Filter) => {
                 out.append(&mut self.filter_input.commands());
             }
-            Some(QueryInFocus::Project) => {
+            Some(QueryInFocus::Projection) => {
                 out.append(&mut self.projection_input.commands());
             }
             Some(QueryInFocus::Sort) => {
@@ -363,11 +408,16 @@ impl Component for QueryInput {
     fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
         if matches!(command, Command::ExpandCollapse) {
             self.expanded = !self.expanded;
+            if !self.expanded {
+                self.filter_input.focus();
+            }
             queue.push(Event::QueryInputExpanded);
         } else {
             match self.internal_focus() {
                 Some(QueryInFocus::Filter) => self.filter_input.handle_command(command, queue),
-                Some(QueryInFocus::Project) => self.projection_input.handle_command(command, queue),
+                Some(QueryInFocus::Projection) => {
+                    self.projection_input.handle_command(command, queue);
+                }
                 Some(QueryInFocus::Sort) => self.sort_input.handle_command(command, queue),
                 None => {}
             }
@@ -377,7 +427,7 @@ impl Component for QueryInput {
     fn handle_raw_event(&mut self, event: &crossterm::event::Event, queue: &mut SignalQueue) {
         match self.internal_focus() {
             Some(QueryInFocus::Filter) => self.filter_input.handle_raw_event(event, queue),
-            Some(QueryInFocus::Project) => self.projection_input.handle_raw_event(event, queue),
+            Some(QueryInFocus::Projection) => self.projection_input.handle_raw_event(event, queue),
             Some(QueryInFocus::Sort) => self.sort_input.handle_raw_event(event, queue),
             None => {}
         }
@@ -393,7 +443,7 @@ impl Component for QueryInput {
             let mut rect = layout[0];
 
             self.render_subcomponent(
-                QueryInFocus::Filter,
+                DocInputKind::Filter,
                 frame,
                 rect.offset(Offset { x: 0, y: 1 }),
             );
@@ -402,7 +452,7 @@ impl Component for QueryInput {
             rect = rect.offset(Offset { x: 0, y: 2 });
 
             self.render_subcomponent(
-                QueryInFocus::Project,
+                DocInputKind::Projection,
                 frame,
                 rect.offset(Offset { x: 0, y: 1 }),
             );
@@ -411,7 +461,7 @@ impl Component for QueryInput {
             rect = rect.offset(Offset { x: 0, y: 2 });
 
             self.render_subcomponent(
-                QueryInFocus::Sort,
+                DocInputKind::Sort,
                 frame,
                 rect.offset(Offset { x: 0, y: 1 }),
             );
@@ -420,13 +470,18 @@ impl Component for QueryInput {
         } else {
             let (border_color, bg_color) = self.get_color_for(QueryInFocus::Filter);
 
-            self.filter_input.render(frame, area);
-
             let block = Block::default()
                 .bg(bg_color)
                 .title(" Query ")
+                .borders(Borders::ALL)
                 .border_style(Style::default().fg(border_color));
+
             block.render(area, frame.buffer_mut());
+
+            self.filter_input.render(
+                frame,
+                area.offset(Offset { x: 0, y: 1 }).inner(Margin::new(1, 0)),
+            );
         }
     }
 }

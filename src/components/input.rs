@@ -12,7 +12,7 @@ use tui_input::{backend::crossterm::EventHandler, Input as TuiInput};
 
 pub mod conn_name_input;
 pub mod conn_str_input;
-pub mod filter;
+pub mod doc_input;
 pub mod input_modal;
 
 #[derive(Debug, Default, Clone)]
@@ -78,16 +78,27 @@ where
         }
     }
 
-    fn render_without_block(&self, frame: &mut Frame, area: Rect) {
+    fn render_without_block(&self, frame: &mut Frame, area: Rect, focused: bool) {
+        // fix the render area so we only fill up one line
+        let area = Rect { height: 1, ..area };
+
+        // clear background
+        frame.render_widget(Clear, area);
+
         // figure out the right amount to scroll the input by
         let input_scroll = self.state.visual_scroll(area.width as usize - 3);
 
-        let text = self.formatter.get_formatted();
+        let bg_color = if focused {
+            self.config.color_map.get(&ColorKey::PanelActiveBg)
+        } else {
+            self.config.color_map.get(&ColorKey::PanelInactiveBg)
+        };
 
+        // render input
+        let text = self.formatter.get_formatted();
         #[expect(clippy::cast_possible_truncation)]
         let input_widget = Paragraph::new(text).scroll((0, input_scroll as u16));
-        frame.render_widget(Clear, area);
-        frame.render_widget(input_widget, area);
+        frame.render_widget(input_widget.bg(bg_color), area);
 
         // update cursor position
         #[expect(clippy::cast_possible_truncation)]

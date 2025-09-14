@@ -2,7 +2,6 @@ use super::{InnerInput, InputFormatter};
 use crate::{
     components::{
         primary_screen::PrimScrFocus,
-        query_input::QueryInFocus,
         tab::{CloneWithFocus, TabFocus},
         Component,
     },
@@ -24,16 +23,25 @@ use ratatui::{
 };
 use std::{cell::Cell, rc::Rc};
 
-#[derive(Debug, Default, Clone)]
-pub struct FilterInput {
-    focus: Rc<Cell<TabFocus>>,
-    config: Config,
-    input: InnerInput<FilterInputFormatter>,
+#[derive(Debug, Default, Clone, Copy)]
+pub enum DocInputKind {
+    #[default]
+    Filter,
+    Projection,
+    Sort,
 }
 
-const DEFAULT_FILTER: &str = "{}";
+#[derive(Debug, Default, Clone)]
+pub struct DocumentInput {
+    kind: DocInputKind,
+    input: InnerInput<DocInputFormatter>,
+    focus: Rc<Cell<TabFocus>>,
+    config: Config,
+}
 
-impl CloneWithFocus for FilterInput {
+const DEFAULT_DOC: &str = "{}";
+
+impl CloneWithFocus for DocumentInput {
     fn clone_with_focus(&self, focus: Rc<Cell<TabFocus>>) -> Self {
         Self {
             focus,
@@ -42,23 +50,25 @@ impl CloneWithFocus for FilterInput {
     }
 }
 
-impl FilterInput {
+impl DocumentInput {
     pub fn new(
+        kind: DocInputKind,
         focus: Rc<Cell<TabFocus>>,
         cursor_pos: Rc<Cell<(u16, u16)>>,
         config: Config,
     ) -> Self {
         let mut input = InnerInput::new(
-            "Filter",
+            "Document",
             cursor_pos,
             config.clone(),
-            FilterInputFormatter::new(config.clone()),
+            DocInputFormatter::new(config.clone()),
         );
-        input.set_value(DEFAULT_FILTER);
+        input.set_value(DEFAULT_DOC);
         Self {
+            kind,
+            input,
             focus,
             config,
-            input,
         }
     }
 
@@ -74,23 +84,30 @@ impl FilterInput {
         self.input.stop_editing();
     }
 
-    fn get_filter_doc(&self) -> Option<Document> {
-        let filter_str = self.input.value();
-        json5::from_str::<serde_json::Value>(filter_str)
+    pub const fn name(&self) -> &'static str {
+        match self.kind {
+            DocInputKind::Filter => "filter",
+            DocInputKind::Projection => "projection",
+            DocInputKind::Sort => "sort",
+        }
+    }
+
+    fn get_doc(&self) -> Option<Document> {
+        let doc_str = self.input.value();
+        json5::from_str::<serde_json::Value>(doc_str)
             .ok()
             .and_then(|value| mongodb::bson::to_document(&value).ok())
     }
 }
 
-impl Component for FilterInput {
+impl Component for DocumentInput {
     fn is_focused(&self) -> bool {
-        self.focus.get() == TabFocus::PrimScr(PrimScrFocus::QueryIn(QueryInFocus::Filter))
+        matches!(self.focus.get(), TabFocus::PrimScr(PrimScrFocus::QueryIn(f)) if f == self.kind)
     }
 
     fn focus(&self) {
-        self.focus.set(TabFocus::PrimScr(PrimScrFocus::QueryIn(
-            QueryInFocus::Filter,
-        )));
+        self.focus
+            .set(TabFocus::PrimScr(PrimScrFocus::QueryIn(self.kind.into())));
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
@@ -103,10 +120,10 @@ impl Component for FilterInput {
             ]
         } else {
             vec![
-                CommandGroup::new(vec![Command::Confirm], "edit filter")
-                    .in_cat(CommandCategory::FilterInputActions),
-                CommandGroup::new(vec![Command::Reset], "reset filter")
-                    .in_cat(CommandCategory::FilterInputActions),
+                CommandGroup::new(vec![Command::Confirm], "edit input")
+                    .in_cat(CommandCategory::DocInputActions),
+                CommandGroup::new(vec![Command::Reset], "reset input")
+                    .in_cat(CommandCategory::DocInputActions),
             ]
         }
     }
@@ -115,7 +132,7 @@ impl Component for FilterInput {
         if self.input.is_editing() {
             match command {
                 Command::Confirm => {
-                    if let Some(doc) = self.get_filter_doc() {
+                    if let Some(doc) = self.get_doc() {
                         self.input.stop_editing();
                         queue.push(Event::DocumentPageChanged(0));
                         queue.push(Event::DocFilterUpdated(doc));
@@ -137,7 +154,7 @@ impl Component for FilterInput {
                     queue.push(Message::to_app(AppAction::EnterRawMode));
                 }
                 Command::Reset => {
-                    self.input.set_value(DEFAULT_FILTER);
+                    self.input.set_value(DEFAULT_DOC);
                     queue.push(Event::DocFilterUpdated(Document::default()));
                 }
                 _ => {}
@@ -150,12 +167,17 @@ impl Component for FilterInput {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        self.input.render_without_block(frame, area);
+        let focused = matches!(
+            self.focus.get(),
+            TabFocus::PrimScr(PrimScrFocus::QueryIn(..))
+        );
 
-        // render an indicator symbol to show if the filter is valid.
+        self.input.render_without_block(frame, area, focused);
+
+        // render an indicator symbol to show if the document is valid.
         // first determine what symbol and color we'll use for the indicator
-        let valid_filter = self.get_filter_doc().is_some();
-        let (symbol, color) = if valid_filter {
+        let valid_doc = self.get_doc().is_some();
+        let (symbol, color) = if valid_doc {
             ("●", self.config.color_map.get(&ColorKey::IndicatorSuccess))
         } else if self.is_editing() {
             ("◯", self.config.color_map.get(&ColorKey::IndicatorError))
@@ -170,7 +192,7 @@ impl Component for FilterInput {
     }
 }
 
-impl PersistedComponent for FilterInput {
+impl PersistedComponent for DocumentInput {
     type StorageType = String;
 
     fn persist(&self) -> Self::StorageType {
@@ -183,13 +205,13 @@ impl PersistedComponent for FilterInput {
 }
 
 #[derive(Debug, Default, Clone)]
-struct FilterInputFormatter {
+struct DocInputFormatter {
     labeler: JsonLabeler,
     config: Config,
     text: Text<'static>,
 }
 
-impl FilterInputFormatter {
+impl DocInputFormatter {
     pub fn new(config: Config) -> Self {
         Self {
             config,
@@ -213,7 +235,7 @@ impl FilterInputFormatter {
     }
 }
 
-impl InputFormatter for FilterInputFormatter {
+impl InputFormatter for DocInputFormatter {
     fn on_change(&mut self, text: &str) {
         let labels = self.labeler.label_line(text);
         let text = labels.map_or_else(
