@@ -6,6 +6,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.2](https://github.com/drewzemke/tongo/compare/v0.15.1...v0.15.2) - 2025-09-15
+
+### Added
+
+- *(query)* mongo queries use selected projection and sort settings
+- *(query)* allow navigation between individual query inputs
+- *(query)* render individual query inputs
+- *(query)* command to expand query input into a three-field display
+
+### Fixed
+
+- *(cd)* upload packaged binaries to release
+- *(cd)* add workflow write permissions
+
+### Other
+
+- add script to run app in "watch" mode
+- *(query)* render a border separately from normal input component border
+- *(query)* wrap existing filter input in a `QueryInput` component
+- *(system)* manage signals using a `SignalQueue`
+- add `CLAUDE.md`
+- bump dependencies
+- address new clippy lints
+- *(readme)* add instructions for installing from the AUR
+
 ## [0.15.1](https://github.com/drewzemke/tongo/compare/v0.15.0...v0.15.1) - 2025-03-30
 
 ### Fixed
