@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.3](https://github.com/drewzemke/tongo/compare/v0.15.2...v0.15.3) - 2025-09-15
+
+### Other
+
+- remove .helix directory
+- remove .claude directory
+
 ## [0.15.2](https://github.com/drewzemke/tongo/compare/v0.15.1...v0.15.2) - 2025-09-15
 
 ### Added
