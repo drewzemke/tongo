@@ -36,6 +36,11 @@ jobs:
             cross_arch: true
             artifact_name: tongo
 
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            cross_arch: true
+            artifact_name: tongo
+
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             artifact_name: tongo.exe
