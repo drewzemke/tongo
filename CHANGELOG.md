@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.4](https://github.com/drewzemke/tongo/compare/v0.15.3...v0.15.4) - 2026-01-23
+
+### Fixed
+
+- *(ci)* use PAT for release-plz to trigger CD workflow
+
+### Other
+
+- *(cd)* add workflow job to publish to homebrew
+- address lint issues
+- *(deps)* update ratatui and related deps
+
 ## [0.15.3](https://github.com/drewzemke/tongo/compare/v0.15.2...v0.15.3) - 2025-12-29
 
 ### Other
