@@ -392,7 +392,7 @@ impl Component for Client {
                 self.queue(Operation::QueryCollections);
             }
             Event::InputConfirmed(InputKind::NewCollectionName, coll_name) => {
-                self.queue(Operation::CreateCollection(coll_name.to_string()));
+                self.queue(Operation::CreateCollection(coll_name.clone()));
             }
             Event::DatabaseDropConfirmed(dropped_selected) => {
                 if *dropped_selected {
@@ -405,7 +405,7 @@ impl Component for Client {
                 self.queue(Operation::QueryDatabases);
             }
             Event::InputConfirmed(InputKind::NewDatabaseName, coll_name) => {
-                self.queue(Operation::CreateDatabase(coll_name.to_string()));
+                self.queue(Operation::CreateDatabase(coll_name.clone()));
             }
             _ => (),
         }

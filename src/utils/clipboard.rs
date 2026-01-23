@@ -15,7 +15,7 @@ pub fn send_bson_to_clipboard(bson: &Bson) -> Result<()> {
                 serde_json::to_string_pretty(&json).context("converting json to string")
             })?,
         Bson::ObjectId(v) => v.to_string(),
-        Bson::String(v) | Bson::Symbol(v) | Bson::JavaScriptCode(v) => v.to_string(),
+        Bson::String(v) | Bson::Symbol(v) | Bson::JavaScriptCode(v) => v.clone(),
         Bson::Boolean(v) => v.to_string(),
         Bson::Int32(v) => v.to_string(),
         Bson::Int64(v) => v.to_string(),
