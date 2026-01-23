@@ -1,11 +1,12 @@
 { pkgs ? import <nixpkgs> {} }:
 
 let
+  manifest = (pkgs.lib.importTOML ./Cargo.toml).package;
   rust = pkgs.rustPlatform;
 in
 rust.buildRustPackage rec {
-  pname = "tongo";
-  version = "0.10.0"; 
+  pname = manifest.name;
+  version = manifest.version;
 
   cargoLock.lockFile = ./Cargo.lock;
   src = pkgs.lib.cleanSource ./.;
