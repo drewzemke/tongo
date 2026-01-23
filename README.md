@@ -46,6 +46,13 @@ If you're on Arch Linux, you can install `tongo` [from the AUR](https://aur.arch
 paru -S tongo
 ```
 
+### Using Homebrew
+
+If you're on macOS, install [Homebrew](https://brew.sh/) and then run
+```shell
+brew install drewzemke/tap/tongo
+```
+
 ## Quick Start
 
 1. Launch `tongo` in your terminal of choice:
