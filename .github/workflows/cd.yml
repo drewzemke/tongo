@@ -81,3 +81,42 @@ jobs:
           files: target/${{ matrix.target }}/release/tongo-*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-homebrew:
+    name: Update Homebrew formula
+    runs-on: ubuntu-latest
+    needs: publish
+    steps:
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for release assets
+        run: sleep 10
+
+      - name: Download SHA256 checksums
+        run: |
+          curl -sL "https://github.com/drewzemke/tongo/releases/download/${{ github.ref_name }}/tongo-aarch64-apple-darwin.sha256" -o arm64.sha256
+          curl -sL "https://github.com/drewzemke/tongo/releases/download/${{ github.ref_name }}/tongo-x86_64-apple-darwin.sha256" -o x86_64.sha256
+          echo "ARM64_SHA256=$(cut -d ' ' -f 1 arm64.sha256)" >> "$GITHUB_ENV"
+          echo "X86_64_SHA256=$(cut -d ' ' -f 1 x86_64.sha256)" >> "$GITHUB_ENV"
+
+      - name: Checkout homebrew-tap repo
+        uses: actions/checkout@v4
+        with:
+          repository: drewzemke/homebrew-tap
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+
+      - name: Update formula
+        run: |
+          sed -i 's/version "[^"]*"/version "${{ steps.version.outputs.version }}"/' Formula/tongo.rb
+          sed -i '/on_arm do/{n;n;s/sha256 "[^"]*"/sha256 "${{ env.ARM64_SHA256 }}"/}' Formula/tongo.rb
+          sed -i '/on_intel do/{n;n;s/sha256 "[^"]*"/sha256 "${{ env.X86_64_SHA256 }}"/}' Formula/tongo.rb
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add Formula/tongo.rb
+          git commit -m "chore(tongo): update to ${{ steps.version.outputs.version }}"
+          git push
