@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.5](https://github.com/drewzemke/tongo/compare/v0.15.4...v0.15.5) - 2026-01-23
+
+### Other
+
+- *(cd)* add cargo caching
+- *(cd)* add x86_64-unknown-linux-musl target
+- add homebrew installation instructions to readme
+- *(nix)* read version from Cargo.toml
+
 ## [0.15.4](https://github.com/drewzemke/tongo/compare/v0.15.3...v0.15.4) - 2026-01-23
 
 ### Fixed
