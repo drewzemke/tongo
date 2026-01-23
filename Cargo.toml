@@ -19,7 +19,7 @@ allow_attributes = { level = "warn", priority = 2 }
 anyhow = "1.0.99"
 arboard = "3.6.1"
 clap = { version = "4.5.47", features = ["derive"] }
-crossterm = "0.28.1"
+crossterm = "0.29.0"
 dirs = "6.0.0"
 edit = "0.1.5"
 futures = "0.3.31"
@@ -27,7 +27,7 @@ itertools = "0.14.0"
 json5 = "0.4.1"
 mongodb = "3.3.0"
 nucleo = "0.5.0"
-ratatui = { version = "0.29.0", features = ["unstable-rendered-line-info"] }
+ratatui = { version = "0.30.0", features = ["unstable-rendered-line-info"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = "1.0.143"
 strum = "0.27.2"
@@ -38,9 +38,9 @@ tokio = { version = "1.47.1", features = ["full"] }
 toml = "0.9.5"
 tracing = "0.1.41"
 tracing-subscriber = { version = "0.3.20", features = ["env-filter"] }
-tui-input = "0.14.0"
-tui-scrollview = "0.5.1"
-tui-tree-widget = "0.23.1"
+tui-input = "0.15.0"
+tui-scrollview = "0.6.2"
+tui-tree-widget = "0.24.0"
 uuid = { version = "1.18.1", features = ["v4"] }
 
 [features]

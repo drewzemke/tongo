@@ -144,7 +144,10 @@ impl App<'_> {
     ///
     /// # Errors
     /// If something goes wrong while drawing to the screen
-    pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()> {
+    pub fn run<B: Backend>(&mut self, terminal: &mut Terminal<B>) -> Result<()>
+    where
+        B::Error: Send + Sync + 'static,
+    {
         // initial draw call
         terminal.draw(|frame| self.render(frame, frame.area()))?;
 
