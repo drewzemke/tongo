@@ -91,7 +91,9 @@ The first time you run `tongo`, a `config.toml` will be created for you in `~/.c
 
 ### Color Themes
 
-You can fully customize the colors used in `tongo`'s UI to your liking by creating a `theme.toml` in the same directory as your configuration file. Check out [our small themes collection](./assets/themes) for some examples to get you started.
+`tongo` detects your terminal's background at startup and picks light- or dark-friendly default colors so the UI stays legible either way.
+
+You can fully customize the colors used in `tongo`'s UI to your liking by creating a `theme.toml` in the same directory as your configuration file; any colors you set there take precedence over the detected defaults. Check out [our small themes collection](./assets/themes) for some examples to get you started.
 
 
 ## Contributing

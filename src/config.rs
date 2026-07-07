@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use color_map::{ColorMap, RawColorMap};
+use color_map::{ColorMap, RawColorMap, TerminalTheme};
 use key_map::KeyMap;
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, rc::Rc};
@@ -76,12 +76,24 @@ impl TryFrom<RawConfig> for Config {
     type Error = anyhow::Error;
 
     fn try_from(config: RawConfig) -> Result<Self, Self::Error> {
+        Self::from_raw(config, TerminalTheme::default())
+    }
+}
+
+impl Config {
+    /// Builds the config from raw values, using the given terminal background
+    /// theme to pick default colors. A theme provided in the user's config or
+    /// theme file still takes precedence, layered on top of these defaults.
+    ///
+    /// # Errors
+    /// Returns an error if the key mappings or theme cannot be parsed.
+    pub fn from_raw(config: RawConfig, theme: TerminalTheme) -> Result<Self> {
         let page_size = config.page_size;
         let key_map = Rc::new(config.keys.try_into()?);
         let color_map = if let Some(raw_color_map) = config.theme {
-            Rc::new(raw_color_map.try_into().context("Could not load theme")?)
+            Rc::new(ColorMap::from_raw(&raw_color_map, theme).context("Could not load theme")?)
         } else {
-            Rc::new(ColorMap::default())
+            Rc::new(ColorMap::base(theme))
         };
 
         Ok(Self {

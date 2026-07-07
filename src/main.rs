@@ -5,7 +5,7 @@ use std::{io::Stdout, path::PathBuf, rc::Rc};
 
 use tongo::{
     app::App,
-    config::Config,
+    config::{color_map::TerminalTheme, Config},
     model::connection::Connection,
     persistence::PersistedComponent,
     utils::storage::{get_app_data_path, FileStorage, Storage},
@@ -51,8 +51,11 @@ async fn main() -> Result<()> {
 
     let storage = FileStorage::init()?;
 
+    // detect the terminal's background brightness so default colors stay legible
+    let terminal_theme = detect_terminal_theme();
+
     // load config
-    let config: Config = storage.read_config()?.try_into()?;
+    let config: Config = Config::from_raw(storage.read_config()?, terminal_theme)?;
 
     // load connections
     let stored_connections = storage.read_connections().unwrap_or_default();
@@ -100,6 +103,28 @@ async fn main() -> Result<()> {
     }
 
     Ok(())
+}
+
+/// Queries the terminal's background color (via an OSC escape sequence) to pick
+/// a legible default color scheme. Must run before the terminal is put into raw
+/// mode / the alternate screen. Falls back to `Dark` when detection isn't
+/// possible (e.g. the terminal doesn't support the query, or output is piped).
+fn detect_terminal_theme() -> TerminalTheme {
+    match terminal_light::luma() {
+        // luma is in [0.0, 1.0]; treat brighter-than-mid backgrounds as light
+        Ok(luma) if luma > 0.6 => {
+            tracing::debug!(luma, "Detected light terminal background");
+            TerminalTheme::Light
+        }
+        Ok(luma) => {
+            tracing::debug!(luma, "Detected dark terminal background");
+            TerminalTheme::Dark
+        }
+        Err(err) => {
+            tracing::debug!(?err, "Could not detect terminal background; defaulting to dark");
+            TerminalTheme::Dark
+        }
+    }
 }
 
 #[tracing::instrument(skip())]

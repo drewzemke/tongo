@@ -28,6 +28,15 @@ pub struct RawColorMap {
     palette: HashMap<String, String>,
 }
 
+/// The background brightness of the terminal, used to pick a legible set of
+/// default colors. Detected at startup; falls back to `Dark`.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum TerminalTheme {
+    #[default]
+    Dark,
+    Light,
+}
+
 #[derive(Debug, Clone, Copy, Hash, PartialEq, Eq, strum_macros::EnumIter)]
 pub enum ColorKey {
     // general ui
@@ -201,7 +210,50 @@ impl TryFrom<RawColorMap> for ColorMap {
     type Error = anyhow::Error;
 
     fn try_from(map: RawColorMap) -> Result<Self, Self::Error> {
+        Self::from_raw(&map, TerminalTheme::Dark)
+    }
+}
+
+impl ColorMap {
+    /// Returns the default color map for the given terminal background theme.
+    #[must_use]
+    pub fn base(theme: TerminalTheme) -> Self {
+        match theme {
+            TerminalTheme::Dark => Self::default(),
+            TerminalTheme::Light => Self::light(),
+        }
+    }
+
+    /// The default color map tuned for light-background terminals. Starts from
+    /// the (dark) default and overrides the keys that assume a dark background.
+    fn light() -> Self {
         let mut color_map = Self::default();
+        let overrides = [
+            (ColorKey::FgPrimary, Color::Black),
+            (ColorKey::FgSecondary, Color::DarkGray),
+            (ColorKey::SelectionBg, Color::Black),
+            (ColorKey::SelectionFg, Color::White),
+            (ColorKey::PanelInactiveBorder, Color::DarkGray),
+            (ColorKey::TabInactive, Color::DarkGray),
+            (ColorKey::Key, Color::Black),
+            (ColorKey::ObjectId, Color::Black),
+            (ColorKey::Punctuation, Color::DarkGray),
+            (ColorKey::DocumentsNote, Color::DarkGray),
+        ];
+        for (key, color) in overrides {
+            color_map.map.insert(key, color);
+        }
+        color_map
+    }
+
+    /// Builds a color map from user configuration, layered on top of the
+    /// defaults for the given terminal background theme.
+    ///
+    /// # Errors
+    /// Returns an error if the configuration contains an invalid palette key or
+    /// an unrecognized color or theme key.
+    pub fn from_raw(map: &RawColorMap, theme: TerminalTheme) -> Result<Self> {
+        let mut color_map = Self::base(theme);
 
         // create the palette
         let mut palette = HashMap::default();
@@ -349,6 +401,44 @@ mod tests {
             .insert("boolean".to_string(), "invalid_color".to_string());
 
         assert!(ColorMap::try_from(raw_map).is_err());
+    }
+
+    #[test]
+    fn light_theme_uses_legible_defaults() {
+        let dark = ColorMap::base(TerminalTheme::Dark);
+        let light = ColorMap::base(TerminalTheme::Light);
+
+        // dark defaults assume a dark background
+        assert_eq!(dark.get(&ColorKey::FgPrimary), Color::White);
+        assert_eq!(dark.get(&ColorKey::SelectionBg), Color::White);
+
+        // light defaults flip those to stay readable on a light background
+        assert_eq!(light.get(&ColorKey::FgPrimary), Color::Black);
+        assert_eq!(light.get(&ColorKey::Key), Color::Black);
+        assert_eq!(light.get(&ColorKey::SelectionBg), Color::Black);
+        assert_eq!(light.get(&ColorKey::SelectionFg), Color::White);
+
+        // theme-agnostic colors stay the same across themes
+        assert_eq!(
+            light.get(&ColorKey::PanelActiveBorder),
+            dark.get(&ColorKey::PanelActiveBorder)
+        );
+    }
+
+    #[test]
+    fn user_config_overrides_light_defaults() {
+        let mut raw_map = RawColorMap::default();
+        raw_map
+            .ui
+            .insert("fg-primary".to_string(), "red".to_string());
+
+        let color_map = ColorMap::from_raw(&raw_map, TerminalTheme::Light)
+            .expect("should be able to create color map");
+
+        // user override wins over the light default
+        assert_eq!(color_map.get(&ColorKey::FgPrimary), Color::Red);
+        // untouched keys still use the light default
+        assert_eq!(color_map.get(&ColorKey::Key), Color::Black);
     }
 
     #[test]
