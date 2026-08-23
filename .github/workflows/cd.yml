@@ -47,7 +47,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install Linux Dependencies
         if: matrix.dependencies
@@ -86,7 +86,7 @@ jobs:
           esac;
 
       - name: Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: target/${{ matrix.target }}/release/tongo-*
         env:
@@ -112,7 +112,7 @@ jobs:
           echo "X86_64_SHA256=$(cut -d ' ' -f 1 x86_64.sha256)" >> "$GITHUB_ENV"
 
       - name: Checkout homebrew-tap repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: drewzemke/homebrew-tap
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
