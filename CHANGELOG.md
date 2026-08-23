@@ -6,6 +6,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.6](https://github.com/drewzemke/tongo/compare/v0.15.5...v0.15.6) - 2026-08-23
+
+### Added
+
+- *(theme)* pick light/dark default colors from terminal background
+
+### Fixed
+
+- *(deps)* bump rand to 0.8.6 and 0.9.3 (GHSA-cq8v-f236-94qc)
+- *(deps)* bump serde_with to 3.22.0 (GHSA-7gcf-g7xr-8hxj)
+- *(deps)* bump time to 0.3.55 (CVE-2026-25727)
+- *(deps)* bump bytes to 1.12.1 (CVE-2026-25541)
+- *(deps)* bump mongodb to 3.8.1 for hickory-proto (GHSA-q2qq-hmj6-3wpp)
+- *(deps)* bump rustls-webpki to 0.103.15 (GHSA-82j2-j2ch-gfr8, GHSA-965h-392x-2mh5, GHSA-xgp8-3hg3-c2mh, GHSA-pwjx-qhcg-rvj4)
+
+### Other
+
+- *(cd)* replace unmaintained actions-rs/cargo with cross
+- *(ci)* bump github action versions
+
 ## [0.15.5](https://github.com/drewzemke/tongo/compare/v0.15.4...v0.15.5) - 2026-01-23
 
 ### Other
