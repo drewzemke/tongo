@@ -16,15 +16,24 @@ pub mod collections;
 pub mod connections;
 pub mod databases;
 
-#[derive(Debug, Default, Clone)]
-pub struct InnerList {
-    title: &'static str,
-    config: Config,
-    pub state: ListState,
+/// A trait for datatypes used in the generic list.
+pub trait InnerListItem: Default + Clone + PartialEq {
+    fn to_list_item(&self, config: &Config) -> ListItem<'_>;
 }
 
-impl InnerList {
-    fn new(title: &'static str, config: Config) -> Self {
+#[derive(Debug, Default, Clone)]
+pub struct InnerList<T> {
+    title: &'static str,
+    config: Config,
+    state: ListState,
+    items: Vec<T>,
+}
+
+impl<T> InnerList<T>
+where
+    T: InnerListItem,
+{
+    pub fn new(title: &'static str, config: Config) -> Self {
         Self {
             title,
             config,
@@ -32,14 +41,44 @@ impl InnerList {
         }
     }
 
-    fn base_commands() -> Vec<CommandGroup> {
+    pub fn set_items(&mut self, items: &[T])
+    where
+        T: Clone,
+    {
+        self.items = items.to_vec();
+    }
+
+    pub fn items(&self) -> &[T] {
+        &self.items
+    }
+
+    pub fn select(&mut self, item: Option<T>)
+    where
+        T: PartialEq,
+    {
+        let index = item.and_then(|item| self.items.iter().position(|it| *it == item));
+        self.state.select(index);
+    }
+
+    pub fn selected(&self) -> Option<&T> {
+        self.state
+            .selected()
+            .and_then(|index| self.items.get(index))
+    }
+
+    pub const fn num_items(&self) -> usize {
+        self.items.len()
+    }
+
+    #[expect(clippy::unused_self)]
+    pub fn base_commands(&self) -> Vec<CommandGroup> {
         vec![
             CommandGroup::new(vec![Command::NavUp, Command::NavDown], "navigate")
                 .in_cat(CommandCategory::AppNav),
         ]
     }
 
-    fn handle_base_command(
+    pub fn handle_base_command(
         &mut self,
         command: &Command,
         num_items: usize,
@@ -68,7 +107,7 @@ impl InnerList {
         }
     }
 
-    fn render(&mut self, frame: &mut Frame, area: Rect, items: Vec<ListItem>, focused: bool) {
+    fn render(&mut self, frame: &mut Frame, area: Rect, focused: bool) {
         let (border_color, bg_color, highlight_text, highlight_bg, unselected_fg) = if focused {
             (
                 self.config.color_map.get(&ColorKey::PanelActiveBorder),
@@ -87,15 +126,19 @@ impl InnerList {
             )
         };
 
-        let list = List::new(items)
-            .block(
-                Block::bordered()
-                    .bg(bg_color)
-                    .title(format!(" {} ", self.title))
-                    .border_style(Style::default().fg(border_color)),
-            )
-            .style(Style::default().fg(unselected_fg))
-            .highlight_style(Style::default().bold().fg(highlight_text).bg(highlight_bg));
+        let list = List::new(
+            self.items
+                .iter()
+                .map(|item| item.to_list_item(&self.config)),
+        )
+        .block(
+            Block::bordered()
+                .bg(bg_color)
+                .title(format!(" {} ", self.title))
+                .border_style(Style::default().fg(border_color)),
+        )
+        .style(Style::default().fg(unselected_fg))
+        .highlight_style(Style::default().bold().fg(highlight_text).bg(highlight_bg));
 
         StatefulWidget::render(list, area, frame.buffer_mut(), &mut self.state);
     }

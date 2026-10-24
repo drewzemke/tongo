@@ -8,6 +8,7 @@ use crate::{
     components::{
         confirm_modal::ConfirmKind,
         connection_screen::ConnScrFocus,
+        list::InnerListItem,
         tab::{CloneWithFocus, TabFocus},
         Component,
     },
@@ -33,8 +34,21 @@ use serde::{Deserialize, Serialize};
 pub struct Connections {
     pub focus: Rc<Cell<TabFocus>>,
     pub connection_manager: ConnectionManager,
-    pub list: InnerList,
+    pub list: InnerList<Connection>,
     pub config: Config,
+}
+
+impl InnerListItem for Connection {
+    fn to_list_item(&self, config: &Config) -> ListItem<'_> {
+        let masked_conn_str = Connections::mask_password(&self.connection_str);
+
+        let text = Text::from(vec![
+            Line::from(self.name.clone()).fg(config.color_map.get(&ColorKey::FgPrimary)),
+            Line::from(format!(" {masked_conn_str}"))
+                .fg(config.color_map.get(&ColorKey::FgSecondary)),
+        ]);
+        ListItem::new(text)
+    }
 }
 
 impl Default for Connections {
@@ -63,12 +77,14 @@ impl Connections {
         config: Config,
         connection_manager: ConnectionManager,
     ) -> Self {
-        Self {
+        let mut comp = Self {
             focus,
             connection_manager,
             list: InnerList::new("Connections", config.clone()),
             config,
-        }
+        };
+        comp.sync_connections();
+        comp
     }
 
     fn get_selected_conn(&self) -> Option<Ref<'_, Connection>> {
@@ -97,6 +113,16 @@ impl Connections {
         };
         format!("{before_slashes}//{user}:******@{after_at}")
     }
+
+    fn set_connections(&mut self, connections: Vec<Connection>) {
+        self.connection_manager.set_connections(connections);
+        self.sync_connections();
+    }
+
+    fn sync_connections(&mut self) {
+        let conns = self.connection_manager.connections();
+        self.list.set_items(&conns);
+    }
 }
 
 impl Component for Connections {
@@ -109,7 +135,7 @@ impl Component for Connections {
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
-        let mut out = InnerList::base_commands();
+        let mut out = self.list.base_commands();
         out.append(&mut vec![
             CommandGroup::new(vec![Command::Confirm], "connect")
                 .in_cat(CommandCategory::CollActions),
@@ -153,19 +179,28 @@ impl Component for Connections {
     }
 
     fn handle_event(&mut self, event: &Event, queue: &mut SignalQueue) {
-        // only process the confirmation if this component is focused
-        if self.is_focused() && matches!(event, Event::ConfirmYes(Command::Delete)) {
-            let Some(id) = self.get_selected_conn().map(|c| *c.id()) else {
-                return;
-            };
+        match event {
+            Event::ConfirmYes(Command::Delete) if self.is_focused() => {
+                // only process the confirmation if this component is focused
 
-            if matches!(self.connection_manager.delete_connection(id), Ok(())) {
-                queue.push(Event::ConnectionDeleted);
-            } else {
-                queue.push(Event::ErrorOccurred(
-                    "An error occurred while saving connection preferences".into(),
-                ));
+                let Some(id) = self.get_selected_conn().map(|c| *c.id()) else {
+                    return;
+                };
+
+                if matches!(self.connection_manager.delete_connection(id), Ok(())) {
+                    queue.push(Event::ConnectionDeleted);
+                } else {
+                    queue.push(Event::ErrorOccurred(
+                        "An error occurred while saving connection preferences".into(),
+                    ));
+                }
             }
+
+            Event::ConnectionCreated(_)
+            | Event::ConnectionUpdated(_)
+            | Event::ConnectionDeleted => self.sync_connections(),
+
+            _ => {}
         }
     }
 
@@ -211,24 +246,7 @@ impl Component for Connections {
 
             frame.render_widget(Paragraph::new(vec![line1, line2]), layout[0]);
         } else {
-            let items: Vec<ListItem> = self
-                .connection_manager
-                .connections()
-                .iter()
-                .map(|item| {
-                    let masked_conn_str = Self::mask_password(&item.connection_str);
-
-                    let text = Text::from(vec![
-                        Line::from(item.name.clone())
-                            .fg(self.config.color_map.get(&ColorKey::FgPrimary)),
-                        Line::from(format!(" {masked_conn_str}"))
-                            .fg(self.config.color_map.get(&ColorKey::FgSecondary)),
-                    ]);
-                    ListItem::new(text)
-                })
-                .collect();
-
-            self.list.render(frame, area, items, self.is_focused());
+            self.list.render(frame, area, self.is_focused());
         }
     }
 }
@@ -250,7 +268,7 @@ impl PersistedComponent for Connections {
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) {
-        self.connection_manager.set_connections(storage.connections);
+        self.set_connections(storage.connections);
 
         if let Some(conn) = storage.selected_conn {
             self.select_conn(&conn);

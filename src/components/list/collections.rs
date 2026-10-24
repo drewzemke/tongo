@@ -3,6 +3,7 @@ use crate::{
     components::{
         confirm_modal::ConfirmKind,
         input::input_modal::InputKind,
+        list::InnerListItem,
         primary_screen::PrimScrFocus,
         tab::{CloneWithFocus, TabFocus},
         Component,
@@ -24,8 +25,13 @@ use std::{cell::Cell, rc::Rc};
 #[derive(Debug, Default, Clone)]
 pub struct Collections {
     focus: Rc<Cell<TabFocus>>,
-    pub items: Vec<Collection>,
-    list: InnerList,
+    list: InnerList<Collection>,
+}
+
+impl InnerListItem for Collection {
+    fn to_list_item(&self, _config: &Config) -> ListItem<'_> {
+        ListItem::new(self.name.clone())
+    }
 }
 
 impl CloneWithFocus for Collections {
@@ -42,25 +48,14 @@ impl Collections {
         Self {
             focus,
             list: InnerList::new("Collections", config),
-            ..Default::default()
         }
     }
 
-    fn get_selected(&self) -> Option<&Collection> {
-        self.list
-            .state
-            .selected()
-            .and_then(|index| self.items.get(index))
-    }
-
-    // TODO: remove? only used for hydration
-    fn select(&mut self, collection: Option<Collection>) {
-        let index = collection.and_then(|collection| {
-            self.items
-                .iter()
-                .position(|coll| *coll.name == collection.name)
-        });
-        self.list.state.select(index);
+    #[cfg(test)]
+    fn with_items(colls: &[Collection]) -> Self {
+        let mut comp = Self::default();
+        comp.list.set_items(colls);
+        comp
     }
 }
 
@@ -74,7 +69,7 @@ impl Component for Collections {
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
-        let mut out = InnerList::base_commands();
+        let mut out = self.list.base_commands();
         out.append(&mut vec![
             CommandGroup::new(vec![Command::Confirm], "select collection")
                 .in_cat(CommandCategory::ConnActions),
@@ -88,10 +83,10 @@ impl Component for Collections {
 
     fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
         self.list
-            .handle_base_command(command, self.items.len(), queue);
+            .handle_base_command(command, self.list.num_items(), queue);
         match command {
             Command::Confirm => {
-                if let Some(coll) = self.get_selected() {
+                if let Some(coll) = self.list.selected() {
                     queue.push(Event::DocumentPageChanged(0));
                     queue.push(Event::CollectionSelected(coll.clone()));
                 }
@@ -99,7 +94,7 @@ impl Component for Collections {
             Command::CreateNew => queue.push(Message::to_tab(TabAction::RequestInput(
                 InputKind::NewCollectionName,
             ))),
-            Command::Delete if self.get_selected().is_some() => {
+            Command::Delete if self.list.selected().is_some() => {
                 queue.push(Message::to_tab(TabAction::RequestConfirmation(
                     ConfirmKind::DropCollection,
                 )));
@@ -112,15 +107,15 @@ impl Component for Collections {
         match event {
             Event::ListSelectionChanged => {
                 if self.is_focused() {
-                    if let Some(coll) = self.get_selected() {
+                    if let Some(coll) = self.list.selected() {
                         queue.push(Event::CollectionHighlighted(coll.clone()));
                     }
                 }
             }
             Event::CollectionsUpdated(colls) => {
-                self.items.clone_from(colls);
+                self.list.set_items(colls);
 
-                if self.list.state.selected().is_none() {
+                if self.list.selected().is_none() {
                     if let Some(first_coll) = colls.first() {
                         // try to select the first thing
                         self.list.state.select(Some(0));
@@ -129,7 +124,7 @@ impl Component for Collections {
                 }
             }
             Event::ConfirmYes(Command::Delete) if self.is_focused() => {
-                if let Some(coll) = self.get_selected() {
+                if let Some(coll) = self.list.selected() {
                     queue.push(Message::to_client(ClientAction::DropCollection(
                         coll.clone(),
                     )));
@@ -140,13 +135,7 @@ impl Component for Collections {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        let items: Vec<ListItem> = self
-            .items
-            .iter()
-            .map(|item| ListItem::new(item.name.clone()))
-            .collect();
-
-        self.list.render(frame, area, items, self.is_focused());
+        self.list.render(frame, area, self.is_focused());
     }
 }
 
@@ -161,14 +150,14 @@ impl PersistedComponent for Collections {
 
     fn persist(&self) -> Self::StorageType {
         PersistedCollections {
-            selected_coll: self.get_selected().cloned(),
-            all_colls: self.items.clone(),
+            selected_coll: self.list.selected().cloned(),
+            all_colls: self.list.items().to_vec(),
         }
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) {
-        self.items = storage.all_colls;
-        self.select(storage.selected_coll);
+        self.list.set_items(&storage.all_colls);
+        self.list.select(storage.selected_coll);
     }
 }
 
@@ -195,10 +184,7 @@ mod tests {
     #[test]
     fn create_collection() {
         let coll_spec = get_dummy_collection();
-        let component = Collections {
-            items: vec![coll_spec],
-            ..Default::default()
-        };
+        let component = Collections::with_items(&[coll_spec]);
         let mut test = ComponentTestHarness::new(component);
 
         test.given_command(Command::CreateNew);
@@ -213,10 +199,7 @@ mod tests {
     #[test]
     fn drop_collection() {
         let coll_spec = get_dummy_collection();
-        let component = Collections {
-            items: vec![coll_spec],
-            ..Default::default()
-        };
+        let component = Collections::with_items(&[coll_spec]);
         let mut test = ComponentTestHarness::new(component);
 
         test.given_command(Command::NavDown);
@@ -232,10 +215,7 @@ mod tests {
     #[test]
     fn persisting_and_hydrate() {
         let coll_spec = get_dummy_collection();
-        let mut component = Collections {
-            items: vec![coll_spec],
-            ..Default::default()
-        };
+        let mut component = Collections::with_items(&[coll_spec]);
         component.list.state.select(Some(0));
 
         let persisted_component = component.persist();
@@ -243,7 +223,10 @@ mod tests {
         let mut new_component = Collections::default();
         new_component.hydrate(persisted_component);
 
-        assert_eq!(component.items[0].name, new_component.items[0].name);
+        assert_eq!(
+            component.list.items()[0].name,
+            new_component.list.items()[0].name
+        );
         assert_eq!(
             component.list.state.selected(),
             new_component.list.state.selected()

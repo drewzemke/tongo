@@ -1,10 +1,9 @@
-use std::{cell::Cell, rc::Rc};
-
 use super::InnerList;
 use crate::{
     components::{
         confirm_modal::ConfirmKind,
         input::input_modal::InputKind,
+        list::InnerListItem,
         primary_screen::PrimScrFocus,
         tab::{CloneWithFocus, TabFocus},
         Component,
@@ -19,17 +18,20 @@ use crate::{
         signal::SignalQueue,
     },
 };
-use ratatui::{
-    prelude::{Frame, Rect},
-    widgets::ListItem,
-};
+use ratatui::{prelude::*, widgets::ListItem};
 use serde::{Deserialize, Serialize};
+use std::{cell::Cell, rc::Rc};
 
 #[derive(Debug, Default, Clone)]
 pub struct Databases {
     focus: Rc<Cell<TabFocus>>,
-    items: Vec<Database>,
-    list: InnerList,
+    list: InnerList<Database>,
+}
+
+impl InnerListItem for Database {
+    fn to_list_item(&self, _config: &Config) -> ListItem<'_> {
+        ListItem::new(self.name.clone())
+    }
 }
 
 impl CloneWithFocus for Databases {
@@ -46,21 +48,14 @@ impl Databases {
         Self {
             focus,
             list: InnerList::new("Databases", config),
-            ..Default::default()
         }
     }
 
-    fn get_selected(&self) -> Option<&Database> {
-        self.list
-            .state
-            .selected()
-            .and_then(|index| self.items.get(index))
-    }
-
-    fn select(&mut self, database: Option<Database>) {
-        let index = database
-            .and_then(|database| self.items.iter().position(|db| *db.name == database.name));
-        self.list.state.select(index);
+    #[cfg(test)]
+    fn with_items(dbs: &[Database]) -> Self {
+        let mut comp = Self::default();
+        comp.list.set_items(dbs);
+        comp
     }
 }
 
@@ -74,7 +69,7 @@ impl Component for Databases {
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
-        let mut out = InnerList::base_commands();
+        let mut out = self.list.base_commands();
         out.append(&mut vec![
             CommandGroup::new(vec![Command::Confirm], "select database")
                 .in_cat(CommandCategory::DbActions),
@@ -88,17 +83,17 @@ impl Component for Databases {
 
     fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
         self.list
-            .handle_base_command(command, self.items.len(), queue);
+            .handle_base_command(command, self.list.num_items(), queue);
         match command {
             Command::Confirm => {
-                if let Some(db) = self.get_selected() {
+                if let Some(db) = self.list.selected() {
                     queue.push(Event::DatabaseSelected(db.clone()));
                 }
             }
             Command::CreateNew => queue.push(Message::to_tab(TabAction::RequestInput(
                 InputKind::NewDatabaseName,
             ))),
-            Command::Delete if self.get_selected().is_some() => {
+            Command::Delete if self.list.selected().is_some() => {
                 queue.push(Message::to_tab(TabAction::RequestConfirmation(
                     ConfirmKind::DropDatabase,
                 )));
@@ -111,15 +106,15 @@ impl Component for Databases {
         match event {
             Event::ListSelectionChanged => {
                 if self.is_focused() {
-                    if let Some(db) = self.get_selected() {
+                    if let Some(db) = self.list.selected() {
                         queue.push(Event::DatabaseHighlighted(db.clone()));
                     }
                 }
             }
             Event::DatabasesUpdated(dbs) => {
-                self.items.clone_from(dbs);
+                self.list.set_items(dbs);
 
-                if self.list.state.selected().is_none() {
+                if self.list.selected().is_none() {
                     if let Some(first_db) = dbs.first() {
                         // try to select the first thing
                         self.list.state.select(Some(0));
@@ -128,7 +123,7 @@ impl Component for Databases {
                 }
             }
             Event::ConfirmYes(Command::Delete) if self.is_focused() => {
-                if let Some(db) = self.get_selected() {
+                if let Some(db) = self.list.selected() {
                     queue.push(Message::to_client(ClientAction::DropDatabase(db.clone())));
                 }
             }
@@ -137,13 +132,7 @@ impl Component for Databases {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        let items: Vec<ListItem> = self
-            .items
-            .iter()
-            .map(|item| ListItem::new(item.name.clone()))
-            .collect();
-
-        self.list.render(frame, area, items, self.is_focused());
+        self.list.render(frame, area, self.is_focused());
     }
 }
 
@@ -158,14 +147,14 @@ impl PersistedComponent for Databases {
 
     fn persist(&self) -> Self::StorageType {
         PersistedDatabases {
-            selected_db: self.get_selected().cloned(),
-            all_dbs: self.items.clone(),
+            selected_db: self.list.selected().cloned(),
+            all_dbs: self.list.items().to_vec(),
         }
     }
 
     fn hydrate(&mut self, storage: Self::StorageType) {
-        self.items = storage.all_dbs;
-        self.select(storage.selected_db);
+        self.list.set_items(&storage.all_dbs);
+        self.list.select(storage.selected_db);
     }
 }
 
@@ -195,10 +184,7 @@ mod tests {
     #[test]
     fn create_database() {
         let db_spec = get_dummy_database();
-        let component = Databases {
-            items: vec![db_spec],
-            ..Default::default()
-        };
+        let component = Databases::with_items(&[db_spec]);
         let mut test = ComponentTestHarness::new(component);
 
         test.given_command(Command::CreateNew);
@@ -213,10 +199,7 @@ mod tests {
     #[test]
     fn drop_database() {
         let db_spec = get_dummy_database();
-        let component = Databases {
-            items: vec![db_spec],
-            ..Default::default()
-        };
+        let component = Databases::with_items(&[db_spec]);
         let mut test = ComponentTestHarness::new(component);
 
         test.given_command(Command::NavDown);
@@ -232,10 +215,7 @@ mod tests {
     #[test]
     fn persisting_and_hydrate() {
         let db_spec = get_dummy_database();
-        let mut component = Databases {
-            items: vec![db_spec],
-            ..Default::default()
-        };
+        let mut component = Databases::with_items(&[db_spec]);
         component.list.state.select(Some(0));
 
         let persisted_component = component.persist();
@@ -243,7 +223,10 @@ mod tests {
         let mut new_component = Databases::default();
         new_component.hydrate(persisted_component);
 
-        assert_eq!(component.items[0].name, new_component.items[0].name);
+        assert_eq!(
+            component.list.items()[0].name,
+            new_component.list.items()[0].name
+        );
         assert_eq!(
             component.list.state.selected(),
             new_component.list.state.selected()
