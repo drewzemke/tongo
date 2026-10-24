@@ -87,7 +87,8 @@ impl Component for Collections {
     }
 
     fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
-        self.list.handle_base_command(command, self.items.len(), queue);
+        self.list
+            .handle_base_command(command, self.items.len(), queue);
         match command {
             Command::Confirm => {
                 if let Some(coll) = self.get_selected() {
@@ -95,13 +96,13 @@ impl Component for Collections {
                     queue.push(Event::CollectionSelected(coll.clone()));
                 }
             }
-            Command::CreateNew => queue.push(Message::to_tab(TabAction::RequestInput(InputKind::NewCollectionName))),
-            Command::Delete => {
-                if self.get_selected().is_some() {
-                    queue.push(Message::to_tab(TabAction::RequestConfirmation(
-                            ConfirmKind::DropCollection,
-                        )));
-                }
+            Command::CreateNew => queue.push(Message::to_tab(TabAction::RequestInput(
+                InputKind::NewCollectionName,
+            ))),
+            Command::Delete if self.get_selected().is_some() => {
+                queue.push(Message::to_tab(TabAction::RequestConfirmation(
+                    ConfirmKind::DropCollection,
+                )));
             }
             _ => {}
         }
@@ -127,13 +128,11 @@ impl Component for Collections {
                     }
                 }
             }
-            Event::ConfirmYes(Command::Delete) => {
-                if self.is_focused() {
-                    if let Some(coll) = self.get_selected() {
-                        queue.push(Message::to_client(ClientAction::DropCollection(
-                            coll.clone(),
-                        )));
-                    }
+            Event::ConfirmYes(Command::Delete) if self.is_focused() => {
+                if let Some(coll) = self.get_selected() {
+                    queue.push(Message::to_client(ClientAction::DropCollection(
+                        coll.clone(),
+                    )));
                 }
             }
             _ => (),

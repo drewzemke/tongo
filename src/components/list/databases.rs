@@ -98,12 +98,10 @@ impl Component for Databases {
             Command::CreateNew => queue.push(Message::to_tab(TabAction::RequestInput(
                 InputKind::NewDatabaseName,
             ))),
-            Command::Delete => {
-                if self.get_selected().is_some() {
-                    queue.push(Message::to_tab(TabAction::RequestConfirmation(
-                        ConfirmKind::DropDatabase,
-                    )));
-                }
+            Command::Delete if self.get_selected().is_some() => {
+                queue.push(Message::to_tab(TabAction::RequestConfirmation(
+                    ConfirmKind::DropDatabase,
+                )));
             }
             _ => {}
         }
@@ -129,11 +127,9 @@ impl Component for Databases {
                     }
                 }
             }
-            Event::ConfirmYes(Command::Delete) => {
-                if self.is_focused() {
-                    if let Some(db) = self.get_selected() {
-                        queue.push(Message::to_client(ClientAction::DropDatabase(db.clone())));
-                    }
+            Event::ConfirmYes(Command::Delete) if self.is_focused() => {
+                if let Some(db) = self.get_selected() {
+                    queue.push(Message::to_client(ClientAction::DropDatabase(db.clone())));
                 }
             }
             _ => (),

@@ -146,10 +146,8 @@ impl Component for PrimaryScreen<'_> {
                     self.query_input.focus_last();
                     queue.push(Event::FocusedChanged);
                 }
-                Some(PrimScrFocus::QueryIn(..)) => {
-                    if self.query_input.focus_up() {
-                        queue.push(Event::FocusedChanged);
-                    }
+                Some(PrimScrFocus::QueryIn(..)) if self.query_input.focus_up() => {
+                    queue.push(Event::FocusedChanged);
                 }
                 _ => {}
             },
@@ -187,11 +185,9 @@ impl Component for PrimaryScreen<'_> {
                     self.db_list.focus();
                     queue.push(Event::FocusedChanged);
                 }
-                Some(PrimScrFocus::QueryIn(..)) => {
-                    if !self.query_input.is_expanded() {
-                        self.doc_tree.focus();
-                        queue.push(Event::FocusedChanged);
-                    }
+                Some(PrimScrFocus::QueryIn(..)) if !self.query_input.is_expanded() => {
+                    self.doc_tree.focus();
+                    queue.push(Event::FocusedChanged);
                 }
                 _ => {}
             },

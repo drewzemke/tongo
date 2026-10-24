@@ -157,7 +157,7 @@ impl Component for StatusBar {
 
             let right_content = if DEBUG_RENDER_COUNT {
                 self.renders += 1;
-                Line::from(format!("{}", &self.renders)).right_aligned()
+                Line::from(format!("{}", self.renders)).right_aligned()
             } else {
                 Line::from(format!("tongo v{}", env!("CARGO_PKG_VERSION")))
                     .fg(self.config.color_map.get(&ColorKey::AppName))
