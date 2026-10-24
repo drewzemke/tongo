@@ -1,5 +1,5 @@
 use crate::utils::storage::{FileStorage, Storage};
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use std::{
     cell::{Ref, RefCell},
@@ -89,8 +89,12 @@ impl ConnectionManager {
 
     /// # Errors
     /// If something goes wrong while writing to the filesystem.
-    pub fn delete_connection(&mut self, index: usize) -> Result<()> {
+    pub fn delete_connection(&mut self, id: Uuid) -> Result<()> {
         let mut connections = self.connections.borrow_mut();
+        let index = connections
+            .iter()
+            .position(|c| c.id == id)
+            .ok_or_else(|| anyhow!("Could not find connection to delete."))?;
         connections.remove(index);
         self.storage.write_connections(&connections)
     }

@@ -138,13 +138,15 @@ impl Component for Connections {
             }
             Command::Edit => {
                 if let Some(conn) = self.get_selected_conn() {
-                    queue.push(Message::to_conn_scr(ConnScreenAction::StartEditingConn(conn.clone())));
+                    queue.push(Message::to_conn_scr(ConnScreenAction::StartEditingConn(
+                        conn.clone(),
+                    )));
                 }
             }
             Command::Delete => {
                 queue.push(Message::to_tab(TabAction::RequestConfirmation(
-                        ConfirmKind::DeleteConnection,
-                    )));
+                    ConfirmKind::DeleteConnection,
+                )));
             }
             _ => {}
         }
@@ -153,19 +155,16 @@ impl Component for Connections {
     fn handle_event(&mut self, event: &Event, queue: &mut SignalQueue) {
         // only process the confirmation if this component is focused
         if self.is_focused() && matches!(event, Event::ConfirmYes(Command::Delete)) {
-            let Some(index_to_delete) = self.list.state.selected() else {
+            let Some(id) = self.get_selected_conn().map(|c| *c.id()) else {
                 return;
             };
 
-            if matches!(
-                self.connection_manager.delete_connection(index_to_delete),
-                Ok(())
-            ) {
+            if matches!(self.connection_manager.delete_connection(id), Ok(())) {
                 queue.push(Event::ConnectionDeleted);
             } else {
                 queue.push(Event::ErrorOccurred(
-                        "An error occurred while saving connection preferences".into(),
-                    ));
+                    "An error occurred while saving connection preferences".into(),
+                ));
             }
         }
     }
