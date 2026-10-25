@@ -151,3 +151,53 @@ impl Component for ConfirmModal {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::testing::ComponentTestHarness;
+
+    fn shown_modal(kind: ConfirmKind) -> ComponentTestHarness<ConfirmModal> {
+        let mut modal = ConfirmModal::default();
+        modal.show_with(kind);
+        ComponentTestHarness::new(modal)
+    }
+
+    #[test]
+    fn test_show_with_focuses_modal() {
+        let mut modal = ConfirmModal::default();
+        modal.show_with(ConfirmKind::DeleteConnection);
+
+        assert!(modal.is_focused());
+    }
+
+    #[test]
+    fn test_confirm_emits_confirm_yes_with_command() {
+        for kind in [
+            ConfirmKind::DeleteConnection,
+            ConfirmKind::DeleteDoc,
+            ConfirmKind::DropCollection,
+            ConfirmKind::DropDatabase,
+        ] {
+            let mut test = shown_modal(kind);
+            test.given_command(Command::Confirm);
+            test.expect_event(|e| matches!(e, Event::ConfirmYes(Command::Delete)));
+        }
+    }
+
+    #[test]
+    fn test_ignores_commands_when_not_shown() {
+        let mut test = ComponentTestHarness::new(ConfirmModal::default());
+        test.given_command(Command::Confirm);
+        test.given_command(Command::Back);
+        test.expect_no_events();
+        test.expect_no_messages();
+    }
+
+    #[test]
+    fn test_back_emits_confirm_no() {
+        let mut test = shown_modal(ConfirmKind::DeleteConnection);
+        test.given_command(Command::Back);
+        test.expect_event(|e| matches!(e, Event::ConfirmNo));
+    }
+}

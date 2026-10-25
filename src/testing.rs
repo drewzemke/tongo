@@ -97,11 +97,19 @@ impl<C: Component> ComponentTestHarness<C> {
         );
     }
 
+    pub fn expect_no_events(&self) {
+        assert!(
+            self.events.is_empty(),
+            "Event list not empty. These events were recorded:\n{:?}",
+            self.events
+        );
+    }
+
     pub fn expect_message<P: FnMut(&&Message) -> bool>(&self, predicate: P) {
         let event = self.messages.iter().find(predicate);
         assert!(
             event.is_some(),
-            "Matching message not found. These message were recorded:\n{:?}",
+            "Matching message not found. These messages were recorded:\n{:?}",
             self.messages
         );
     }
@@ -109,7 +117,7 @@ impl<C: Component> ComponentTestHarness<C> {
     pub fn expect_no_messages(&self) {
         assert!(
             self.messages.is_empty(),
-            "Message list not empty. These message were recorded:\n{:?}",
+            "Message list not empty. These messages were recorded:\n{:?}",
             self.messages
         );
     }
