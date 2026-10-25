@@ -104,9 +104,6 @@ pub enum Event {
     /// in the Mongo server.
     DocInsertComplete,
 
-    /// Emitted when the search string in the documents view is updated.
-    DocSearchUpdated,
-
     /// Emitted when a document has been successfully updated in the Mongo
     /// server.
     DocUpdateComplete,
@@ -153,6 +150,9 @@ pub enum Event {
 
     /// Emitted when the terminal window changes size.
     ScreenResized,
+
+    /// Emitted when a search string is updated.
+    SearchUpdated,
 
     /// Emitted when a message that was being shown in the status bar has
     /// expired and the status bar has returned to its normal state.

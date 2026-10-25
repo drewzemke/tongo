@@ -418,7 +418,9 @@ impl Component for Documents<'_> {
                 }
             }
             Command::Delete => {
-                queue.push(Message::to_tab(TabAction::RequestConfirmation(ConfirmKind::DeleteDoc)));
+                queue.push(Message::to_tab(TabAction::RequestConfirmation(
+                    ConfirmKind::DeleteDoc,
+                )));
             }
             Command::Yank => {
                 if let Some(bson) = self.selected_bson() {
@@ -446,15 +448,17 @@ impl Component for Documents<'_> {
                     self.mode = Mode::Normal;
                     self.reset_search();
                     queue.push(Message::to_app(AppAction::ExitRawMode));
-                    queue.push(Event::DocSearchUpdated);
+                    queue.push(Event::SearchUpdated);
                 }
                 Mode::SearchReview => {
                     self.mode = Mode::Normal;
                     self.reset_search();
-                    queue.push(Event::DocSearchUpdated);
+                    queue.push(Event::SearchUpdated);
                 }
                 Mode::Normal => {
-                    queue.push(Message::to_prim_scr(PrimScreenAction::SetFocus(PrimScrFocus::CollList)));
+                    queue.push(Message::to_prim_scr(PrimScreenAction::SetFocus(
+                        PrimScrFocus::CollList,
+                    )));
                 }
             },
             _ => {}
@@ -466,7 +470,7 @@ impl Component for Documents<'_> {
             self.search_input.handle_event(event);
             self.searcher.update_pattern(self.search_input.value());
             self.set_selection_to_search_match();
-            queue.push(Event::DocSearchUpdated);
+            queue.push(Event::SearchUpdated);
         }
     }
 
