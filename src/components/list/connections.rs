@@ -30,9 +30,8 @@ use ratatui::{
 };
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Default, Clone)]
 pub struct Connections {
-    pub focus: Rc<Cell<TabFocus>>,
     pub connection_manager: ConnectionManager,
     pub list: InnerList<Connection>,
     pub config: Config,
@@ -51,21 +50,10 @@ impl InnerListItem for Connection {
     }
 }
 
-impl Default for Connections {
-    fn default() -> Self {
-        Self {
-            focus: Rc::new(Cell::new(TabFocus::default())),
-            connection_manager: ConnectionManager::default(),
-            list: InnerList::default(),
-            config: Config::default(),
-        }
-    }
-}
-
 impl CloneWithFocus for Connections {
     fn clone_with_focus(&self, focus: Rc<Cell<TabFocus>>) -> Self {
         Self {
-            focus,
+            list: self.list.clone_with_focus(focus),
             ..self.clone()
         }
     }
@@ -78,9 +66,13 @@ impl Connections {
         connection_manager: ConnectionManager,
     ) -> Self {
         let mut comp = Self {
-            focus,
             connection_manager,
-            list: InnerList::new("Connections", config.clone()),
+            list: InnerList::new(
+                "Connections",
+                config.clone(),
+                focus,
+                TabFocus::ConnScr(ConnScrFocus::ConnList),
+            ),
             config,
         };
         comp.sync_connections();
@@ -127,15 +119,15 @@ impl Connections {
 
 impl Component for Connections {
     fn is_focused(&self) -> bool {
-        self.focus.get() == TabFocus::ConnScr(ConnScrFocus::ConnList)
+        self.list.is_focused()
     }
 
     fn focus(&self) {
-        self.focus.set(TabFocus::ConnScr(ConnScrFocus::ConnList));
+        self.list.focus();
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
-        let mut out = self.list.base_commands();
+        let mut out = self.list.commands();
         out.append(&mut vec![
             CommandGroup::new(vec![Command::Confirm], "connect")
                 .in_cat(CommandCategory::CollActions),
@@ -150,8 +142,8 @@ impl Component for Connections {
     }
 
     fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
-        self.list
-            .handle_base_command(command, self.connection_manager.connections().len(), queue);
+        self.list.handle_command(command, queue);
+
         match command {
             Command::Confirm => {
                 if let Some(conn) = self.get_selected_conn() {
@@ -247,7 +239,7 @@ impl Component for Connections {
 
             frame.render_widget(Paragraph::new(vec![line1, line2]), layout[0]);
         } else {
-            self.list.render(frame, area, self.is_focused());
+            self.list.render(frame, area);
         }
     }
 }

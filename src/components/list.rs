@@ -1,4 +1,10 @@
+use std::{cell::Cell, rc::Rc};
+
 use crate::{
+    components::{
+        tab::{CloneWithFocus, TabFocus},
+        Component,
+    },
     config::{color_map::ColorKey, Config},
     system::{
         command::{Command, CommandCategory, CommandGroup},
@@ -6,6 +12,7 @@ use crate::{
         signal::SignalQueue,
     },
 };
+use crossterm::event::Event as CrosstermEvent;
 use ratatui::{
     prelude::*,
     style::Style,
@@ -27,16 +34,25 @@ pub struct InnerList<T> {
     config: Config,
     state: ListState,
     items: Vec<T>,
+    focus: Rc<Cell<TabFocus>>,
+    focused_when: TabFocus,
 }
 
 impl<T> InnerList<T>
 where
     T: InnerListItem,
 {
-    pub fn new(title: &'static str, config: Config) -> Self {
+    pub fn new(
+        title: &'static str,
+        config: Config,
+        focus: Rc<Cell<TabFocus>>,
+        focused_when: TabFocus,
+    ) -> Self {
         Self {
             title,
             config,
+            focus,
+            focused_when,
             ..Default::default()
         }
     }
@@ -45,7 +61,15 @@ where
     where
         T: Clone,
     {
+        // cache the currently-selected item so we can potentially reselect
+        // it after updating
+        let selected = self.selected().cloned();
+
+        // update
         self.items = items.to_vec();
+
+        // restore selection
+        self.select(selected);
     }
 
     pub fn items(&self) -> &[T] {
@@ -65,29 +89,38 @@ where
             .selected()
             .and_then(|index| self.items.get(index))
     }
+}
 
-    pub const fn num_items(&self) -> usize {
-        self.items.len()
+impl<T> CloneWithFocus for InnerList<T>
+where
+    T: Clone,
+{
+    fn clone_with_focus(&self, focus: Rc<Cell<TabFocus>>) -> Self {
+        Self {
+            focus,
+            ..self.clone()
+        }
     }
+}
 
-    #[expect(clippy::unused_self)]
-    pub fn base_commands(&self) -> Vec<CommandGroup> {
+impl<T> Component for InnerList<T>
+where
+    T: InnerListItem,
+{
+    fn commands(&self) -> Vec<CommandGroup> {
         vec![
             CommandGroup::new(vec![Command::NavUp, Command::NavDown], "navigate")
                 .in_cat(CommandCategory::AppNav),
         ]
     }
 
-    pub fn handle_base_command(
-        &mut self,
-        command: &Command,
-        num_items: usize,
-        queue: &mut SignalQueue,
-    ) {
+    fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
+        let num_items = self.items.len();
+
         match command {
             Command::NavUp => {
                 // jump to the bottom if we're at the top
-                if self.state.selected() == Some(0) {
+                if self.state.selected().is_none() || self.state.selected() == Some(0) {
                     self.state.select(Some(num_items.saturating_sub(1)));
                 } else {
                     self.state.select_previous();
@@ -96,7 +129,9 @@ where
             }
             Command::NavDown => {
                 // jump to the top if we're at the bottom
-                if self.state.selected() == Some(num_items.saturating_sub(1)) {
+                if self.state.selected().is_none()
+                    || self.state.selected() == Some(num_items.saturating_sub(1))
+                {
                     self.state.select_first();
                 } else {
                     self.state.select_next();
@@ -107,24 +142,37 @@ where
         }
     }
 
-    fn render(&mut self, frame: &mut Frame, area: Rect, focused: bool) {
-        let (border_color, bg_color, highlight_text, highlight_bg, unselected_fg) = if focused {
-            (
-                self.config.color_map.get(&ColorKey::PanelActiveBorder),
-                self.config.color_map.get(&ColorKey::PanelActiveBg),
-                self.config.color_map.get(&ColorKey::SelectionFg),
-                self.config.color_map.get(&ColorKey::SelectionBg),
-                self.config.color_map.get(&ColorKey::FgPrimary),
-            )
-        } else {
-            (
-                self.config.color_map.get(&ColorKey::PanelInactiveBorder),
-                self.config.color_map.get(&ColorKey::PanelInactiveBg),
-                self.config.color_map.get(&ColorKey::FgPrimary),
-                self.config.color_map.get(&ColorKey::PanelInactiveBg),
-                self.config.color_map.get(&ColorKey::FgSecondary),
-            )
-        };
+    fn handle_raw_event(&mut self, _event: &CrosstermEvent, _queue: &mut SignalQueue) {
+        todo!()
+    }
+
+    fn focus(&self) {
+        self.focus.set(self.focused_when);
+    }
+
+    fn is_focused(&self) -> bool {
+        self.focus.get() == self.focused_when
+    }
+
+    fn render(&mut self, frame: &mut Frame, area: Rect) {
+        let (border_color, bg_color, highlight_text, highlight_bg, unselected_fg) =
+            if self.is_focused() {
+                (
+                    self.config.color_map.get(&ColorKey::PanelActiveBorder),
+                    self.config.color_map.get(&ColorKey::PanelActiveBg),
+                    self.config.color_map.get(&ColorKey::SelectionFg),
+                    self.config.color_map.get(&ColorKey::SelectionBg),
+                    self.config.color_map.get(&ColorKey::FgPrimary),
+                )
+            } else {
+                (
+                    self.config.color_map.get(&ColorKey::PanelInactiveBorder),
+                    self.config.color_map.get(&ColorKey::PanelInactiveBg),
+                    self.config.color_map.get(&ColorKey::FgPrimary),
+                    self.config.color_map.get(&ColorKey::PanelInactiveBg),
+                    self.config.color_map.get(&ColorKey::FgSecondary),
+                )
+            };
 
         let list = List::new(
             self.items
@@ -141,5 +189,176 @@ where
         .highlight_style(Style::default().bold().fg(highlight_text).bg(highlight_bg));
 
         StatefulWidget::render(list, area, frame.buffer_mut(), &mut self.state);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{components::primary_screen::PrimScrFocus, testing::ComponentTestHarness};
+
+    impl<T> InnerList<T>
+    where
+        T: InnerListItem + Default + Clone,
+    {
+        fn with_items(items: &[T]) -> Self {
+            let mut comp = Self::default();
+            comp.set_items(items);
+            comp
+        }
+    }
+
+    #[derive(Debug, Default, Clone, PartialEq, Eq)]
+    struct TestItem(u32);
+
+    impl InnerListItem for TestItem {
+        fn to_list_item(&self, _config: &Config) -> ListItem<'_> {
+            ListItem::new(self.0.to_string())
+        }
+    }
+
+    #[test]
+    fn test_select_with_nothing_selected() {
+        // down selects first item
+        let component = InnerList::<TestItem>::with_items(&[TestItem(1), TestItem(2), TestItem(3)]);
+        let mut test = ComponentTestHarness::new(component);
+
+        test.given_command(Command::NavDown);
+        assert_eq!(test.component().selected(), Some(&TestItem(1)));
+
+        // up selects last item
+        let component = InnerList::<TestItem>::with_items(&[TestItem(1), TestItem(2), TestItem(3)]);
+        let mut test = ComponentTestHarness::new(component);
+
+        test.given_command(Command::NavUp);
+        assert_eq!(test.component().selected(), Some(&TestItem(3)));
+    }
+
+    #[test]
+    fn test_select_an_item() {
+        let component = InnerList::<TestItem>::with_items(&[TestItem(1), TestItem(2), TestItem(3)]);
+        let mut test = ComponentTestHarness::new(component);
+
+        // initialize selection
+        test.given_command(Command::NavDown);
+        assert_eq!(test.component().selected(), Some(&TestItem(1)));
+
+        // select second item
+        test.given_command(Command::NavDown);
+        assert_eq!(test.component().selected(), Some(&TestItem(2)));
+
+        test.expect_event(|e| matches!(e, Event::ListSelectionChanged));
+    }
+
+    #[test]
+    fn test_selection_wraps_around_list() {
+        let component = InnerList::<TestItem>::with_items(&[TestItem(1), TestItem(2), TestItem(3)]);
+        let mut test = ComponentTestHarness::new(component);
+
+        // initialize selection
+        test.given_command(Command::NavDown);
+        assert_eq!(test.component().selected(), Some(&TestItem(1)));
+
+        // up to wrap around
+        test.given_command(Command::NavUp);
+        assert_eq!(test.component().selected(), Some(&TestItem(3)));
+
+        // down to wrap back
+        test.given_command(Command::NavDown);
+        assert_eq!(test.component().selected(), Some(&TestItem(1)));
+    }
+
+    #[test]
+    fn test_handles_empty_item_list() {
+        let component = InnerList::<TestItem>::with_items(&[]);
+        let mut test = ComponentTestHarness::new(component);
+
+        // navigating doesn't panic and doesn't select anything
+        test.given_command(Command::NavUp);
+        test.given_command(Command::NavDown);
+        assert_eq!(test.component().selected(), None);
+    }
+
+    #[test]
+    fn test_select_sets_selection() {
+        let mut component =
+            InnerList::<TestItem>::with_items(&[TestItem(1), TestItem(2), TestItem(3)]);
+
+        // select an item in the list
+        component.select(Some(TestItem(2)));
+        assert_eq!(component.selected(), Some(&TestItem(2)));
+
+        // selecting an item not in the list should clear the selection
+        component.select(Some(TestItem(4)));
+        assert_eq!(component.selected(), None);
+
+        component.select(Some(TestItem(3)));
+        assert_eq!(component.selected(), Some(&TestItem(3)));
+
+        // selecting None should also clear the selection
+        component.select(None);
+        assert_eq!(component.selected(), None);
+    }
+
+    #[test]
+    fn test_set_items_updates_items() {
+        let mut component = InnerList::<TestItem>::with_items(&[]);
+
+        component.set_items(&[TestItem(1), TestItem(2), TestItem(3)]);
+        assert_eq!(component.items(), &[TestItem(1), TestItem(2), TestItem(3)]);
+
+        component.set_items(&[TestItem(4)]);
+        assert_eq!(component.items(), &[TestItem(4)]);
+    }
+
+    #[test]
+    fn test_set_items_keeps_selection() {
+        let mut component =
+            InnerList::<TestItem>::with_items(&[TestItem(1), TestItem(2), TestItem(3)]);
+
+        component.select(Some(TestItem(2)));
+        assert_eq!(component.selected(), Some(&TestItem(2)));
+
+        component.set_items(&[TestItem(1), TestItem(2), TestItem(3), TestItem(4)]);
+        assert_eq!(component.selected(), Some(&TestItem(2)));
+
+        component.set_items(&[TestItem(2), TestItem(3), TestItem(4)]);
+        assert_eq!(component.selected(), Some(&TestItem(2)));
+
+        component.set_items(&[TestItem(3), TestItem(4)]);
+        assert_eq!(component.selected(), None);
+    }
+
+    #[test]
+    fn test_focus_follows_shared_cell() {
+        let focus = Rc::new(Cell::new(TabFocus::default()));
+        let db_focus = TabFocus::PrimScr(PrimScrFocus::DbList);
+        let component =
+            InnerList::<TestItem>::new("Test", Config::default(), focus.clone(), db_focus);
+        assert!(!component.is_focused());
+
+        component.focus();
+        assert_eq!(focus.get(), db_focus);
+        assert!(component.is_focused());
+
+        // something else takes focus
+        focus.set(TabFocus::PrimScr(PrimScrFocus::CollList));
+        assert!(!component.is_focused());
+    }
+
+    #[test]
+    fn test_clone_with_focus_uses_new_cell() {
+        let db_focus = TabFocus::PrimScr(PrimScrFocus::DbList);
+        let original_focus = Rc::new(Cell::new(TabFocus::default()));
+        let original =
+            InnerList::<TestItem>::new("Test", Config::default(), original_focus.clone(), db_focus);
+
+        let cloned_focus = Rc::new(Cell::new(TabFocus::default()));
+        let cloned = original.clone_with_focus(cloned_focus);
+
+        cloned.focus();
+        assert!(cloned.is_focused());
+        assert!(!original.is_focused());
+        assert_eq!(original_focus.get(), TabFocus::default());
     }
 }

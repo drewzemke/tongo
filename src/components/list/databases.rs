@@ -24,7 +24,6 @@ use std::{cell::Cell, rc::Rc};
 
 #[derive(Debug, Default, Clone)]
 pub struct Databases {
-    focus: Rc<Cell<TabFocus>>,
     list: InnerList<Database>,
 }
 
@@ -37,8 +36,7 @@ impl InnerListItem for Database {
 impl CloneWithFocus for Databases {
     fn clone_with_focus(&self, focus: Rc<Cell<TabFocus>>) -> Self {
         Self {
-            focus,
-            ..self.clone()
+            list: self.list.clone_with_focus(focus),
         }
     }
 }
@@ -46,8 +44,12 @@ impl CloneWithFocus for Databases {
 impl Databases {
     pub fn new(focus: Rc<Cell<TabFocus>>, config: Config) -> Self {
         Self {
-            focus,
-            list: InnerList::new("Databases", config),
+            list: InnerList::new(
+                "Databases",
+                config,
+                focus,
+                TabFocus::PrimScr(PrimScrFocus::DbList),
+            ),
         }
     }
 
@@ -61,15 +63,15 @@ impl Databases {
 
 impl Component for Databases {
     fn is_focused(&self) -> bool {
-        self.focus.get() == TabFocus::PrimScr(PrimScrFocus::DbList)
+        self.list.is_focused()
     }
 
     fn focus(&self) {
-        self.focus.set(TabFocus::PrimScr(PrimScrFocus::DbList));
+        self.list.focus();
     }
 
     fn commands(&self) -> Vec<CommandGroup> {
-        let mut out = self.list.base_commands();
+        let mut out = self.list.commands();
         out.append(&mut vec![
             CommandGroup::new(vec![Command::Confirm], "select database")
                 .in_cat(CommandCategory::DbActions),
@@ -82,8 +84,8 @@ impl Component for Databases {
     }
 
     fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
-        self.list
-            .handle_base_command(command, self.list.num_items(), queue);
+        self.list.handle_command(command, queue);
+
         match command {
             Command::Confirm => {
                 if let Some(db) = self.list.selected() {
@@ -132,7 +134,7 @@ impl Component for Databases {
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {
-        self.list.render(frame, area, self.is_focused());
+        self.list.render(frame, area);
     }
 }
 
