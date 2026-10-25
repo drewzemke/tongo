@@ -198,7 +198,8 @@ impl Component for Connections {
 
             Event::ConnectionCreated(_)
             | Event::ConnectionUpdated(_)
-            | Event::ConnectionDeleted => self.sync_connections(),
+            | Event::ConnectionDeleted
+            | Event::TabChanged => self.sync_connections(),
 
             _ => {}
         }
@@ -279,6 +280,27 @@ impl PersistedComponent for Connections {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::testing::{mock_storage::MockStorage, ComponentTestHarness};
+
+    #[test]
+    fn syncs_connections_on_tab_changed() {
+        let storage = Rc::new(MockStorage::default());
+        let mut manager = ConnectionManager::new(vec![], storage);
+        let component = Connections::new(
+            Rc::new(Cell::new(TabFocus::default())),
+            Config::default(),
+            manager.clone(),
+        );
+        let mut test = ComponentTestHarness::new(component);
+
+        // simulate another tab adding a connection to the shared manager
+        let conn = Connection::new("local".into(), "mongodb://localhost:27017".into());
+        manager.add_connection(conn.clone()).unwrap();
+        assert!(test.component().list.items().is_empty());
+
+        test.given_event(Event::TabChanged);
+        assert_eq!(test.component().list.items(), &[conn]);
+    }
 
     #[test]
     fn test_mask_password() {
