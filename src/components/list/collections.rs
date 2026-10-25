@@ -31,6 +31,10 @@ impl InnerListItem for Collection {
     fn to_list_item(&self, _config: &Config) -> ListItem<'_> {
         ListItem::new(self.name.clone())
     }
+
+    fn to_search_string(&self) -> String {
+        self.name.clone()
+    }
 }
 
 impl CloneWithFocus for Collections {
@@ -136,6 +140,10 @@ impl Component for Collections {
         }
     }
 
+    fn handle_raw_event(&mut self, event: &crossterm::event::Event, queue: &mut SignalQueue) {
+        self.list.handle_raw_event(event, queue);
+    }
+
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         self.list.render(frame, area);
     }
@@ -153,7 +161,7 @@ impl PersistedComponent for Collections {
     fn persist(&self) -> Self::StorageType {
         PersistedCollections {
             selected_coll: self.list.selected().cloned(),
-            all_colls: self.list.items().to_vec(),
+            all_colls: self.list.all_items().to_vec(),
         }
     }
 
@@ -226,8 +234,8 @@ mod tests {
         new_component.hydrate(persisted_component);
 
         assert_eq!(
-            component.list.items()[0].name,
-            new_component.list.items()[0].name
+            component.list.all_items()[0].name,
+            new_component.list.all_items()[0].name
         );
         assert_eq!(
             component.list.state.selected(),

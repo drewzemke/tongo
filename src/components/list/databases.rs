@@ -31,6 +31,10 @@ impl InnerListItem for Database {
     fn to_list_item(&self, _config: &Config) -> ListItem<'_> {
         ListItem::new(self.name.clone())
     }
+
+    fn to_search_string(&self) -> String {
+        self.name.clone()
+    }
 }
 
 impl CloneWithFocus for Databases {
@@ -133,6 +137,10 @@ impl Component for Databases {
         }
     }
 
+    fn handle_raw_event(&mut self, event: &crossterm::event::Event, queue: &mut SignalQueue) {
+        self.list.handle_raw_event(event, queue);
+    }
+
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         self.list.render(frame, area);
     }
@@ -150,7 +158,7 @@ impl PersistedComponent for Databases {
     fn persist(&self) -> Self::StorageType {
         PersistedDatabases {
             selected_db: self.list.selected().cloned(),
-            all_dbs: self.list.items().to_vec(),
+            all_dbs: self.list.all_items().to_vec(),
         }
     }
 
@@ -226,8 +234,8 @@ mod tests {
         new_component.hydrate(persisted_component);
 
         assert_eq!(
-            component.list.items()[0].name,
-            new_component.list.items()[0].name
+            component.list.all_items()[0].name,
+            new_component.list.all_items()[0].name
         );
         assert_eq!(
             component.list.state.selected(),

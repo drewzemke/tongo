@@ -48,6 +48,10 @@ impl InnerListItem for Connection {
         ]);
         ListItem::new(text)
     }
+
+    fn to_search_string(&self) -> String {
+        format!("{} {}", self.name, self.connection_str)
+    }
 }
 
 impl CloneWithFocus for Connections {
@@ -197,6 +201,10 @@ impl Component for Connections {
         }
     }
 
+    fn handle_raw_event(&mut self, event: &crossterm::event::Event, queue: &mut SignalQueue) {
+        self.list.handle_raw_event(event, queue);
+    }
+
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         if self.connection_manager.connections().is_empty() {
             let (border_color, bg_color) = if self.is_focused() {
@@ -315,10 +323,10 @@ mod tests {
         // simulate another tab adding a connection to the shared manager
         let conn = Connection::new("local".into(), "mongodb://localhost:27017".into());
         manager.add_connection(conn.clone()).unwrap();
-        assert_eq!(test.component().list.items(), []);
+        assert_eq!(test.component().list.all_items(), []);
 
         test.given_event(Event::TabChanged);
-        assert_eq!(test.component().list.items(), &[conn]);
+        assert_eq!(test.component().list.all_items(), &[conn]);
     }
 
     #[test]

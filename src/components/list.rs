@@ -9,8 +9,10 @@ use crate::{
     system::{
         command::{Command, CommandCategory, CommandGroup},
         event::Event,
+        message::{AppAction, Message},
         signal::SignalQueue,
     },
+    utils::list_searcher::ListSearcher,
 };
 use crossterm::event::Event as CrosstermEvent;
 use ratatui::{
@@ -18,6 +20,7 @@ use ratatui::{
     style::Style,
     widgets::{Block, List, ListItem, ListState, StatefulWidget},
 };
+use tui_input::{backend::crossterm::EventHandler as _, Input};
 
 pub mod collections;
 pub mod connections;
@@ -26,16 +29,31 @@ pub mod databases;
 /// A trait for datatypes used in the generic list.
 pub trait InnerListItem: Default + Clone + PartialEq {
     fn to_list_item(&self, config: &Config) -> ListItem<'_>;
+    fn to_search_string(&self) -> String;
+}
+
+#[derive(Debug, Default, Clone)]
+enum Mode {
+    #[default]
+    Normal,
+    SearchInput,
 }
 
 #[derive(Debug, Default, Clone)]
 pub struct InnerList<T> {
     title: &'static str,
     config: Config,
+
     state: ListState,
     items: Vec<T>,
+
     focus: Rc<Cell<TabFocus>>,
     focused_when: TabFocus,
+
+    mode: Mode,
+    search_input: Input,
+    searcher: ListSearcher,
+    visible_indices: Vec<usize>,
 }
 
 impl<T> InnerList<T>
@@ -67,13 +85,32 @@ where
 
         // update
         self.items = items.to_vec();
+        self.filter_items_by_search();
 
         // restore selection
         self.select(selected);
     }
 
-    pub fn items(&self) -> &[T] {
+    pub fn all_items(&self) -> &[T] {
         &self.items
+    }
+
+    /// computes which items are visible based on the search filter and stores
+    /// the indices of the visible items in `visible_indices`
+    fn filter_items_by_search(&mut self) {
+        let query = self.search_input.value();
+
+        if query.is_empty() {
+            self.visible_indices = (0..self.items.len()).collect();
+        } else {
+            let matches = self.searcher.matches(&self.items, query);
+            self.visible_indices = matches.map(|(idx, _)| idx).collect();
+        }
+    }
+
+    fn reset_search(&mut self) {
+        self.search_input = Input::default();
+        self.filter_items_by_search();
     }
 
     pub fn select(&mut self, item: Option<T>)
@@ -93,7 +130,7 @@ where
 
 impl<T> CloneWithFocus for InnerList<T>
 where
-    T: Clone,
+    T: InnerListItem,
 {
     fn clone_with_focus(&self, focus: Rc<Cell<TabFocus>>) -> Self {
         Self {
@@ -108,8 +145,20 @@ where
     T: InnerListItem,
 {
     fn commands(&self) -> Vec<CommandGroup> {
+        // handle search input mode separately
+        if matches!(self.mode, Mode::SearchInput) {
+            return vec![
+                CommandGroup::new(vec![Command::Confirm], "end search")
+                    .in_cat(CommandCategory::StatusBarOnly),
+                CommandGroup::new(vec![Command::Back], "cancel")
+                    .in_cat(CommandCategory::StatusBarOnly),
+            ];
+        }
+
         vec![
             CommandGroup::new(vec![Command::NavUp, Command::NavDown], "navigate")
+                .in_cat(CommandCategory::AppNav),
+            CommandGroup::new(vec![Command::Search], "fuzzy search")
                 .in_cat(CommandCategory::AppNav),
         ]
     }
@@ -138,12 +187,40 @@ where
                 }
                 queue.push(Event::ListSelectionChanged);
             }
+
+            Command::Search => {
+                if matches!(self.mode, Mode::Normal) {
+                    self.mode = Mode::SearchInput;
+                    queue.push(Message::to_app(AppAction::EnterRawMode));
+                }
+            }
+
+            // only in search input mode
+            Command::Confirm => {
+                if matches!(self.mode, Mode::SearchInput) {
+                    self.mode = Mode::Normal;
+                    queue.push(Message::to_app(AppAction::ExitRawMode));
+                }
+            }
+
+            // only in search input mode
+            Command::Back => {
+                if matches!(self.mode, Mode::SearchInput) {
+                    self.mode = Mode::Normal;
+                    self.reset_search();
+                    queue.push(Message::to_app(AppAction::ExitRawMode));
+                }
+            }
             _ => {}
         }
     }
 
-    fn handle_raw_event(&mut self, _event: &CrosstermEvent, _queue: &mut SignalQueue) {
-        todo!()
+    fn handle_raw_event(&mut self, event: &CrosstermEvent, queue: &mut SignalQueue) {
+        if matches!(self.mode, Mode::SearchInput) {
+            self.search_input.handle_event(event);
+            self.filter_items_by_search();
+            queue.push(Event::SearchUpdated);
+        }
     }
 
     fn focus(&self) {
@@ -174,19 +251,27 @@ where
                 )
             };
 
-        let list = List::new(
-            self.items
-                .iter()
-                .map(|item| item.to_list_item(&self.config)),
-        )
-        .block(
-            Block::bordered()
-                .bg(bg_color)
-                .title(format!(" {} ", self.title))
-                .border_style(Style::default().fg(border_color)),
-        )
-        .style(Style::default().fg(unselected_fg))
-        .highlight_style(Style::default().bold().fg(highlight_text).bg(highlight_bg));
+        let has_search = !self.search_input.value().is_empty();
+
+        let mut block = Block::bordered()
+            .bg(bg_color)
+            .title(format!(" {} ", self.title))
+            .border_style(Style::default().fg(border_color));
+
+        if has_search {
+            block = block.title_bottom(
+                Line::from(format!(" / \"{}\" ", self.search_input.value()))
+                    .left_aligned()
+                    .fg(self.config.color_map.get(&ColorKey::DocumentsSearch)),
+            );
+        }
+
+        let visible_items = self.visible_indices.iter().map(|&i| &self.items[i]);
+
+        let list = List::new(visible_items.map(|item| item.to_list_item(&self.config)))
+            .block(block)
+            .style(Style::default().fg(unselected_fg))
+            .highlight_style(Style::default().bold().fg(highlight_text).bg(highlight_bg));
 
         StatefulWidget::render(list, area, frame.buffer_mut(), &mut self.state);
     }
@@ -213,7 +298,11 @@ mod tests {
 
     impl InnerListItem for TestItem {
         fn to_list_item(&self, _config: &Config) -> ListItem<'_> {
-            ListItem::new(self.0.to_string())
+            ListItem::new(self.to_search_string())
+        }
+
+        fn to_search_string(&self) -> String {
+            self.0.to_string()
         }
     }
 
@@ -305,10 +394,13 @@ mod tests {
         let mut component = InnerList::<TestItem>::with_items(&[]);
 
         component.set_items(&[TestItem(1), TestItem(2), TestItem(3)]);
-        assert_eq!(component.items(), &[TestItem(1), TestItem(2), TestItem(3)]);
+        assert_eq!(
+            component.all_items(),
+            &[TestItem(1), TestItem(2), TestItem(3)]
+        );
 
         component.set_items(&[TestItem(4)]);
-        assert_eq!(component.items(), &[TestItem(4)]);
+        assert_eq!(component.all_items(), &[TestItem(4)]);
     }
 
     #[test]
@@ -360,5 +452,23 @@ mod tests {
         assert!(cloned.is_focused());
         assert!(!original.is_focused());
         assert_eq!(original_focus.get(), TabFocus::default());
+    }
+
+    #[test]
+    fn test_search_filters_items() {
+        let component =
+            InnerList::<TestItem>::with_items(&[TestItem(12), TestItem(22), TestItem(31)]);
+        let mut test = ComponentTestHarness::new(component);
+
+        test.given_command(Command::Search);
+        test.expect_message(|m| matches!(m.read_as_app(), Some(AppAction::EnterRawMode)));
+
+        test.given_string("2");
+        test.expect_event(|e| matches!(e, Event::SearchUpdated));
+
+        test.given_command(Command::Confirm);
+        test.expect_message(|m| matches!(m.read_as_app(), Some(AppAction::ExitRawMode)));
+
+        assert_eq!(test.component().visible_indices, vec![0, 1]);
     }
 }
