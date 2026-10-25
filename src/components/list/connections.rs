@@ -283,26 +283,6 @@ mod tests {
     use crate::testing::{mock_storage::MockStorage, ComponentTestHarness};
 
     #[test]
-    fn syncs_connections_on_tab_changed() {
-        let storage = Rc::new(MockStorage::default());
-        let mut manager = ConnectionManager::new(vec![], storage);
-        let component = Connections::new(
-            Rc::new(Cell::new(TabFocus::default())),
-            Config::default(),
-            manager.clone(),
-        );
-        let mut test = ComponentTestHarness::new(component);
-
-        // simulate another tab adding a connection to the shared manager
-        let conn = Connection::new("local".into(), "mongodb://localhost:27017".into());
-        manager.add_connection(conn.clone()).unwrap();
-        assert!(test.component().list.items().is_empty());
-
-        test.given_event(Event::TabChanged);
-        assert_eq!(test.component().list.items(), &[conn]);
-    }
-
-    #[test]
     fn test_mask_password() {
         let conn_str = "mongodb://user:D1fficultP%40ssw0rd@cluster0.example.mongodb.net/";
         let masked_str = Connections::mask_password(conn_str);
@@ -327,5 +307,109 @@ mod tests {
         let expected = "mongodb://cluster0.example.mongodb.net/";
 
         assert_eq!(masked_str, expected);
+    }
+
+    #[test]
+    fn test_changing_tabs_syncs_connections() {
+        let storage = Rc::new(MockStorage::default());
+        let mut manager = ConnectionManager::new(vec![], storage);
+        let component = Connections::new(
+            Rc::new(Cell::new(TabFocus::default())),
+            Config::default(),
+            manager.clone(),
+        );
+        let mut test = ComponentTestHarness::new(component);
+
+        // simulate another tab adding a connection to the shared manager
+        let conn = Connection::new("local".into(), "mongodb://localhost:27017".into());
+        manager.add_connection(conn.clone()).unwrap();
+        assert_eq!(test.component().list.items(), []);
+
+        test.given_event(Event::TabChanged);
+        assert_eq!(test.component().list.items(), &[conn]);
+    }
+
+    #[test]
+    fn test_select_connection() {
+        let conn1 = Connection::new("conn1".into(), "mongodb://1".into());
+        let conn2 = Connection::new("conn2".into(), "mongodb://2".into());
+        let conn3 = Connection::new("conn3".into(), "mongodb://3".into());
+
+        let storage = Rc::new(MockStorage::default());
+        let component = Connections::new(
+            Rc::new(Cell::new(TabFocus::default())),
+            Config::default(),
+            ConnectionManager::new(vec![conn1, conn2, conn3], storage),
+        );
+
+        let mut test = ComponentTestHarness::new(component);
+
+        // select the second connection
+        test.given_command(Command::NavDown); // highlights first
+        test.given_command(Command::NavDown); // highlights second
+        test.given_command(Command::Confirm);
+
+        test.expect_event(|e| matches!(e, Event::ConnectionSelected(c) if c.name == "conn2"));
+    }
+
+    #[test]
+    fn test_edit_connection() {
+        let conn1 = Connection::new("conn1".into(), "mongodb://1".into());
+        let conn2 = Connection::new("conn2".into(), "mongodb://2".into());
+        let conn3 = Connection::new("conn3".into(), "mongodb://3".into());
+
+        let storage = Rc::new(MockStorage::default());
+        let component = Connections::new(
+            Rc::new(Cell::new(TabFocus::default())),
+            Config::default(),
+            ConnectionManager::new(vec![conn1, conn2, conn3], storage),
+        );
+
+        let mut test = ComponentTestHarness::new(component);
+
+        // edit the second connection
+        test.given_command(Command::NavDown); // highlights first
+        test.given_command(Command::NavDown); // highlights second
+        test.given_command(Command::Edit);
+
+        test.expect_message(|m| {
+            matches!(
+                m.read_as_conn_scr(),
+                Some(ConnScreenAction::StartEditingConn(c)) if c.name == "conn2"
+            )
+        });
+    }
+
+    #[test]
+    fn test_delete_connection() {
+        let conn1 = Connection::new("conn1".into(), "mongodb://1".into());
+        let conn2 = Connection::new("conn2".into(), "mongodb://2".into());
+        let conn3 = Connection::new("conn3".into(), "mongodb://3".into());
+
+        let storage = Rc::new(MockStorage::default());
+        let connection_manager = ConnectionManager::new(vec![conn1, conn2, conn3], storage);
+        let component = Connections::new(
+            Rc::new(Cell::new(TabFocus::default())),
+            Config::default(),
+            connection_manager.clone(),
+        );
+
+        let mut test = ComponentTestHarness::new(component);
+
+        // delete the second connection
+        test.given_command(Command::NavDown); // highlights first
+        test.given_command(Command::NavDown); // highlights second
+        test.given_command(Command::Delete); // shows modal
+        test.given_event(Event::ConfirmYes(Command::Delete));
+
+        test.expect_event(|e| matches!(e, Event::ConnectionDeleted));
+        assert_eq!(
+            connection_manager
+                .connections()
+                .iter()
+                .map(|c| c.name.clone())
+                .collect::<Vec<_>>(),
+            vec!["conn1", "conn3"]
+        );
     }
 }
