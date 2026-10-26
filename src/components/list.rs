@@ -97,34 +97,56 @@ where
 
     /// computes which items are visible based on the search filter and stores
     /// the indices of the visible items in `visible_indices`
-    fn filter_items_by_search(&mut self) {
+    ///
+    /// returns a reference to the best match (if there is one)
+    fn filter_items_by_search(&mut self) -> Option<&T> {
         let query = self.search_input.value();
+        let matches = self.searcher.matches(&self.items, query);
 
-        if query.is_empty() {
-            self.visible_indices = (0..self.items.len()).collect();
-        } else {
-            let matches = self.searcher.matches(&self.items, query);
-            self.visible_indices = matches.map(|(idx, _)| idx).collect();
-        }
+        let mut best_idx = None;
+        let mut best_score = 0;
+        self.visible_indices = matches
+            .map(|(idx, score)| {
+                if score > best_score {
+                    best_idx = Some(idx);
+                    best_score = score;
+                }
+                idx
+            })
+            .collect();
+
+        best_idx.and_then(|idx| self.items.get(idx))
     }
 
     fn reset_search(&mut self) {
+        let selected = self.selected().cloned();
+
         self.search_input = Input::default();
         self.filter_items_by_search();
+
+        self.select(selected);
     }
 
     pub fn select(&mut self, item: Option<T>)
     where
         T: PartialEq,
     {
-        let index = item.and_then(|item| self.items.iter().position(|it| *it == item));
-        self.state.select(index);
+        if let Some(item) = item {
+            let index = self
+                .visible_indices
+                .iter()
+                .position(|&idx| self.items.get(idx).is_some_and(|it| *it == item));
+            self.state.select(index);
+        } else {
+            self.state.select(None);
+        }
     }
 
     pub fn selected(&self) -> Option<&T> {
         self.state
             .selected()
-            .and_then(|index| self.items.get(index))
+            .and_then(|index| self.visible_indices.get(index))
+            .and_then(|&index| self.items.get(index))
     }
 }
 
@@ -164,7 +186,7 @@ where
     }
 
     fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
-        let num_items = self.items.len();
+        let num_items = self.visible_indices.len();
 
         match command {
             Command::NavUp => {
@@ -218,8 +240,10 @@ where
     fn handle_raw_event(&mut self, event: &CrosstermEvent, queue: &mut SignalQueue) {
         if matches!(self.mode, Mode::SearchInput) {
             self.search_input.handle_event(event);
-            self.filter_items_by_search();
+            let best = self.filter_items_by_search().cloned();
+            self.select(best);
             queue.push(Event::SearchUpdated);
+            queue.push(Event::ListSelectionChanged);
         }
     }
 
@@ -474,5 +498,119 @@ mod tests {
         test.expect_message(|m| matches!(m.read_as_app(), Some(AppAction::ExitRawMode)));
 
         assert_eq!(test.component().visible_indices, vec![0, 1]);
+    }
+
+    fn searchable_list() -> ComponentTestHarness<InnerList<TestItem>> {
+        let component = InnerList::<TestItem>::with_items(&[
+            TestItem(123),
+            TestItem(2),
+            TestItem(321),
+            TestItem(11),
+            TestItem(13),
+        ]);
+        ComponentTestHarness::new(component)
+    }
+
+    fn search_for(test: &mut ComponentTestHarness<InnerList<TestItem>>, query: &str) {
+        test.given_command(Command::Search);
+        test.given_string(query);
+    }
+
+    #[test]
+    fn test_search_selects_best_match() {
+        let mut test = searchable_list();
+
+        search_for(&mut test, "2");
+        // "2" is a weaker match in 123 and 321
+        assert_eq!(test.component().selected(), Some(&TestItem(2)));
+    }
+
+    #[test]
+    fn test_search_emits_selection_changed() {
+        let mut test = searchable_list();
+
+        search_for(&mut test, "2");
+        test.expect_event(|e| matches!(e, Event::ListSelectionChanged));
+    }
+
+    #[test]
+    fn test_navigation_stays_within_filtered_items() {
+        let mut test = searchable_list();
+
+        // visible: 123, 13 (best match)
+        search_for(&mut test, "13");
+        test.given_command(Command::Confirm);
+        assert_eq!(test.component().selected(), Some(&TestItem(13)));
+
+        // wraps within the two visible items
+        test.given_command(Command::NavDown);
+        assert_eq!(test.component().selected(), Some(&TestItem(123)));
+        test.given_command(Command::NavDown);
+        assert_eq!(test.component().selected(), Some(&TestItem(13)));
+        test.given_command(Command::NavUp);
+        assert_eq!(test.component().selected(), Some(&TestItem(123)));
+        test.given_command(Command::NavUp);
+        assert_eq!(test.component().selected(), Some(&TestItem(13)));
+    }
+
+    #[test]
+    fn test_search_with_no_matches() {
+        let mut test = searchable_list();
+
+        search_for(&mut test, "9");
+        assert_eq!(test.component().selected(), None);
+
+        test.given_command(Command::Confirm);
+        test.given_command(Command::NavDown);
+        test.given_command(Command::NavUp);
+        assert_eq!(test.component().selected(), None);
+    }
+
+    #[test]
+    fn test_confirm_keeps_filter_and_selection() {
+        let mut test = searchable_list();
+
+        search_for(&mut test, "13");
+        test.given_command(Command::Confirm);
+
+        assert_eq!(test.component().selected(), Some(&TestItem(13)));
+        assert_eq!(test.component().visible_indices, vec![0, 4]);
+    }
+
+    #[test]
+    fn test_cancel_clears_filter_and_keeps_selection() {
+        let mut test = searchable_list();
+
+        search_for(&mut test, "13");
+        test.given_command(Command::Back);
+
+        assert_eq!(test.component().selected(), Some(&TestItem(13)));
+        assert_eq!(test.component().visible_indices, vec![0, 1, 2, 3, 4]);
+    }
+
+    #[test]
+    fn test_set_items_while_filtered_keeps_filter_and_selection() {
+        let mut test = searchable_list();
+
+        search_for(&mut test, "13");
+        test.given_command(Command::Confirm);
+
+        test.component_mut()
+            .set_items(&[TestItem(13), TestItem(2), TestItem(123), TestItem(4)]);
+
+        assert_eq!(test.component().selected(), Some(&TestItem(13)));
+        assert_eq!(test.component().visible_indices, vec![0, 2]);
+    }
+
+    #[test]
+    fn test_selecting_hidden_item_clears_selection() {
+        let mut test = searchable_list();
+
+        search_for(&mut test, "13");
+        test.given_command(Command::Confirm);
+
+        // 2 exists but is filtered out
+        test.component_mut().select(Some(TestItem(2)));
+        assert_eq!(test.component().selected(), None);
     }
 }
