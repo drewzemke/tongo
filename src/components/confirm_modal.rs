@@ -190,7 +190,7 @@ mod tests {
         let mut test = ComponentTestHarness::new(ConfirmModal::default());
         test.given_command(Command::Confirm);
         test.given_command(Command::Back);
-        test.expect_no_events();
+        test.expect_empty_events();
         test.expect_no_messages();
     }
 

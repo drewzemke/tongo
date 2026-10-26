@@ -130,7 +130,7 @@ impl Component for ConnectionScreen {
             Some(ConnScrFocus::ConnList) => self.conn_list.handle_command(command, queue),
             Some(ConnScrFocus::NameIn) => self.conn_name_input.handle_command(command, queue),
             Some(ConnScrFocus::StringIn) => self.conn_str_input.handle_command(command, queue),
-            None => {},
+            None => {}
         }
     }
 
@@ -139,7 +139,7 @@ impl Component for ConnectionScreen {
             Some(ConnScrFocus::ConnList) => self.conn_list.handle_raw_event(event, queue),
             Some(ConnScrFocus::NameIn) => self.conn_name_input.handle_raw_event(event, queue),
             Some(ConnScrFocus::StringIn) => self.conn_str_input.handle_raw_event(event, queue),
-            None => {},
+            None => {}
         }
     }
 
@@ -148,7 +148,9 @@ impl Component for ConnectionScreen {
             self.connection_manager
                 .add_connection(conn.clone())
                 .unwrap_or_else(|_| {
-                    queue.push(Event::ErrorOccurred("Could not save updated connections.".into()));
+                    queue.push(Event::ErrorOccurred(
+                        "Could not save updated connections.".into(),
+                    ));
                 });
         }
         self.conn_list.handle_event(event, queue);
@@ -191,7 +193,9 @@ impl Component for ConnectionScreen {
                     self.connection_manager
                         .update_connection(&editing_conn)
                         .unwrap_or_else(|_| {
-                            queue.push(Event::ErrorOccurred("Could not save updated connections.".into()));
+                            queue.push(Event::ErrorOccurred(
+                                "Could not save updated connections.".into(),
+                            ));
                         });
 
                     self.conn_list.focus();
@@ -259,6 +263,15 @@ impl Component for ConnectionScreen {
 
     fn is_focused(&self) -> bool {
         matches!(self.focus.get(), TabFocus::ConnScr(..))
+    }
+
+    fn is_capturing_input(&self) -> bool {
+        match self.internal_focus() {
+            Some(ConnScrFocus::ConnList) => self.conn_list.is_capturing_input(),
+            Some(ConnScrFocus::NameIn) => self.conn_name_input.is_capturing_input(),
+            Some(ConnScrFocus::StringIn) => self.conn_str_input.is_capturing_input(),
+            None => false,
+        }
     }
 }
 

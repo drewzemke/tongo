@@ -231,6 +231,10 @@ where
         self.focus.get() == self.focused_when
     }
 
+    fn is_capturing_input(&self) -> bool {
+        matches!(self.mode, Mode::SearchInput)
+    }
+
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         let (border_color, bg_color, highlight_text, highlight_bg, unselected_fg) =
             if self.is_focused() {

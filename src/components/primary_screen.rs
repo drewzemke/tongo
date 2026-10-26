@@ -115,6 +115,8 @@ impl Component for PrimaryScreen<'_> {
     }
 
     fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
+        let was_capturing = self.is_capturing_input();
+
         // we need to pass the command to the currently-focused component first,
         // the way this component handles the command might change the focus
         match self.internal_focus() {
@@ -123,6 +125,10 @@ impl Component for PrimaryScreen<'_> {
             Some(PrimScrFocus::DocTree) => self.doc_tree.handle_command(command, queue),
             Some(PrimScrFocus::QueryIn(..)) => self.query_input.handle_command(command, queue),
             None => {}
+        }
+
+        if was_capturing {
+            return;
         }
 
         match command {
@@ -226,6 +232,16 @@ impl Component for PrimaryScreen<'_> {
         }
     }
 
+    fn is_capturing_input(&self) -> bool {
+        match self.internal_focus() {
+            Some(PrimScrFocus::DbList) => self.db_list.is_capturing_input(),
+            Some(PrimScrFocus::CollList) => self.coll_list.is_capturing_input(),
+            Some(PrimScrFocus::DocTree) => self.doc_tree.is_capturing_input(),
+            Some(PrimScrFocus::QueryIn(..)) => self.query_input.is_capturing_input(),
+            None => false,
+        }
+    }
+
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         let content_layout = Layout::default()
             .direction(Direction::Horizontal)
@@ -293,5 +309,66 @@ impl PersistedComponent for PrimaryScreen<'_> {
         self.coll_list.hydrate(storage.coll_list);
         self.doc_tree.hydrate(storage.doc_tree);
         self.query_input.hydrate(storage.query_input);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{
+        model::database::Database, system::message::AppAction, testing::ComponentTestHarness,
+    };
+
+    fn screen_with_db_list_focused() -> ComponentTestHarness<PrimaryScreen<'static>> {
+        let screen = PrimaryScreen::new(
+            Rc::new(Cell::new(TabFocus::PrimScr(PrimScrFocus::DbList))),
+            Rc::default(),
+            Config::default(),
+        );
+        let mut test = ComponentTestHarness::new(screen);
+        test.given_event(Event::DatabasesUpdated(vec![Database::new(
+            "test_db".to_string(),
+        )]));
+        test
+    }
+
+    #[test]
+    fn test_back_while_searching_cancels_search_without_navigating() {
+        let mut test = screen_with_db_list_focused();
+
+        test.given_command(Command::Search);
+        test.given_command(Command::Back);
+
+        test.expect_message(|m| matches!(m.read_as_app(), Some(AppAction::ExitRawMode)));
+        assert_eq!(
+            test.component().focus.get(),
+            TabFocus::PrimScr(PrimScrFocus::DbList)
+        );
+    }
+
+    #[test]
+    fn test_confirm_while_searching_does_not_select_database() {
+        let mut test = screen_with_db_list_focused();
+
+        test.given_command(Command::Search);
+        test.given_command(Command::Confirm);
+
+        test.expect_no_event(|e| matches!(e, Event::DatabaseSelected(..)));
+        assert_eq!(
+            test.component().focus.get(),
+            TabFocus::PrimScr(PrimScrFocus::DbList)
+        );
+    }
+
+    #[test]
+    fn test_back_when_not_searching_still_navigates() {
+        let mut test = screen_with_db_list_focused();
+
+        test.given_command(Command::Back);
+
+        assert_eq!(
+            test.component().focus.get(),
+            TabFocus::ConnScr(ConnScrFocus::ConnList)
+        );
     }
 }

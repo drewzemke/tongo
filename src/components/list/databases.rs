@@ -88,7 +88,13 @@ impl Component for Databases {
     }
 
     fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
+        let was_capturing = self.is_capturing_input();
+
         self.list.handle_command(command, queue);
+
+        if was_capturing {
+            return;
+        }
 
         match command {
             Command::Confirm => {
@@ -141,6 +147,10 @@ impl Component for Databases {
         self.list.handle_raw_event(event, queue);
     }
 
+    fn is_capturing_input(&self) -> bool {
+        self.list.is_capturing_input()
+    }
+
     fn render(&mut self, frame: &mut Frame, area: Rect) {
         self.list.render(frame, area);
     }
@@ -179,6 +189,21 @@ mod tests {
 
     fn get_dummy_database() -> Database {
         Database::new("test_db".to_string())
+    }
+
+    #[test]
+    fn test_confirm_while_searching_does_not_select() {
+        let component = Databases::with_items(&[get_dummy_database()]);
+        let mut test = ComponentTestHarness::new(component);
+
+        // make sure there's a selection
+        test.given_command(Command::NavDown);
+        assert!(test.component().list.selected().is_some());
+
+        test.given_command(Command::Search);
+        test.given_command(Command::Confirm);
+
+        test.expect_no_event(|e| matches!(e, Event::DatabaseSelected(..)));
     }
 
     #[test]

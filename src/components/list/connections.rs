@@ -146,7 +146,13 @@ impl Component for Connections {
     }
 
     fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
+        let was_capturing = self.is_capturing_input();
+
         self.list.handle_command(command, queue);
+
+        if was_capturing {
+            return;
+        }
 
         match command {
             Command::Confirm => {
@@ -203,6 +209,10 @@ impl Component for Connections {
 
     fn handle_raw_event(&mut self, event: &crossterm::event::Event, queue: &mut SignalQueue) {
         self.list.handle_raw_event(event, queue);
+    }
+
+    fn is_capturing_input(&self) -> bool {
+        self.list.is_capturing_input()
     }
 
     fn render(&mut self, frame: &mut Frame, area: Rect) {

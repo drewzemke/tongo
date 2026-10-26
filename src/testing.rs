@@ -97,7 +97,16 @@ impl<C: Component> ComponentTestHarness<C> {
         );
     }
 
-    pub fn expect_no_events(&self) {
+    pub fn expect_no_event<P: FnMut(&&Event) -> bool>(&self, predicate: P) {
+        let event = self.events.iter().find(predicate);
+        assert!(
+            event.is_none(),
+            "Unexpected matching event found. These events were recorded:\n{:?}",
+            self.events
+        );
+    }
+
+    pub fn expect_empty_events(&self) {
         assert!(
             self.events.is_empty(),
             "Event list not empty. These events were recorded:\n{:?}",

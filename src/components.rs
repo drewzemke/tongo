@@ -39,4 +39,9 @@ pub trait Component {
     fn is_focused(&self) -> bool {
         false
     }
+
+    /// whether this component is consuming all inputs (eg. typing in a textbox)
+    fn is_capturing_input(&self) -> bool {
+        false
+    }
 }
