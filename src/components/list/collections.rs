@@ -46,13 +46,18 @@ impl CloneWithFocus for Collections {
 }
 
 impl Collections {
-    pub fn new(focus: Rc<Cell<TabFocus>>, config: Config) -> Self {
+    pub fn new(
+        focus: Rc<Cell<TabFocus>>,
+        cursor_pos: Rc<Cell<(u16, u16)>>,
+        config: Config,
+    ) -> Self {
         Self {
             list: InnerList::new(
                 "Collections",
-                config,
                 focus,
                 TabFocus::PrimScr(PrimScrFocus::CollList),
+                cursor_pos,
+                config,
             ),
         }
     }

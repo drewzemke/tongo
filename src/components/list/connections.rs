@@ -66,6 +66,7 @@ impl CloneWithFocus for Connections {
 impl Connections {
     pub fn new(
         focus: Rc<Cell<TabFocus>>,
+        cursor_pos: Rc<Cell<(u16, u16)>>,
         config: Config,
         connection_manager: ConnectionManager,
     ) -> Self {
@@ -73,9 +74,10 @@ impl Connections {
             connection_manager,
             list: InnerList::new(
                 "Connections",
-                config.clone(),
                 focus,
                 TabFocus::ConnScr(ConnScrFocus::ConnList),
+                cursor_pos,
+                config.clone(),
             ),
             config,
         };
@@ -325,6 +327,7 @@ mod tests {
         let mut manager = ConnectionManager::new(vec![], storage);
         let component = Connections::new(
             Rc::new(Cell::new(TabFocus::default())),
+            Rc::default(),
             Config::default(),
             manager.clone(),
         );
@@ -348,6 +351,7 @@ mod tests {
         let storage = Rc::new(MockStorage::default());
         let component = Connections::new(
             Rc::new(Cell::new(TabFocus::default())),
+            Rc::default(),
             Config::default(),
             ConnectionManager::new(vec![conn1, conn2, conn3], storage),
         );
@@ -371,6 +375,7 @@ mod tests {
         let storage = Rc::new(MockStorage::default());
         let component = Connections::new(
             Rc::new(Cell::new(TabFocus::default())),
+            Rc::default(),
             Config::default(),
             ConnectionManager::new(vec![conn1, conn2, conn3], storage),
         );
@@ -400,6 +405,7 @@ mod tests {
         let connection_manager = ConnectionManager::new(vec![conn1, conn2, conn3], storage);
         let component = Connections::new(
             Rc::new(Cell::new(TabFocus::default())),
+            Rc::default(),
             Config::default(),
             connection_manager.clone(),
         );

@@ -54,6 +54,7 @@ pub struct InnerList<T> {
     search_input: Input,
     searcher: ListSearcher,
     visible_indices: Vec<usize>,
+    cursor_pos: Rc<Cell<(u16, u16)>>,
 }
 
 impl<T> InnerList<T>
@@ -62,15 +63,17 @@ where
 {
     pub fn new(
         title: &'static str,
-        config: Config,
         focus: Rc<Cell<TabFocus>>,
         focused_when: TabFocus,
+        cursor_pos: Rc<Cell<(u16, u16)>>,
+        config: Config,
     ) -> Self {
         Self {
             title,
             config,
             focus,
             focused_when,
+            cursor_pos,
             ..Default::default()
         }
     }
@@ -279,8 +282,8 @@ where
                 )
             };
 
-        let has_search =
-            !self.search_input.value().is_empty() || matches!(self.mode, Mode::SearchInput);
+        let is_editing = matches!(self.mode, Mode::SearchInput);
+        let has_search = !self.search_input.value().is_empty() || is_editing;
 
         let mut block = Block::bordered()
             .bg(bg_color)
@@ -303,6 +306,16 @@ where
             .highlight_style(Style::default().bold().fg(highlight_text).bg(highlight_bg));
 
         StatefulWidget::render(list, area, frame.buffer_mut(), &mut self.state);
+
+        // update cursor position
+        #[expect(clippy::cast_possible_truncation)]
+        if is_editing {
+            let cursor_pos = (
+                area.x + self.search_input.visual_cursor() as u16 + 3,
+                area.y + area.height - 1,
+            );
+            self.cursor_pos.set(cursor_pos);
+        }
     }
 }
 
@@ -454,8 +467,13 @@ mod tests {
     fn test_focus_follows_shared_cell() {
         let focus = Rc::new(Cell::new(TabFocus::default()));
         let db_focus = TabFocus::PrimScr(PrimScrFocus::DbList);
-        let component =
-            InnerList::<TestItem>::new("Test", Config::default(), focus.clone(), db_focus);
+        let component = InnerList::<TestItem>::new(
+            "Test",
+            focus.clone(),
+            db_focus,
+            Rc::default(),
+            Config::default(),
+        );
         assert!(!component.is_focused());
 
         component.focus();
@@ -471,8 +489,13 @@ mod tests {
     fn test_clone_with_focus_uses_new_cell() {
         let db_focus = TabFocus::PrimScr(PrimScrFocus::DbList);
         let original_focus = Rc::new(Cell::new(TabFocus::default()));
-        let original =
-            InnerList::<TestItem>::new("Test", Config::default(), original_focus.clone(), db_focus);
+        let original = InnerList::<TestItem>::new(
+            "Test",
+            original_focus.clone(),
+            db_focus,
+            Rc::default(),
+            Config::default(),
+        );
 
         let cloned_focus = Rc::new(Cell::new(TabFocus::default()));
         let cloned = original.clone_with_focus(cloned_focus);

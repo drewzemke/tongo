@@ -46,13 +46,19 @@ impl CloneWithFocus for Databases {
 }
 
 impl Databases {
-    pub fn new(focus: Rc<Cell<TabFocus>>, config: Config) -> Self {
+    pub fn new(
+        focus: Rc<Cell<TabFocus>>,
+
+        cursor_pos: Rc<Cell<(u16, u16)>>,
+        config: Config,
+    ) -> Self {
         Self {
             list: InnerList::new(
                 "Databases",
-                config,
                 focus,
                 TabFocus::PrimScr(PrimScrFocus::DbList),
+                cursor_pos,
+                config,
             ),
         }
     }
