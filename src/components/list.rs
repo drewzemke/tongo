@@ -180,12 +180,21 @@ where
             ];
         }
 
-        vec![
+        let mut out = vec![
             CommandGroup::new(vec![Command::NavUp, Command::NavDown], "navigate")
                 .in_cat(CommandCategory::AppNav),
-            CommandGroup::new(vec![Command::Search], "fuzzy search")
+            CommandGroup::new(vec![Command::Search], "fuzzy filter")
                 .in_cat(CommandCategory::AppNav),
-        ]
+        ];
+
+        if !self.search_input.value().is_empty() {
+            out.push(
+                CommandGroup::new(vec![Command::Reset], "reset filter")
+                    .in_cat(CommandCategory::AppNav),
+            );
+        }
+
+        out
     }
 
     fn handle_command(&mut self, command: &Command, queue: &mut SignalQueue) {
@@ -235,6 +244,11 @@ where
                     self.reset_search();
                     queue.push(Message::to_app(AppAction::ExitRawMode));
                 }
+            }
+
+            Command::Reset => {
+                self.reset_search();
+                queue.push(Event::SearchUpdated);
             }
             _ => {}
         }
