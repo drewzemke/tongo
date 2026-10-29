@@ -60,6 +60,7 @@ pub struct Documents<'a> {
     mode: Mode,
     search_input: Input,
     searcher: DocSearcher,
+    cursor_pos: Rc<Cell<(u16, u16)>>,
 }
 
 impl Clone for Documents<'_> {
@@ -81,6 +82,7 @@ impl Clone for Documents<'_> {
             searcher,
             page: self.page,
             count: self.count,
+            cursor_pos: self.cursor_pos.clone(),
         };
         documents.reset_state();
         documents
@@ -97,12 +99,17 @@ impl CloneWithFocus for Documents<'_> {
 }
 
 impl Documents<'_> {
-    pub fn new(focus: Rc<Cell<TabFocus>>, config: Config) -> Self {
+    pub fn new(
+        focus: Rc<Cell<TabFocus>>,
+        cursor_pos: Rc<Cell<(u16, u16)>>,
+        config: Config,
+    ) -> Self {
         let mongo_tree_builder = MongoTreeBuilder::new(config.clone());
         Self {
             focus,
             config,
             mongo_tree_builder,
+            cursor_pos,
             ..Default::default()
         }
     }
@@ -565,7 +572,7 @@ impl Component for Documents<'_> {
             Mode::Normal => block,
             Mode::SearchInput => block
                 .title_bottom(
-                    Line::from(format!(" search: \"{}\" ", self.search_input.value()))
+                    Line::from(format!(" /{} ", self.search_input.value()))
                         .left_aligned()
                         .fg(self.config.color_map.get(&ColorKey::DocumentsSearch)),
                 )
@@ -576,7 +583,7 @@ impl Component for Documents<'_> {
                 ),
             Mode::SearchReview => block
                 .title_bottom(
-                    Line::from(format!(" search: \"{}\" ", self.search_input.value()))
+                    Line::from(format!(" /{} ", self.search_input.value()))
                         .left_aligned()
                         .fg(self.config.color_map.get(&ColorKey::DocumentsSearch)),
                 )
@@ -586,6 +593,16 @@ impl Component for Documents<'_> {
                         .fg(self.config.color_map.get(&ColorKey::DocumentsSearch)),
                 ),
         };
+
+        // update cursor position
+        #[expect(clippy::cast_possible_truncation)]
+        if matches!(self.mode, Mode::SearchInput) {
+            let cursor_pos = (
+                area.x + self.search_input.visual_cursor() as u16 + 3,
+                area.y + area.height - 1,
+            );
+            self.cursor_pos.set(cursor_pos);
+        }
 
         let widget = Tree::new(&self.items)
             .expect("all item identifiers are unique")

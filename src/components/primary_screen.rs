@@ -62,7 +62,7 @@ impl PrimaryScreen<'_> {
     ) -> Self {
         let db_list = Databases::new(focus.clone(), cursor_pos.clone(), config.clone());
         let coll_list = Collections::new(focus.clone(), cursor_pos.clone(), config.clone());
-        let doc_tree = Documents::new(focus.clone(), config.clone());
+        let doc_tree = Documents::new(focus.clone(), cursor_pos.clone(), config.clone());
         let query_input = QueryInput::new(focus.clone(), cursor_pos, config);
         Self {
             focus,
