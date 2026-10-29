@@ -279,7 +279,8 @@ where
                 )
             };
 
-        let has_search = !self.search_input.value().is_empty();
+        let has_search =
+            !self.search_input.value().is_empty() || matches!(self.mode, Mode::SearchInput);
 
         let mut block = Block::bordered()
             .bg(bg_color)
@@ -288,7 +289,7 @@ where
 
         if has_search {
             block = block.title_bottom(
-                Line::from(format!(" / \"{}\" ", self.search_input.value()))
+                Line::from(format!(" /{} ", self.search_input.value()))
                     .left_aligned()
                     .fg(self.config.color_map.get(&ColorKey::DocumentsSearch)),
             );
