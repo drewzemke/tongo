@@ -6,6 +6,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.15.7](https://github.com/drewzemke/tongo/compare/v0.15.6...v0.15.7) - 2026-10-29
+
+### Added
+
+- add ability to reset list filter
+- render cursor when documents search
+- correctly render cursor when filtering lists
+- improve rendering of list search input
+- list selection plays well with filters
+- initial impl of list filtering
+
+### Fixed
+
+- bump `syntect` to latest
+- confirm/back during list filtering doesn't navigate
+- update connections on tab changes
+
+### Other
+
+- rename `DocSearchUpdated` -> `SearchUpdated`
+- `InnerList` implements `Component`, added some component tests
+- add test coverage for `ConfirmModal` component
+- add test coverage for `Connections` component
+- clippy config to allow unwrap/expect in tests
+- make `InnerList` generic over item type, now owns items
+- *(connections)* delete connections by id
+- address some new lints
+
 ## [0.15.6](https://github.com/drewzemke/tongo/compare/v0.15.5...v0.15.6) - 2026-08-23
 
 ### Added
